@@ -54,6 +54,19 @@ docker compose exec api python manage.py createsuperuser
 Grant roles in the admin (`/admin/iam/rolescope/`) or through the API once the admin screens land.
 Administrator, HR Manager and Finance roles must enrol an authenticator app on first sign-in.
 
+## 3b. Import sample or migration data
+
+```bash
+docker compose exec api python manage.py import_staff --write-template /srv/files/import-template.xlsx
+# fill the Units, Positions, Employees and LeaveBalances sheets, then validate without writing:
+docker compose exec api python manage.py import_staff --file /srv/files/mon-repos-livestock.xlsx --dry-run
+docker compose exec api python manage.py import_staff --file /srv/files/mon-repos-livestock.xlsx
+```
+
+The import is idempotent (natural keys: unit code, position number, employee number) and prints
+a reconciliation table per sheet. Any validation error aborts the whole import with the sheet, row and
+field named, so partial loads never happen. Identifiers are encrypted on the way in and never printed.
+
 ## 4. Branching and CI
 
 - `main` is protected. Work on `feature/<id>-<short-name>` branches named after the requirement ID (for example `feature/F06-leave-ledger`).
