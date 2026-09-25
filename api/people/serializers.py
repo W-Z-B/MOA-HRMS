@@ -115,6 +115,12 @@ class ContractSerializer(TimeStampedSerializer):
 
 
 class DocumentSerializer(TimeStampedSerializer):
+    """The file is write-only; reads get an authenticated download URL instead of a storage path."""
+
+    file = serializers.FileField(write_only=True)
+    filename = serializers.SerializerMethodField()
+    download_url = serializers.SerializerMethodField()
+
     class Meta(TimeStampedSerializer.Meta):
         model = Document
         fields = (
@@ -123,9 +129,17 @@ class DocumentSerializer(TimeStampedSerializer):
             "doc_type",
             "title",
             "file",
+            "filename",
+            "download_url",
             "version",
             "classification",
             "retention_date",
             "created_at",
             "updated_at",
         )
+
+    def get_filename(self, obj):
+        return obj.file.name.rsplit("/", 1)[-1] if obj.file else None
+
+    def get_download_url(self, obj):
+        return f"/api/v1/documents/{obj.id}/download/"

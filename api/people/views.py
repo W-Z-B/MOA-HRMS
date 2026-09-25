@@ -3,6 +3,7 @@
 from django.contrib.postgres.search import SearchQuery, SearchVector
 from django.db import connection
 from django.db.models import Q
+from django.http import FileResponse
 from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
@@ -102,3 +103,11 @@ class DocumentViewSet(AuditedModelViewSet):
             qs = qs.exclude(classification=Document.Classification.MEDICAL)
         employee = self.request.query_params.get("employee")
         return qs.filter(employee_id=employee) if employee else qs
+
+    @action(detail=True, methods=["get"], url_path="download")
+    def download(self, request, pk=None):
+        """Stream the file to an authorised user. Files are never served from a public media URL."""
+        document = self.get_object()  # applies campus scoping and the medical restriction
+        record(request, "download", document, after={"title": document.title, "version": document.version})
+        filename = document.file.name.rsplit("/", 1)[-1]
+        return FileResponse(document.file.open("rb"), as_attachment=True, filename=filename)

@@ -91,7 +91,8 @@ export interface EmployeeDocument {
   id: number;
   doc_type: string;
   title: string;
-  file: string;
+  filename: string | null;
+  download_url: string;
   version: number;
   classification: string;
   retention_date: string | null;

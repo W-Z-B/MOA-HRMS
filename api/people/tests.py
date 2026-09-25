@@ -125,3 +125,34 @@ def test_document_upload_stores_file_and_lists_it(api, employee):
     assert response.json()["file"].endswith(".pdf")
     listing = api.get("/api/v1/documents/", {"employee": employee.id}).json()
     assert listing["count"] == 1 and listing["results"][0]["title"] == "Offer letter"
+
+
+@pytest.mark.django_db
+def test_document_download_is_authenticated_scoped_and_audited(api, employee, hr_officer, make_user, seeded):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+    from rest_framework.test import APIClient
+
+    upload = SimpleUploadedFile("contract.pdf", b"%PDF-1.4 contract", content_type="application/pdf")
+    created = api.post(
+        "/api/v1/documents/",
+        {"employee": employee.id, "title": "Contract", "doc_type": "contract", "file": upload},
+        format="multipart",
+    ).json()
+    assert "file" not in created and created["download_url"].endswith(f"/documents/{created['id']}/download/")
+
+    response = api.get(created["download_url"])
+    assert response.status_code == 200
+    assert b"".join(response.streaming_content) == b"%PDF-1.4 contract"
+    assert "attachment" in response["Content-Disposition"]
+    assert AuditLog.objects.filter(
+        entity="people.document", entity_id=created["id"], action="download"
+    ).exists()
+
+    # Unauthenticated and other-campus users cannot fetch it.
+    assert APIClient().get(created["download_url"]).status_code == 403
+    from org.models import Campus
+
+    other = make_user("esq.officer", "hr_officer", campus=Campus.objects.get(code="ESQ"))
+    client = APIClient()
+    client.force_login(other)
+    assert client.get(created["download_url"]).status_code == 404

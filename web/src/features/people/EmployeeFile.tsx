@@ -156,11 +156,9 @@ export function EmployeeFile({ employee, me, onEdit }: Props) {
             <ul className="plain">
               {documents.map((d) => (
                 <li key={d.id}>
-                  <a href={d.file} target="_blank" rel="noreferrer">
-                    {d.title}
-                  </a>{" "}
+                  <a href={d.download_url}>{d.title}</a>{" "}
                   <span className="muted small">
-                    v{d.version} · {d.doc_type} · {d.classification}
+                    {d.filename} · v{d.version} · {d.doc_type} · {d.classification}
                   </span>
                 </li>
               ))}
