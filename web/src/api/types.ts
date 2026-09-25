@@ -29,6 +29,9 @@ export interface Employee {
   full_name: string;
   first_name: string;
   last_name: string;
+  other_names: string;
+  date_of_birth: string;
+  gender: "F" | "M" | "X";
   campus: number;
   campus_name: string;
   status: "active" | "on_leave" | "suspended" | "separated";
@@ -38,6 +41,37 @@ export interface Employee {
   national_id_masked: string | null;
   email: string;
   phone: string;
+  address: string;
+  next_of_kin_name: string;
+  next_of_kin_phone: string;
+}
+
+/** Fields accepted on create and update; identifiers are write-only and optional. */
+export type EmployeeInput = Pick<
+  Employee,
+  | "employee_no"
+  | "first_name"
+  | "last_name"
+  | "other_names"
+  | "date_of_birth"
+  | "gender"
+  | "campus"
+  | "status"
+  | "email"
+  | "phone"
+  | "address"
+  | "next_of_kin_name"
+  | "next_of_kin_phone"
+> & { national_id?: string; nis_no?: string; tin?: string };
+
+export interface Position {
+  id: number;
+  number: string;
+  title: string;
+  org_unit: number;
+  org_unit_name: string;
+  status: string;
+  is_vacant: boolean;
 }
 
 export interface Assignment {

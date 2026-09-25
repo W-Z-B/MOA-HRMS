@@ -44,6 +44,18 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   return body as T;
 }
 
+const encode = (data: unknown) => (data instanceof FormData ? data : JSON.stringify(data));
+
 export const get = <T>(path: string) => api<T>(path);
 export const post = <T>(path: string, data?: unknown) =>
-  api<T>(path, { method: "POST", body: data === undefined ? undefined : JSON.stringify(data) });
+  api<T>(path, { method: "POST", body: data === undefined ? undefined : encode(data) });
+export const patch = <T>(path: string, data: unknown) => api<T>(path, { method: "PATCH", body: encode(data) });
+
+/** First human-readable message from an API error, preferring field errors. */
+export function errorMessage(err: unknown, fallback = "Something went wrong."): string {
+  if (err instanceof ApiError) {
+    const field = err.fields ? Object.entries(err.fields)[0] : undefined;
+    return field ? `${field[0].replace(/_/g, " ")}: ${[field[1]].flat()[0]}` : err.detail;
+  }
+  return fallback;
+}
