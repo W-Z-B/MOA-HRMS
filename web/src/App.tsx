@@ -5,6 +5,7 @@ import { Shell } from "./app/Shell";
 import { useHashRoute } from "./app/router";
 import { LoginScreen } from "./features/auth/LoginScreen";
 import { DashboardScreen } from "./features/dashboard/DashboardScreen";
+import { LeaveScreen } from "./features/leave/LeaveScreen";
 import { DirectoryScreen } from "./features/people/DirectoryScreen";
 import { ComingSoon } from "./features/placeholder/ComingSoon";
 
@@ -43,10 +44,16 @@ export default function App() {
   if (me === undefined) return <p className="loading">Loading GSA HRMS…</p>;
   if (me === null || (me.mfa_required && !me.mfa_verified)) return <LoginScreen onSignedIn={setMe} />;
 
+  const idIn = (prefix: string) => {
+    const m = path.match(new RegExp(`^${prefix}/(\\d+)`));
+    return m ? Number(m[1]) : null;
+  };
+
   let screen;
   if (path === "/") screen = <DashboardScreen campusId={campusId} />;
-  else if (path.startsWith("/people")) screen = <DirectoryScreen campusId={campusId} />;
-  else if (path.startsWith("/leave")) screen = <ComingSoon title="Leave" sprint="Sprint 4" requirement="F06" />;
+  else if (path.startsWith("/people"))
+    screen = <DirectoryScreen me={me} campusId={campusId} initialId={idIn("/people")} onNavigate={navigate} />;
+  else if (path.startsWith("/leave")) screen = <LeaveScreen me={me} focusId={idIn("/leave/requests")} />;
   else if (path.startsWith("/attendance"))
     screen = <ComingSoon title="Attendance" sprint="Release 2" requirement="F07" />;
   else if (path.startsWith("/appraisals"))

@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { get, post } from "../api/client";
 import type { Campus, Me, Paginated } from "../api/types";
+import { NotificationsBell } from "./NotificationsBell";
 import { NAV } from "./router";
 
 interface Props {
@@ -46,6 +47,7 @@ export function Shell({ me, path, onNavigate, onLogout, campusId, onCampusChange
           </select>
         </label>
         <span className="spacer" />
+        <NotificationsBell onNavigate={onNavigate} />
         <span className="user">
           {me.name} <small>{me.roles.join(", ") || "no role"}</small>
         </span>
