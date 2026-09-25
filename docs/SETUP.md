@@ -37,12 +37,22 @@ Caddy issues a local certificate for `hrms.localhost`; trust the Caddy root CA o
 ```bash
 docker compose logs -f api worker           # follow logs
 docker compose exec api python manage.py makemigrations
-docker compose exec api pytest -q            # backend tests
+docker compose run --rm api pytest -q        # backend tests (PostgreSQL required; SQLite tests are skipped)
 docker compose exec api ruff check .         # lint
 docker compose exec web npm run lint         # front-end lint
 docker compose exec web npm run build        # production bundle check
 docker compose down                          # stop; add -v to drop the database
 ```
+
+## 3a. Seed data and first user
+
+```bash
+docker compose exec api python manage.py seed --country GY     # campuses, roles, leave types, holidays, reports
+docker compose exec api python manage.py createsuperuser
+```
+
+Grant roles in the admin (`/admin/iam/rolescope/`) or through the API once the admin screens land.
+Administrator, HR Manager and Finance roles must enrol an authenticator app on first sign-in.
 
 ## 4. Branching and CI
 

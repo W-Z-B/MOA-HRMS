@@ -1,2 +1,68 @@
+"""Identity and access: roles, campus and unit scopes, multi-factor devices."""
 
-# Create your models here.
+from django.conf import settings
+from django.db import models
+
+from core.fields import EncryptedTextField
+from core.models import TimeStampedModel
+
+
+class Role(TimeStampedModel):
+    ADMINISTRATOR = "administrator"
+    HR_MANAGER = "hr_manager"
+    HR_OFFICER = "hr_officer"
+    FINANCE = "finance"
+    PRINCIPAL = "principal"
+    SUPERVISOR = "supervisor"
+    EMPLOYEE = "employee"
+    MINISTRY_LIAISON = "ministry_liaison"
+    AUDITOR = "auditor"
+    CODES = (
+        (ADMINISTRATOR, "System Administrator"),
+        (HR_MANAGER, "HR Manager"),
+        (HR_OFFICER, "HR Officer"),
+        (FINANCE, "Finance / Payroll Officer"),
+        (PRINCIPAL, "Principal / Deputy Principal"),
+        (SUPERVISOR, "Supervisor / Head of Department"),
+        (EMPLOYEE, "Employee"),
+        (MINISTRY_LIAISON, "Ministry of Agriculture Liaison"),
+        (AUDITOR, "Auditor"),
+    )
+    MFA_REQUIRED = frozenset({ADMINISTRATOR, HR_MANAGER, FINANCE})
+
+    code = models.CharField(max_length=40, unique=True, choices=CODES)
+    name = models.CharField(max_length=80)
+    description = models.TextField(blank=True)
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class RoleScope(TimeStampedModel):
+    """Grants a role to a user, optionally limited to one campus or one organisational unit."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="role_scopes")
+    role = models.ForeignKey(Role, on_delete=models.PROTECT, related_name="scopes")
+    campus = models.ForeignKey("org.Campus", null=True, blank=True, on_delete=models.CASCADE)
+    org_unit = models.ForeignKey("org.OrgUnit", null=True, blank=True, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = [("user", "role", "campus", "org_unit")]
+
+    def __str__(self) -> str:
+        scope = self.org_unit or self.campus or "all campuses"
+        return f"{self.user} as {self.role.code} ({scope})"
+
+
+class TotpDevice(TimeStampedModel):
+    """Time-based one-time password enrolment; required for privileged roles (Role.MFA_REQUIRED)."""
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="totp_device"
+    )
+    secret = EncryptedTextField()
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+
+    @property
+    def is_confirmed(self) -> bool:
+        return self.confirmed_at is not None

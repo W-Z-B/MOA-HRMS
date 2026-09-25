@@ -1,122 +1,71 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useEffect, useState } from "react";
+import { get } from "./api/client";
+import type { Me } from "./api/types";
+import { Shell } from "./app/Shell";
+import { useHashRoute } from "./app/router";
+import { LoginScreen } from "./features/auth/LoginScreen";
+import { DashboardScreen } from "./features/dashboard/DashboardScreen";
+import { DirectoryScreen } from "./features/people/DirectoryScreen";
+import { ComingSoon } from "./features/placeholder/ComingSoon";
 
-function App() {
-  const [count, setCount] = useState(0)
+const CAMPUS_KEY = "gsa-hrms.campus";
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+function readCampus(): number | null {
+  try {
+    const stored = localStorage.getItem(CAMPUS_KEY);
+    return stored ? Number(stored) : null;
+  } catch {
+    return null;
+  }
 }
 
-export default App
+export default function App() {
+  const [me, setMe] = useState<Me | null | undefined>(undefined); // undefined = still loading
+  const [path, navigate] = useHashRoute();
+  const [campusId, setCampusId] = useState<number | null>(readCampus);
+
+  useEffect(() => {
+    get<Me>("/auth/me/")
+      .then(setMe)
+      .catch(() => setMe(null));
+  }, []);
+
+  function changeCampus(id: number | null) {
+    setCampusId(id);
+    try {
+      if (id) localStorage.setItem(CAMPUS_KEY, String(id));
+      else localStorage.removeItem(CAMPUS_KEY);
+    } catch {
+      /* per-viewer convenience only */
+    }
+  }
+
+  if (me === undefined) return <p className="loading">Loading GSA HRMS…</p>;
+  if (me === null || (me.mfa_required && !me.mfa_verified)) return <LoginScreen onSignedIn={setMe} />;
+
+  let screen;
+  if (path === "/") screen = <DashboardScreen campusId={campusId} />;
+  else if (path.startsWith("/people")) screen = <DirectoryScreen campusId={campusId} />;
+  else if (path.startsWith("/leave")) screen = <ComingSoon title="Leave" sprint="Sprint 4" requirement="F06" />;
+  else if (path.startsWith("/attendance"))
+    screen = <ComingSoon title="Attendance" sprint="Release 2" requirement="F07" />;
+  else if (path.startsWith("/appraisals"))
+    screen = <ComingSoon title="Appraisals" sprint="Release 2" requirement="F08" />;
+  else if (path.startsWith("/payroll")) screen = <ComingSoon title="Payroll" sprint="Release 2" requirement="F13" />;
+  else if (path.startsWith("/reports")) screen = <ComingSoon title="Reports" sprint="Sprint 6" requirement="F17" />;
+  else if (path.startsWith("/admin")) screen = <ComingSoon title="Admin" sprint="Sprint 2" requirement="F05" />;
+  else screen = <ComingSoon title="Not found" sprint="a later sprint" requirement="unknown route" />;
+
+  return (
+    <Shell
+      me={me}
+      path={path}
+      onNavigate={navigate}
+      onLogout={() => setMe(null)}
+      campusId={campusId}
+      onCampusChange={changeCampus}
+    >
+      {screen}
+    </Shell>
+  );
+}
