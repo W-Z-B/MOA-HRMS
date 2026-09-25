@@ -92,3 +92,14 @@ def test_create_employee_via_api_writes_audit_without_identifiers_in_clear(api, 
     assert response.status_code == 201, response.content
     entry = AuditLog.objects.get(entity="people.employee", entity_id=response.json()["id"], action="create")
     assert entry.after["national_id"] == "***"
+
+
+@pytest.mark.django_db
+def test_directory_search_matches_words_and_prefixes(api, employee):
+    def ids(q):
+        return {r["id"] for r in api.get("/api/v1/employees/", {"q": q}).json()["results"]}
+
+    assert employee.id in ids("persaud asha")  # any order, whole words
+    assert employee.id in ids("Pers")  # surname prefix
+    assert employee.id in ids("E00")  # employee number prefix
+    assert employee.id not in ids("Ramnarine")

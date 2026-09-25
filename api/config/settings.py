@@ -164,6 +164,10 @@ if not DEBUG:
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_AGE = 8 * 60 * 60  # working day
 
+# Account lockout: this many consecutive failed logins inside the window locks the account for the window.
+LOGIN_MAX_FAILURES = int(env("LOGIN_MAX_FAILURES", "5"))
+LOGIN_LOCKOUT_MINUTES = int(env("LOGIN_LOCKOUT_MINUTES", "15"))
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,

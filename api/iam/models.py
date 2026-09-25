@@ -66,3 +66,18 @@ class TotpDevice(TimeStampedModel):
     @property
     def is_confirmed(self) -> bool:
         return self.confirmed_at is not None
+
+
+class LoginAttempt(models.Model):
+    """Every login attempt, used to lock an account after repeated failures (see iam.views.login_view)."""
+
+    username = models.CharField(max_length=150, db_index=True)
+    source_ip = models.GenericIPAddressField(null=True, blank=True)
+    at = models.DateTimeField(auto_now_add=True, db_index=True)
+    success = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-at"]
+
+    def __str__(self) -> str:
+        return f"{self.username} {'ok' if self.success else 'failed'} at {self.at:%Y-%m-%d %H:%M}"

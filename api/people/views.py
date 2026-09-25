@@ -1,5 +1,7 @@
 """F02 to F04 endpoints: employees (campus-scoped), assignments, contracts, documents."""
 
+from django.contrib.postgres.search import SearchQuery, SearchVector
+from django.db import connection
 from django.db.models import Q
 from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
@@ -16,6 +18,22 @@ HR_WRITE = (Role.HR_OFFICER, Role.HR_MANAGER, Role.ADMINISTRATOR)
 STAFF_READ = HR_WRITE + (Role.PRINCIPAL, Role.FINANCE, Role.SUPERVISOR, Role.AUDITOR)
 
 
+def _search(qs, text: str):
+    """Full-text search on names plus prefix matching on names and employee number.
+
+    PostgreSQL full-text handles whole words in any order ("persaud asha"); the prefix clauses keep
+    partial typing ("E00", "Pers") working, which the directory screen relies on.
+    """
+    prefix = (
+        Q(first_name__istartswith=text) | Q(last_name__istartswith=text) | Q(employee_no__istartswith=text)
+    )
+    if connection.vendor != "postgresql":
+        return qs.filter(prefix | Q(other_names__icontains=text))
+    vector = SearchVector("first_name", "last_name", "other_names", "employee_no", config="simple")
+    query = SearchQuery(text, config="simple", search_type="websearch")
+    return qs.annotate(search=vector).filter(Q(search=query) | prefix)
+
+
 class EmployeeViewSet(AuditedModelViewSet):
     serializer_class = serializers.EmployeeSerializer
     read_roles = STAFF_READ
@@ -26,10 +44,7 @@ class EmployeeViewSet(AuditedModelViewSet):
         qs = scope_queryset(self.request.user, qs)
         params = self.request.query_params
         if params.get("q"):
-            q = params["q"]
-            qs = qs.filter(
-                Q(first_name__icontains=q) | Q(last_name__icontains=q) | Q(employee_no__icontains=q)
-            )
+            qs = _search(qs, params["q"])
         if params.get("campus"):
             qs = qs.filter(campus_id=params["campus"])
         if params.get("status"):

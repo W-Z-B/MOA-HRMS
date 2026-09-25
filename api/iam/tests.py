@@ -44,3 +44,25 @@ def test_privileged_role_must_enrol_and_verify_totp(hr_manager):
 @pytest.mark.django_db
 def test_anonymous_is_rejected(db):
     assert APIClient().get("/api/v1/employees/").status_code == 403
+
+
+@pytest.mark.django_db
+def test_account_locks_after_repeated_failures(hr_officer, settings):
+    settings.LOGIN_MAX_FAILURES = 3
+    client = APIClient()
+    for _ in range(3):
+        bad = client.post(
+            "/api/v1/auth/login/", {"username": "hr.officer", "password": "wrong"}, format="json"
+        )
+        assert bad.status_code == 401
+    locked = client.post(
+        "/api/v1/auth/login/", {"username": "hr.officer", "password": "Str0ng-Passw0rd-123"}, format="json"
+    )
+    assert locked.status_code == 423 and locked.json()["code"] == "locked_out"
+    # Another account is unaffected.
+    assert (
+        client.post(
+            "/api/v1/auth/login/", {"username": "someone.else", "password": "x"}, format="json"
+        ).status_code
+        == 401
+    )

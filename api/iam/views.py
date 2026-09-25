@@ -1,6 +1,9 @@
 """Session login, logout, current user, and TOTP multi-factor enrolment and verification."""
 
+from datetime import timedelta
+
 import pyotp
+from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 from django.utils import timezone
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -10,7 +13,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from audit.services import record
-from iam.models import TotpDevice
+from iam.models import LoginAttempt, TotpDevice
 from iam.permissions import MFA_SESSION_KEY
 from iam.services import requires_mfa, role_codes
 
@@ -37,15 +40,40 @@ def _me_payload(user, session) -> dict:
     }
 
 
+def _source_ip(request) -> str | None:
+    forwarded = request.META.get("HTTP_X_FORWARDED_FOR", "")
+    return forwarded.split(",")[0].strip() or request.META.get("REMOTE_ADDR") or None
+
+
+def _is_locked(username: str) -> bool:
+    """True when the account has reached the failure limit inside the lockout window."""
+    window_start = timezone.now() - timedelta(minutes=settings.LOGIN_LOCKOUT_MINUTES)
+    recent = LoginAttempt.objects.filter(username=username, at__gte=window_start).order_by("-at")
+    failures = 0
+    for attempt in recent[: settings.LOGIN_MAX_FAILURES]:
+        if attempt.success:
+            break
+        failures += 1
+    return failures >= settings.LOGIN_MAX_FAILURES
+
+
 @ensure_csrf_cookie
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def login_view(request):
     data = LoginSerializer(data=request.data)
     data.is_valid(raise_exception=True)
-    user = authenticate(
-        request, username=data.validated_data["username"], password=data.validated_data["password"]
-    )
+    username = data.validated_data["username"]
+    if _is_locked(username):
+        return Response(
+            {
+                "code": "locked_out",
+                "detail": f"Too many failed attempts. Try again in {settings.LOGIN_LOCKOUT_MINUTES} minutes.",
+            },
+            status=status.HTTP_423_LOCKED,
+        )
+    user = authenticate(request, username=username, password=data.validated_data["password"])
+    LoginAttempt.objects.create(username=username, source_ip=_source_ip(request), success=user is not None)
     if user is None:
         return Response(
             {"code": "invalid_credentials", "detail": "Username or password is incorrect."}, status=401
