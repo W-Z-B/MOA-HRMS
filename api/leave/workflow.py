@@ -85,17 +85,71 @@ def _debit_ledger(instance, request):
     debit_for_request(instance, actor=request.user)
 
 
+def _summary(instance) -> str:
+    return (
+        f"{instance.leave_type.name}, {instance.from_date:%d/%m/%Y} to {instance.to_date:%d/%m/%Y} "
+        f"({instance.days} working days)."
+    )
+
+
+def _notify_supervisors(instance, request):
+    from notifications.services import notify, users_with_role
+
+    notify(
+        users_with_role(Role.SUPERVISOR, campus=instance.employee.campus),
+        title=f"Leave request from {instance.employee.full_name}",
+        body=_summary(instance) + " Please approve or reject.",
+        link=f"/leave/requests/{instance.id}",
+        kind="approval",
+        dedupe_key=f"leave:{instance.id}:supervisor",
+    )
+
+
+def _notify_hr(instance, request):
+    from notifications.services import notify, users_with_role
+
+    notify(
+        users_with_role(Role.HR_OFFICER, campus=instance.employee.campus),
+        title=f"Leave request from {instance.employee.full_name} awaits HR approval",
+        body=_summary(instance) + " Supervisor approved.",
+        link=f"/leave/requests/{instance.id}",
+        kind="approval",
+        dedupe_key=f"leave:{instance.id}:hr",
+    )
+
+
+def _notify_owner(instance, request):
+    from notifications.services import notify
+
+    comment = f" Comment: {instance.decision_comment}" if instance.decision_comment else ""
+    notify(
+        [instance.employee.user],
+        title=f"Your leave request was {instance.get_state_display().lower()}",
+        body=_summary(instance) + comment,
+        link=f"/leave/requests/{instance.id}",
+        dedupe_key=f"leave:{instance.id}:{instance.state}",
+    )
+
+
 LEAVE_REQUEST = WorkflowDefinition(
     key="leave_request",
     transitions=(
-        Transition("submit", ("draft",), "submitted", ("owner", Role.HR_OFFICER, Role.HR_MANAGER)),
-        Transition("approve", ("submitted",), "supervisor_approved", (Role.SUPERVISOR,)),
+        Transition(
+            "submit",
+            ("draft",),
+            "submitted",
+            ("owner", Role.HR_OFFICER, Role.HR_MANAGER),
+            on_success=(_notify_supervisors,),
+        ),
+        Transition(
+            "approve", ("submitted",), "supervisor_approved", (Role.SUPERVISOR,), on_success=(_notify_hr,)
+        ),
         Transition(
             "approve",
             ("supervisor_approved",),
             "approved",
             (Role.HR_OFFICER, Role.HR_MANAGER),
-            on_success=(_debit_ledger,),
+            on_success=(_debit_ledger, _notify_owner),
         ),
         Transition(
             "reject",
@@ -103,6 +157,7 @@ LEAVE_REQUEST = WorkflowDefinition(
             "rejected",
             (Role.SUPERVISOR, Role.HR_OFFICER, Role.HR_MANAGER),
             requires_comment=True,
+            on_success=(_notify_owner,),
         ),
         Transition(
             "cancel", ("draft", "submitted", "supervisor_approved"), "cancelled", ("owner", Role.HR_OFFICER)

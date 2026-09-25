@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "people",
     "leave",
     "reports",
+    "notifications",
     # Release 2 scaffolds
     "attendance",
     "performance",
