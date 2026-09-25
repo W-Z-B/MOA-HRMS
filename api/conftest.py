@@ -21,6 +21,12 @@ def pytest_collection_modifyitems(config, items):
 
 
 @pytest.fixture(autouse=True)
+def _media_root(settings, tmp_path):
+    """Uploads in tests go to a temporary directory, never to the shared files volume."""
+    settings.MEDIA_ROOT = tmp_path / "files"
+
+
+@pytest.fixture(autouse=True)
 def _encryption_key(settings):
     settings.FIELD_ENCRYPTION_KEY = "test-only-key"
     from core import crypto

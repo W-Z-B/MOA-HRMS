@@ -13,7 +13,10 @@ COPY requirements.txt .
 RUN pip install -r requirements.txt
 
 COPY . .
-RUN useradd --create-home app && chown -R app:app /app /srv 2>/dev/null || true
+# The API runs unprivileged. /srv/files is the document volume: creating it here with the right owner
+# means a fresh named volume inherits that ownership. For a volume created before this change run:
+#   docker compose exec -u root api chown -R app:app /srv/files
+RUN useradd --create-home app && mkdir -p /srv/files && chown -R app:app /app /srv/files
 USER app
 
 EXPOSE 8000

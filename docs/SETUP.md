@@ -96,3 +96,11 @@ service volume; see the Development Specification section 4.5 for the full proce
 | Node.js 22, Vite, React, TypeScript | Front-end | MIT, Apache 2.0 |
 | Caddy 2 | TLS and reverse proxy | Apache 2.0 |
 | ruff, pytest, ESLint | Quality gates | MIT |
+
+## 7. Troubleshooting
+
+| Symptom | Cause and fix |
+|---|---|
+| Document upload returns 500 and the API log shows `Permission denied: '/srv/files/...'` | The `files` volume was created before the image set its owner. Run `docker compose exec -u root api chown -R app:app /srv/files` once. |
+| Tests report "skipped: database tests need PostgreSQL" | You ran pytest on the host against SQLite. Run `docker compose run --rm api pytest -q`. |
+| Privileged user gets 403 with "Multi-factor verification is required" | Enrol and verify an authenticator code through the login screen (or `/api/v1/auth/mfa/`). |

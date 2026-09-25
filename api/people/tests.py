@@ -103,3 +103,25 @@ def test_directory_search_matches_words_and_prefixes(api, employee):
     assert employee.id in ids("Pers")  # surname prefix
     assert employee.id in ids("E00")  # employee number prefix
     assert employee.id not in ids("Ramnarine")
+
+
+@pytest.mark.django_db
+def test_document_upload_stores_file_and_lists_it(api, employee):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    upload = SimpleUploadedFile("offer.pdf", b"%PDF-1.4 demo", content_type="application/pdf")
+    response = api.post(
+        "/api/v1/documents/",
+        {
+            "employee": employee.id,
+            "title": "Offer letter",
+            "doc_type": "letter",
+            "classification": "internal",
+            "file": upload,
+        },
+        format="multipart",
+    )
+    assert response.status_code == 201, response.content
+    assert response.json()["file"].endswith(".pdf")
+    listing = api.get("/api/v1/documents/", {"employee": employee.id}).json()
+    assert listing["count"] == 1 and listing["results"][0]["title"] == "Offer letter"
