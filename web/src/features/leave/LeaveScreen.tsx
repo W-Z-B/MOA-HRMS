@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { ApiError, get, post } from "../../api/client";
 import type { LeaveBalance, LeaveRequest, LeaveType, Me, Paginated } from "../../api/types";
+import { enqueueLeave, flush, isNetworkError, pendingCount, subscribe } from "../../app/offlineQueue";
 
 interface Props {
   me: Me;
@@ -27,6 +28,9 @@ export function LeaveScreen({ me, focusId }: Props) {
   const [types, setTypes] = useState<LeaveType[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [comments, setComments] = useState<Record<number, string>>({});
+  const [pending, setPending] = useState<number>(pendingCount);
+
+  useEffect(() => subscribe(() => setPending(pendingCount())), []);
 
   const load = useCallback(() => {
     const own = me.employee_id ? get<Paginated<LeaveRequest>>(`/leave/requests/?employee=${me.employee_id}`) : null;
@@ -79,6 +83,14 @@ export function LeaveScreen({ me, focusId }: Props) {
 
       {tab === "mine" && (
         <>
+          {pending > 0 && (
+            <p role="status" className="notice">
+              {pending} request{pending === 1 ? "" : "s"} saved on this device, waiting for a connection.{" "}
+              <button className="link" onClick={() => flush().then(load)}>
+                Try sending now
+              </button>
+            </p>
+          )}
           {me.employee_id ? (
             <NewRequestForm employeeId={me.employee_id} types={types} onCreated={load} />
           ) : (
@@ -126,20 +138,17 @@ function NewRequestForm({ employeeId, types, onCreated }: { employeeId: number; 
   const [to, setTo] = useState("");
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function submit(e: FormEvent, andSubmit: boolean) {
     e.preventDefault();
     setBusy(true);
     setError(null);
+    setNotice(null);
+    const payload = { employee: employeeId, leave_type: Number(leaveType), from_date: from, to_date: to, reason };
     try {
-      const created = await post<LeaveRequest>("/leave/requests/", {
-        employee: employeeId,
-        leave_type: Number(leaveType),
-        from_date: from,
-        to_date: to,
-        reason,
-      });
+      const created = await post<LeaveRequest>("/leave/requests/", payload);
       if (andSubmit) await post(`/leave/requests/${created.id}/transition/`, { action: "submit" });
       setFrom("");
       setTo("");
@@ -149,6 +158,12 @@ function NewRequestForm({ employeeId, types, onCreated }: { employeeId: number; 
       if (err instanceof ApiError) {
         const fieldMsg = err.fields ? Object.values(err.fields).flat()[0] : undefined;
         setError(fieldMsg ?? err.detail);
+      } else if (isNetworkError(err)) {
+        enqueueLeave(payload, andSubmit);
+        setFrom("");
+        setTo("");
+        setReason("");
+        setNotice("No connection. The request is saved on this device and will be sent when the network returns.");
       } else setError("Could not save the request.");
     } finally {
       setBusy(false);
@@ -183,6 +198,11 @@ function NewRequestForm({ employeeId, types, onCreated }: { employeeId: number; 
       {error && (
         <p role="alert" className="error">
           {error}
+        </p>
+      )}
+      {notice && (
+        <p role="status" className="notice">
+          {notice}
         </p>
       )}
       <div className="actions">

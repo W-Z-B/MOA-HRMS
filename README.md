@@ -5,8 +5,9 @@ A single product with no additional software licences: web application, REST API
 database, packaged with Docker Compose for on-premise or cloud deployment. All components are
 MIT, BSD, Apache 2.0, PostgreSQL or PSF licensed (see `docs/adr/0001-stack-selection.md`).
 
-**Status:** Release 1 scaffold. Every module has models, migrations, an audited API and tests.
-Release 1 modules are functional at API level; Release 2 modules are read-only scaffolds.
+**Status:** Release 1 in progress. Every module has models, migrations, an audited API and tests
+(46 backend tests against PostgreSQL). Core HR, leave and notifications are usable end to end from the
+web app; Release 2 modules are read-only scaffolds.
 
 ## Modules
 
@@ -19,11 +20,12 @@ Release 1 modules are functional at API level; Release 2 modules are read-only s
 | `api/people` | F02, F03, F04 | done | Employees with encrypted identifiers and audited reveal, assignments (one substantive holder per post), contracts, documents |
 | `api/leave` | F06 | done | Leave types as data, ledger-derived balances, request workflow, monthly accrual job |
 | `api/reports` | F17 | partial | Report definitions, establishment-versus-actual and headcount queries (JSON; PDF and Excel in Sprint 6) |
+| `api/notifications` | F11 | done | In-app notifications with email delivery and per-key deduplication; leave workflow, contract-expiry and probation alerts feed it |
 | `api/attendance` | F07 | scaffold | Shift patterns and attendance records, read-only |
 | `api/performance` | F08 | scaffold | Appraisal cycles and appraisals, read-only |
 | `api/training` | F09 | scaffold | Training records, read-only |
 | `api/payroll` | F13, F14 | scaffold | Payroll periods, effective-dated statutory rates, placeholder change-file and extract builders |
-| `web/` | F10 | partial | Application shell, login with MFA, dashboard, people directory; other screens are placeholders |
+| `web/` | F10 | partial | Installable web app (manifest, shell-only service worker, offline queue for leave requests); login with MFA; dashboard; people directory with tabbed file, create and edit, assignments, document upload and audited reveal; leave requests, approvals and balances; notifications bell. Attendance, appraisals, payroll, reports and admin screens are placeholders |
 
 API documentation is generated at `/api/docs`. Every endpoint lives under `/api/v1/`.
 
