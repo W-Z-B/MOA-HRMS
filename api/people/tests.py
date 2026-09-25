@@ -122,7 +122,7 @@ def test_document_upload_stores_file_and_lists_it(api, employee):
         format="multipart",
     )
     assert response.status_code == 201, response.content
-    assert response.json()["file"].endswith(".pdf")
+    assert response.json()["filename"] == "offer.pdf" and "file" not in response.json()
     listing = api.get("/api/v1/documents/", {"employee": employee.id}).json()
     assert listing["count"] == 1 and listing["results"][0]["title"] == "Offer letter"
 
