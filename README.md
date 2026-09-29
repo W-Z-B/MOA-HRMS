@@ -106,3 +106,8 @@ docker compose -f compose.yml -f compose.ecosystem.yml up -d
 
 Keys are stored hashed, shown once, scoped, rotatable, and every call is written to the audit log against
 the calling client. No integration endpoint exposes NIS number, TIN, national ID, date of birth or address.
+
+## Hosted staging (Railway)
+
+A staging and demonstration copy runs on Railway in the project "GSA Ecosystem", beside the other two
+systems, with fictional data only. How it is built and configured: [deploy/railway/README.md](deploy/railway/README.md).

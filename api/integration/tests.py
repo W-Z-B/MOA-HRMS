@@ -80,3 +80,22 @@ def test_training_completion_is_idempotent(employee):
 @pytest.mark.django_db
 def test_a_person_session_cannot_use_the_integration_api(api):
     assert api.get("/api/v1/integration/staff/").status_code in (401, 403)
+
+
+@pytest.mark.django_db
+def test_a_key_held_by_the_platform_is_registered_without_being_printed(monkeypatch, capsys):
+    from django.core.management import CommandError, call_command
+
+    key = "k" * 43
+    monkeypatch.setenv("SERVICE_KEY_TEST", key)
+    call_command("create_service_client", name="sibling", scopes=["staff:read"], key_env="SERVICE_KEY_TEST")
+    assert key not in capsys.readouterr().out
+    client = ServiceClient.authenticate(key)
+    assert client is not None and client.name == "sibling" and client.scopes == ["staff:read"]
+
+    monkeypatch.setenv("SERVICE_KEY_TEST", "too-short")
+    with pytest.raises(CommandError):
+        call_command(
+            "create_service_client", name="sibling", scopes=["staff:read"], key_env="SERVICE_KEY_TEST"
+        )
+    assert ServiceClient.authenticate(key) is not None
