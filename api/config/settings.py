@@ -32,15 +32,26 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.postgres",
     "rest_framework",
     "drf_spectacular",
     "corsheaders",
     "procrastinate.contrib.django",
+    # shared
+    "core",
+    "audit",
+    "iam",
+    # Release 1 modules
     "org",
     "people",
     "leave",
-    "iam",
-    "audit",
+    "reports",
+    "notifications",
+    # Release 2 scaffolds
+    "attendance",
+    "performance",
+    "training",
+    "payroll",
 ]
 
 MIDDLEWARE = [
@@ -138,6 +149,7 @@ SHORT_DATE_FORMAT = "d/m/Y"
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+MEDIA_URL = "files/"
 MEDIA_ROOT = Path(env("FILES_ROOT", "/srv/files")) if env("DB_HOST") else BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
@@ -152,6 +164,10 @@ if not DEBUG:
     X_FRAME_OPTIONS = "DENY"
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_AGE = 8 * 60 * 60  # working day
+
+# Account lockout: this many consecutive failed logins inside the window locks the account for the window.
+LOGIN_MAX_FAILURES = int(env("LOGIN_MAX_FAILURES", "5"))
+LOGIN_LOCKOUT_MINUTES = int(env("LOGIN_LOCKOUT_MINUTES", "15"))
 
 LOGGING = {
     "version": 1,
