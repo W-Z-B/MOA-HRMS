@@ -11,9 +11,11 @@ from rest_framework.response import Response
 from audit.services import record
 from core.views import AuditedModelViewSet
 from iam.models import Role
+from iam.permissions import SelfServicePermission
 from iam.services import has_role, scope_queryset
 from people import serializers
 from people.models import Assignment, Contract, Document, Employee
+from people.services import terms_for
 
 HR_WRITE = (Role.HR_OFFICER, Role.HR_MANAGER, Role.ADMINISTRATOR)
 STAFF_READ = HR_WRITE + (Role.PRINCIPAL, Role.FINANCE, Role.SUPERVISOR, Role.AUDITOR)
@@ -86,8 +88,21 @@ class ContractViewSet(AuditedModelViewSet):
     write_roles = HR_WRITE
 
     def get_queryset(self):
-        qs = Contract.objects.select_related("assignment__employee")
-        return scope_queryset(self.request.user, qs, campus_field="assignment__employee__campus")
+        qs = Contract.objects.select_related("assignment__employee", "assignment__position__grade")
+        qs = scope_queryset(self.request.user, qs, campus_field="assignment__employee__campus")
+        employee = self.request.query_params.get("employee")
+        return qs.filter(assignment__employee_id=employee) if employee else qs
+
+    @action(detail=False, methods=["get"], permission_classes=[SelfServicePermission])
+    def mine(self, request):
+        """The caller's own appointment, contract terms, entitlements and manager."""
+        employee = getattr(request.user, "employee", None)
+        if employee is None:
+            return Response(
+                {"code": "not_found", "detail": "Your account is not linked to an employee record."},
+                status=404,
+            )
+        return Response(terms_for(employee))
 
 
 class DocumentViewSet(AuditedModelViewSet):

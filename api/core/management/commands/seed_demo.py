@@ -1,20 +1,29 @@
-"""Load a fictional demonstration dataset: units, establishment, staff, leave and training.
+"""Load a fictional demonstration dataset: units, establishment, staff, contracts, leave and training.
 
 For staging and development databases only, never for a database that holds real records. Every
 person is invented, says so in the address line, and carries identifiers that are plainly not real.
 Idempotent: running it again adds nothing. Run `seed` first.
+
+Accounts for the invented staff are created only when DEMO_USER_PASSWORD is set, so that a database
+reachable from the internet never receives accounts with a password its owner did not choose.
 """
 
+import os
 from datetime import date
 from decimal import Decimal
 
+from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand, CommandError
 from django.db import IntegrityError, transaction
 
-from leave.models import LeaveLedger, LeaveRequest, LeaveType
+from iam.models import Role, RoleScope
+from leave.models import Entitlement, LeaveLedger, LeaveRequest, LeaveType
 from leave.services import debit_for_request, working_days
 from org.models import Campus, Grade, OrgUnit, Position, SalaryScale
 from people.models import Assignment, Contract, Employee
+from people.services import manager_of
 from training.models import TrainingRecord
 
 FICTIONAL = "Demonstration record (fictional person)"
@@ -32,6 +41,8 @@ UNITS = [
     ("ADM", "Administration", "section", "MRP"),
     ("ESQ-AGR", "Department of Agriculture, Essequibo", "department", "ESQ"),
 ]
+# The unit above, so that a head of unit has a manager of their own.
+PARENTS = {"LIV": "AGR"}
 
 POSITIONS = [
     # number, title, grade, unit, status
@@ -88,6 +99,22 @@ PROBATION_ENDS = {"E0005": date(2026, 12, 31)}
 
 HEADS = {"AGR": "E0002", "LIV": "E0004", "ADM": "E0006", "ESQ-AGR": "E0008"}
 
+# Contract by appointment type: contract type, term in months. Hours and notice are the same for
+# all. The rate and the entitlements below are placeholders, not the terms GSA gives.
+CONTRACTS = {
+    "permanent": ("open_ended", None),
+    "contract": ("fixed_term", 12),
+    "temporary": ("fixed_term", 6),
+}
+HOURS_PER_WEEK = Decimal("40")
+NOTICE_DAYS = 30
+HOURLY_RATES = {"E0005": Decimal("750.00")}  # paid by the hour; the others by their grade
+ENTITLEMENTS = {"E0009": {"ANN": Decimal("14"), "SIC": Decimal("10")}}
+
+# Every invented employee signs in as first.last. Heads of unit are supervisors as well.
+HR_OFFICER = "E0006"
+PASSWORD_VARIABLE = "DEMO_USER_PASSWORD"  # noqa: S105 - the name of the variable, not a password
+
 OPENING_BALANCES = [("ANN", Decimal("10")), ("SIC", Decimal("14"))]
 
 LEAVE_REQUESTS = [
@@ -131,6 +158,8 @@ class Command(BaseCommand):
             )[0]
             for code, name, kind, campus in UNITS
         }
+        for code, parent in PARENTS.items():
+            OrgUnit.objects.filter(code=code, parent__isnull=True).update(parent=units[parent])
         positions = {
             number: Position.objects.update_or_create(
                 number=number,
@@ -164,6 +193,9 @@ class Command(BaseCommand):
                 skipped += 1
         for unit_code, number in HEADS.items():
             OrgUnit.objects.filter(code=unit_code, head__isnull=True).update(head=staff[number])
+        for number, employee in staff.items():
+            self._contract(number, employee, leave_types)
+        accounts = self._accounts(staff, campuses)
 
         for employee in staff.values():
             for code, days in OPENING_BALANCES:
@@ -183,6 +215,10 @@ class Command(BaseCommand):
             )
             if created and state == LeaveRequest.State.APPROVED:
                 debit_for_request(request)
+            if request.state == LeaveRequest.State.SUBMITTED and request.manager is None:
+                # Waiting for a decision: send it to the manager, who may only now have an account.
+                request.manager = manager_of(staff[number])
+                request.save(update_fields=["manager"])
         for number, course, starts, ends in TRAINING:
             TrainingRecord.objects.get_or_create(
                 employee=staff[number],
@@ -202,6 +238,10 @@ class Command(BaseCommand):
                 f"{len(staff)} staff, {assigned} new assignments ({skipped} already in place or skipped)."
             )
         )
+        if accounts is None:
+            self.stdout.write(f"No accounts created: {PASSWORD_VARIABLE} is not set.")
+        else:
+            self.stdout.write(f"Accounts: {accounts} created; every invented employee can sign in.")
 
     def _grades(self) -> dict[str, Grade]:
         scale, _ = SalaryScale.objects.get_or_create(code="GS", defaults={"name": "General scale"})
@@ -222,7 +262,7 @@ class Command(BaseCommand):
             return False
         try:
             with transaction.atomic():
-                assignment = Assignment.objects.create(
+                Assignment.objects.create(
                     employee=employee,
                     position=position,
                     appointment_type=appointment,
@@ -232,8 +272,65 @@ class Command(BaseCommand):
                 )
         except IntegrityError:
             return False
-        if appointment == Assignment.AppointmentType.CONTRACT:
-            Contract.objects.create(
-                assignment=assignment, contract_type=Contract.ContractType.FIXED_TERM, term_months=12
-            )
         return True
+
+    def _contract(self, number, employee, leave_types) -> None:
+        """Give the current appointment a contract with terms; fill the terms of one made earlier."""
+        assignment = employee.current_assignment
+        if assignment is None or assignment.appointment_type not in CONTRACTS:
+            return
+        kind, months = CONTRACTS[assignment.appointment_type]
+        contract = assignment.contracts.first()
+        if contract is None:
+            contract = Contract.objects.create(
+                assignment=assignment, contract_type=kind, term_months=months, signed_on=assignment.start_date
+            )
+        if contract.hours_per_week is None:
+            contract.hours_per_week = HOURS_PER_WEEK
+            contract.notice_period_days = NOTICE_DAYS
+            contract.hourly_rate = HOURLY_RATES.get(number)
+            contract.save()
+        for code, days in ENTITLEMENTS.get(number, {}).items():
+            Entitlement.objects.get_or_create(
+                contract=contract, leave_type=leave_types[code], defaults={"annual_days": days}
+            )
+
+    def _accounts(self, staff, campuses) -> int | None:
+        """Accounts named first.last, linked to the employee, with roles on their campus.
+
+        An account that already exists keeps its password; only a missing link or role is added.
+        """
+        password = os.environ.get(PASSWORD_VARIABLE, "")
+        if not password:
+            return None
+        try:
+            validate_password(password)
+        except ValidationError as exc:
+            raise CommandError(f"{PASSWORD_VARIABLE} is too weak: {' '.join(exc.messages)}") from exc
+        users = get_user_model()
+        roles = {code: Role.objects.get(code=code) for code in ("employee", "supervisor", "hr_officer")}
+        heads = set(HEADS.values())
+        created = 0
+        for number, employee in staff.items():
+            username = f"{employee.first_name}.{employee.last_name}".lower()
+            user = employee.user or users.objects.filter(username=username).first()
+            if user is None:
+                user = users.objects.create_user(
+                    username=username,
+                    password=password,
+                    email=employee.email,
+                    first_name=employee.first_name,
+                    last_name=employee.last_name,
+                )
+                created += 1
+            if employee.user_id != user.id:
+                employee.user = user
+                employee.save(update_fields=["user"])
+            grants = [("employee", employee.campus)]
+            if number in heads:
+                grants.append(("supervisor", employee.campus))
+            if number == HR_OFFICER:
+                grants += [("hr_officer", campus) for campus in campuses.values()]
+            for code, campus in grants:
+                RoleScope.objects.get_or_create(user=user, role=roles[code], campus=campus, org_unit=None)
+        return created

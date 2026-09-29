@@ -34,12 +34,19 @@ FIXED_HOLIDAYS = [
 LEAVE_TYPES = [
     # code, name, annual days, accrues monthly, carry over max, paid, evidence, term restricted
     ("ANN", "Annual leave", 21, True, 10, True, False, True),
-    ("SIC", "Sick leave", 14, False, 0, True, True, False),
+    ("SIC", "Sick leave", 14, False, 0, True, False, False),
     ("MAT", "Maternity leave", 0, False, 0, True, True, False),
     ("STU", "Study leave", 0, False, 0, True, True, False),
     ("SPE", "Special leave", 0, False, 0, True, False, False),
     ("NOP", "Leave without pay", 0, False, 0, False, False, False),
 ]
+# code: beyond the balance, what the evidence is called, evidence is medical. Others take the defaults.
+LEAVE_RULES = {
+    "ANN": ("refuse", "Supporting document", False),
+    "SIC": ("evidence", "Doctor's note", True),
+    "MAT": ("allow", "Medical certificate", True),
+    "STU": ("allow", "Letter of acceptance", False),
+}
 
 REPORTS = [
     (
@@ -70,6 +77,7 @@ class Command(BaseCommand):
         for code, name in Role.CODES:
             Role.objects.update_or_create(code=code, defaults={"name": name})
         for code, name, days, monthly, carry, paid, evidence, term in LEAVE_TYPES:
+            beyond, evidence_name, medical = LEAVE_RULES.get(code, ("allow", "Supporting document", False))
             LeaveType.objects.update_or_create(
                 code=code,
                 defaults={
@@ -80,6 +88,9 @@ class Command(BaseCommand):
                     "is_paid": paid,
                     "requires_evidence": evidence,
                     "term_time_restricted": term,
+                    "over_balance": beyond,
+                    "evidence_name": evidence_name,
+                    "evidence_is_medical": medical,
                 },
             )
         for year in (options["year"], options["year"] + 1):

@@ -6,7 +6,7 @@ from datetime import date
 from procrastinate.contrib.django import app
 
 from leave.models import LeaveType
-from leave.services import accrue_month
+from leave.services import accrue_month, grant_year
 from people.models import Employee
 
 log = logging.getLogger(__name__)
@@ -29,4 +29,21 @@ def accrue_leave(timestamp: int | None = None) -> int:
             if accrue_month(employee, leave_type, entry_date) is not None:
                 created += 1
     log.info("leave.accrue_leave created %s ledger rows for %s", created, entry_date)
+    return created
+
+
+@app.periodic(cron="30 2 1 * *")  # 02:30 on the first day of every month
+@app.task(name="leave.grant_entitlements", queue="leave")
+def grant_entitlements(timestamp: int | None = None) -> int:
+    """Grant the year's sick leave, and any other leave given whole, to staff who do not have it yet.
+
+    Monthly rather than yearly so that staff appointed during the year receive theirs at the next run.
+    """
+    year = date.today().year
+    created = 0
+    types = list(LeaveType.objects.filter(accrues_monthly=False))
+    for employee in Employee.objects.filter(status=Employee.Status.ACTIVE).iterator():
+        for leave_type in types:
+            created += len(grant_year(employee, leave_type, year))
+    log.info("leave.grant_entitlements created %s ledger rows for %s", created, year)
     return created

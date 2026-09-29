@@ -2,7 +2,10 @@ from rest_framework import serializers
 
 from core.crypto import mask
 from core.serializers import TimeStampedSerializer
+from iam.models import Role
+from iam.services import has_role
 from people.models import Assignment, Contract, Document, Employee
+from people.services import hourly_rate
 
 IDENTIFIERS = ("national_id", "nis_no", "tin")
 
@@ -100,18 +103,59 @@ class AssignmentSerializer(TimeStampedSerializer):
 
 
 class ContractSerializer(TimeStampedSerializer):
+    """Pay is shown to HR, Finance, the Principal and auditors. Other readers see the rest of the terms."""
+
+    PAY_FIELDS = ("hourly_rate", "hourly_rate_effective")
+    PAY_ROLES = (
+        Role.HR_OFFICER,
+        Role.HR_MANAGER,
+        Role.ADMINISTRATOR,
+        Role.FINANCE,
+        Role.PRINCIPAL,
+        Role.AUDITOR,
+    )
+
+    employee = serializers.IntegerField(source="assignment.employee_id", read_only=True)
+    hourly_rate_effective = serializers.SerializerMethodField()
+
     class Meta(TimeStampedSerializer.Meta):
         model = Contract
         fields = (
             "id",
             "assignment",
+            "employee",
             "contract_type",
             "term_months",
             "signed_on",
             "document",
+            "hours_per_week",
+            "hourly_rate",
+            "hourly_rate_effective",
+            "notice_period_days",
+            "other_terms",
             "created_at",
             "updated_at",
         )
+
+    def get_hourly_rate_effective(self, obj):
+        rate = hourly_rate(obj)
+        return None if rate is None else str(rate)
+
+    def validate(self, attrs):
+        for name in ("hours_per_week", "hourly_rate"):
+            if attrs.get(name) is not None and attrs[name] <= 0:
+                raise serializers.ValidationError({name: "Enter a figure above zero, or leave it empty."})
+        if attrs.get("hours_per_week") is not None and attrs["hours_per_week"] > 84:
+            raise serializers.ValidationError({"hours_per_week": "That is more than 12 hours every day."})
+        return attrs
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get("request")
+        if request is not None and not has_role(request.user, *self.PAY_ROLES):
+            for name in self.PAY_FIELDS:
+                data[name] = None
+        return data
 
 
 class DocumentSerializer(TimeStampedSerializer):
