@@ -16,6 +16,7 @@ urlpatterns = [
     path("api/v1/leave/", include("leave.urls")),
     path("api/v1/reports/", include("reports.api")),
     path("api/v1/notifications/", include("notifications.api")),
+    path("api/v1/integration/", include("integration.api")),
     # Release 2 scaffolds (read-only until their sprints)
     path("api/v1/attendance/", include("attendance.api")),
     path("api/v1/performance/", include("performance.api")),

@@ -15,6 +15,9 @@ class TrainingRecord(TimeStampedModel):
     certification = models.CharField(max_length=160, blank=True)
     expiry_date = models.DateField(null=True, blank=True)
     bond_months = models.PositiveSmallIntegerField(null=True, blank=True)
+    external_ref = models.CharField(
+        max_length=120, null=True, blank=True, unique=True, help_text="Set when reported by the LMS"
+    )
 
     class Meta:
         ordering = ["-starts"]
