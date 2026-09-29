@@ -1,0 +1,16 @@
+# Optional override that joins this stack to the shared GSA ecosystem network so the SRMS and LMS
+# can reach the HRMS integration API at http://hrms-api:8000. The HRMS runs fine without it.
+#
+#   docker network create gsa-ecosystem        # once per host
+#   docker compose -f compose.yml -f compose.ecosystem.yml up -d
+services:
+  api:
+    networks:
+      default: {}
+      ecosystem:
+        aliases: [hrms-api]
+
+networks:
+  ecosystem:
+    name: gsa-ecosystem
+    external: true

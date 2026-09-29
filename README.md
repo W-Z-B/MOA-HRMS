@@ -84,3 +84,25 @@ The Sprint 1 board is on GitHub: milestone "Sprint 1 (M1 walking skeleton and Ga
 - Never commit secrets. `.env` is ignored; `.env.example` holds placeholders only.
 - Personal data of GSA staff stays in Guyana. Sensitive identifiers are encrypted and never logged in clear.
 - Every write to personnel data goes through an audited view or service so an audit row is produced.
+
+## GSA ecosystem
+
+The HRMS is one of three separately built and deployed systems. It is the system of record for staff,
+positions, campuses and organisational units; the SRMS (`SRMS/gsa-srms`) owns students and results; the
+LMS (`LMS/gsa-lms`) delivers courses.
+
+```bash
+docker network create gsa-ecosystem                       # once per host
+docker compose exec api python manage.py create_service_client --name srms --scopes staff:read org:read
+docker compose exec api python manage.py create_service_client --name lms --scopes staff:read org:read training:write
+docker compose -f compose.yml -f compose.ecosystem.yml up -d
+```
+
+| Endpoint (header `Authorization: Api-Key <key>`) | Scope | Used by |
+|---|---|---|
+| `GET /api/v1/integration/staff/` | `staff:read` | SRMS and LMS resolve lecturers by employee number |
+| `GET /api/v1/integration/org/` | `org:read` | SRMS and LMS share campus and unit codes |
+| `POST /api/v1/integration/training-completions/` | `training:write` | LMS reports staff training, idempotent on `external_ref` |
+
+Keys are stored hashed, shown once, scoped, rotatable, and every call is written to the audit log against
+the calling client. No integration endpoint exposes NIS number, TIN, national ID, date of birth or address.
