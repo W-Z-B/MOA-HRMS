@@ -5,6 +5,7 @@ import decimal
 import uuid
 
 from django.db import models
+from django.db.models.fields.files import FieldFile
 
 from audit.models import AuditLog
 from core.fields import EncryptedTextField
@@ -17,7 +18,7 @@ def _plain(value):
         return value.isoformat()
     if isinstance(value, decimal.Decimal | uuid.UUID):
         return str(value)
-    if hasattr(value, "name") and hasattr(value, "url"):  # FieldFile
+    if isinstance(value, FieldFile):  # an empty file field has a name of '' and no url
         return value.name or None
     return value
 
