@@ -35,3 +35,51 @@ def test_seed_is_idempotent(seeded):
     call_command("seed", "--country", "GY", "--year", "2026", verbosity=0)
     assert (Campus.objects.count(), PublicHoliday.objects.count()) == before
     assert Campus.objects.filter(code__in=["MRP", "ESQ"]).count() == 2
+
+
+@pytest.mark.django_db
+def test_demonstration_data_is_fictional_idempotent_and_consistent(seeded):
+    from decimal import Decimal
+
+    from django.core.management import CommandError, call_command
+
+    from leave.models import LeaveLedger, LeaveRequest, LeaveType
+    from leave.services import balance
+    from org.models import OrgUnit, Position
+    from people.models import Assignment, Employee
+
+    with pytest.raises(CommandError):
+        call_command("seed_demo", verbosity=0)
+    assert Employee.objects.count() == 0
+
+    call_command("seed_demo", fictional=True, verbosity=0)
+    counts = (
+        Employee.objects.count(),
+        Position.objects.count(),
+        Assignment.objects.count(),
+        LeaveLedger.objects.count(),
+        LeaveRequest.objects.count(),
+    )
+    call_command("seed_demo", fictional=True, verbosity=0)
+    assert counts == (
+        Employee.objects.count(),
+        Position.objects.count(),
+        Assignment.objects.count(),
+        LeaveLedger.objects.count(),
+        LeaveRequest.objects.count(),
+    )
+    assert counts[:3] == (9, 13, 9)
+
+    assert not Employee.objects.exclude(address__icontains="fictional").exists()
+    assert not Employee.objects.exclude(email__endswith="@gsa.example").exists()
+    assert Employee.objects.get(employee_no="E0001").national_id.startswith("DEMO-")
+    assert sorted(p.number for p in Position.objects.all() if p.is_vacant) == [
+        "ADM-003",
+        "AGR-004",
+        "ESQ-AGR-003",
+        "LIV-003",
+    ]
+    assert OrgUnit.objects.get(code="AGR").head.employee_no == "E0002"
+    # opening balance of 10 days less the approved week in August
+    head = Employee.objects.get(employee_no="E0002")
+    assert balance(head, LeaveType.objects.get(code="ANN")) == Decimal("5")

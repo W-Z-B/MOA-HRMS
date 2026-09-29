@@ -60,3 +60,11 @@ sign-in. Administrators enrol an authenticator app at first sign-in.
 ```bash
 docker build -f deploy/railway/Dockerfile -t gsa-hrms-hosted .
 ```
+
+## Demonstration data
+
+Staging may hold the fictional dataset described in the main README. Load it in the order HRMS, SRMS, LMS:
+
+```bash
+railway ssh --service hrms -- "su app -s /bin/bash -c 'cd /app && python manage.py seed_demo --fictional'"
+```

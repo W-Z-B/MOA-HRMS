@@ -111,3 +111,17 @@ the calling client. No integration endpoint exposes NIS number, TIN, national ID
 
 A staging and demonstration copy runs on Railway in the project "GSA Ecosystem", beside the other two
 systems, with fictional data only. How it is built and configured: [deploy/railway/README.md](deploy/railway/README.md).
+
+## Demonstration data
+
+`seed_demo` loads an invented dataset for staging and development: four units, thirteen posts (three
+vacant, one frozen), nine staff with appointments, leave balances and requests, and a training record.
+Every person is fictional, says so in the address line, and carries identifiers that start with `DEMO-`.
+**Never run it on a database that holds real records.**
+
+```bash
+docker compose exec api python manage.py seed_demo --fictional
+```
+
+It is idempotent and leaves existing appointments alone. The employee numbers (E0001 to E0009) are the
+lecturers named by the SRMS demonstration data, so load the systems in this order: HRMS, SRMS, LMS.
