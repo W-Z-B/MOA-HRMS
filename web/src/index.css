@@ -276,12 +276,15 @@ tbody tr.selected {
   gap: 4px;
   border-bottom: 1px solid var(--rule);
   margin: 0 0 14px;
+  overflow-x: auto;
 }
 .tab {
   background: none;
   color: var(--muted);
   border-radius: 4px 4px 0 0;
   padding: 8px 12px;
+  white-space: nowrap;
+  flex: none;
 }
 .tab.active {
   color: var(--accent);
@@ -454,6 +457,230 @@ label.inline {
   background: var(--amber);
 }
 
+/* Leave: balance tiles, request cards, the live check, the receipt. */
+.card-block {
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+  max-width: 640px;
+}
+.card-block h2 {
+  margin-top: 0;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+button.accent {
+  color: var(--accent);
+}
+.notice.good {
+  border-left-color: var(--accent);
+}
+.check {
+  background: var(--stripe);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 4px 4px 0;
+  padding: 10px 12px;
+}
+.check.bad {
+  border-left-color: var(--danger);
+  color: var(--danger);
+}
+.check p {
+  margin: 0 0 4px;
+}
+.check p:last-child {
+  margin-bottom: 0;
+}
+.check label {
+  margin-top: 8px;
+}
+.request {
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-left: 4px solid var(--muted);
+  border-radius: 6px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.request p {
+  margin: 0;
+}
+.request.state-submitted,
+.request.state-supervisor_approved {
+  border-left-color: var(--amber);
+}
+.request.state-approved {
+  border-left-color: var(--accent);
+}
+.request.state-rejected {
+  border-left-color: var(--danger);
+}
+.request.highlighted {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.request header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+.request h3 {
+  margin: 0;
+  font-size: 16px;
+}
+.request .who {
+  font-weight: 700;
+  font-size: 17px;
+}
+.chip {
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 12px;
+  background: var(--stripe);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.chip-submitted,
+.chip-supervisor_approved {
+  color: var(--amber);
+}
+.chip-approved {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.chip-rejected {
+  color: var(--danger);
+}
+.steps {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding: 0;
+  margin: 2px 0;
+}
+.steps li {
+  border-top: 3px solid var(--rule);
+  padding-top: 5px;
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  color: var(--muted);
+}
+.steps li.done {
+  border-top-color: var(--accent);
+  color: var(--ink);
+}
+.steps li.current {
+  border-top-color: var(--amber);
+  color: var(--ink);
+  font-weight: 600;
+}
+.steps li.stopped {
+  border-top-color: var(--danger);
+  color: var(--danger);
+}
+.steps li.done .label::after {
+  content: " \2713";
+  color: var(--accent);
+}
+.tick {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-right: 4px;
+}
+dl.terms {
+  display: grid;
+  grid-template-columns: minmax(110px, 34%) minmax(0, 1fr);
+  gap: 8px 12px;
+  margin: 0;
+}
+dl.terms > div {
+  display: contents;
+}
+dl.terms dt {
+  color: var(--muted);
+}
+dl.terms dd {
+  margin: 0;
+}
+.line {
+  display: block;
+}
+.receipt {
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-top: 4px solid var(--accent);
+  border-radius: 6px;
+  padding: 20px;
+  max-width: 640px;
+  margin-bottom: 16px;
+}
+.receipt h1 {
+  margin-bottom: 4px;
+}
+.receipt header p {
+  margin: 0;
+}
+.receipt .eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.receipt dl {
+  display: grid;
+  grid-template-columns: minmax(110px, 34%) minmax(0, 1fr);
+  gap: 8px 12px;
+  margin: 18px 0 0;
+}
+.receipt dt {
+  color: var(--muted);
+}
+.receipt dd {
+  margin: 0;
+}
+
+/* Printing, or saving as a PDF, gives the page content alone. */
+@media print {
+  .topbar,
+  .sidenav,
+  .no-print {
+    display: none !important;
+  }
+  .shell {
+    display: block;
+  }
+  .content {
+    padding: 0;
+  }
+  body {
+    background: #fff;
+  }
+  .receipt {
+    border: 0;
+    border-top: 4px solid var(--accent);
+    max-width: none;
+  }
+}
+
 /* Phones: navigation becomes a bottom bar, split view stacks. */
 @media (max-width: 760px) {
   .shell {
@@ -482,5 +709,71 @@ label.inline {
   }
   .user small {
     display: none;
+  }
+  /* Fingers, not pointers: controls 44px tall, and 16px type so that the phone does not zoom in. */
+  button,
+  input,
+  select {
+    min-height: 44px;
+    font-size: 16px;
+  }
+  button.link,
+  input[type="checkbox"] {
+    min-height: 0;
+  }
+  .topbar {
+    gap: 10px;
+    padding: 0 12px;
+  }
+  .form-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .form-row .grow {
+    flex: none;
+  }
+  .card-block .actions button,
+  .request .actions button {
+    flex: 1 1 140px;
+  }
+  .tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  /* A table marked "cards" becomes one card a row, each cell labelled by its column. */
+  table.cards,
+  table.cards tbody,
+  table.cards tr,
+  table.cards td {
+    display: block;
+  }
+  table.cards {
+    border: 0;
+    background: none;
+  }
+  table.cards thead {
+    display: none;
+  }
+  table.cards tr {
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    margin-bottom: 10px;
+    padding: 6px 12px;
+  }
+  table.cards td {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 0;
+    text-align: right;
+  }
+  table.cards td:last-child {
+    border-bottom: 0;
+  }
+  table.cards td::before {
+    content: attr(data-label);
+    color: var(--muted);
+    text-align: left;
+    flex: none;
   }
 }

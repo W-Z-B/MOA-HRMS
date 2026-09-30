@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { get } from "../../api/client";
 import type { LeaveRequest, Paginated, ReportResult } from "../../api/types";
+import { dmy, inDays } from "../../app/format";
 
 interface Props {
   campusId: number | null;
@@ -51,7 +52,7 @@ export function DashboardScreen({ campusId }: Props) {
         {pending.length === 0 ? (
           <p className="muted">Nothing waiting for you.</p>
         ) : (
-          <table>
+          <table className="cards">
             <thead>
               <tr>
                 <th>Employee</th>
@@ -64,11 +65,13 @@ export function DashboardScreen({ campusId }: Props) {
             <tbody>
               {pending.map((r) => (
                 <tr key={r.id}>
-                  <td>{r.employee_name}</td>
-                  <td>{r.leave_type_code}</td>
-                  <td>{r.from_date}</td>
-                  <td>{r.to_date}</td>
-                  <td className="num">{r.days}</td>
+                  <td data-label="Employee">{r.employee_name}</td>
+                  <td data-label="Type">{r.leave_type_name}</td>
+                  <td data-label="From">{dmy(r.from_date)}</td>
+                  <td data-label="To">{dmy(r.to_date)}</td>
+                  <td data-label="Days" className="num">
+                    {inDays(r.days)}
+                  </td>
                 </tr>
               ))}
             </tbody>

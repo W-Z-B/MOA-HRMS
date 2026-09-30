@@ -92,7 +92,7 @@ export function DirectoryScreen({ me, campusId, initialId, onNavigate }: Props) 
           <span className="muted">{count} staff</span>
         </div>
         {error && <p className="error">{error}</p>}
-        <table>
+        <table className="cards">
           <thead>
             <tr>
               <th>No.</th>
@@ -105,11 +105,11 @@ export function DirectoryScreen({ me, campusId, initialId, onNavigate }: Props) 
           <tbody>
             {rows.map((e) => (
               <tr key={e.id} onClick={() => select(e)} className={selected?.id === e.id ? "selected" : ""}>
-                <td>{e.employee_no}</td>
-                <td>{e.full_name}</td>
-                <td>{e.position_title ?? <span className="muted">Unassigned</span>}</td>
-                <td>{e.campus_name}</td>
-                <td>{STATUS_LABEL[e.status]}</td>
+                <td data-label="No.">{e.employee_no}</td>
+                <td data-label="Name">{e.full_name}</td>
+                <td data-label="Position">{e.position_title ?? <span className="muted">Unassigned</span>}</td>
+                <td data-label="Campus">{e.campus_name}</td>
+                <td data-label="Status">{STATUS_LABEL[e.status]}</td>
               </tr>
             ))}
           </tbody>

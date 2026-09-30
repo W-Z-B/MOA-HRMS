@@ -50,6 +50,14 @@ export const get = <T>(path: string) => api<T>(path);
 export const post = <T>(path: string, data?: unknown) =>
   api<T>(path, { method: "POST", body: data === undefined ? undefined : encode(data) });
 export const patch = <T>(path: string, data: unknown) => api<T>(path, { method: "PATCH", body: encode(data) });
+export const remove = (path: string) => api<void>(path, { method: "DELETE" });
+
+/** The message alone, without the field name in front: for rules that speak in whole sentences. */
+export function plainMessage(err: unknown, fallback: string): string {
+  if (!(err instanceof ApiError)) return fallback;
+  const field = err.fields ? Object.values(err.fields).flat()[0] : undefined;
+  return field ?? err.detail;
+}
 
 /** First human-readable message from an API error, preferring field errors. */
 export function errorMessage(err: unknown, fallback = "Something went wrong."): string {

@@ -17,15 +17,15 @@ web app; Release 2 modules are read-only scaffolds.
 | `api/audit` | F05 | done | Insert-only audit log (database trigger), same-transaction writes from every audited view |
 | `api/iam` | F05 | done | Roles, campus and unit scopes, single permission layer, session login, TOTP multi-factor |
 | `api/org` | F01 | done | Campuses, units, salary scales, effective-dated grades, positions with vacancy |
-| `api/people` | F02, F03, F04 | done | Employees with encrypted identifiers and audited reveal, assignments (one substantive holder per post), contracts, documents |
-| `api/leave` | F06 | done | Leave types as data, ledger-derived balances, request workflow, monthly accrual job |
+| `api/people` | F02, F03, F04 | done | Employees with encrypted identifiers and audited reveal, assignments (one substantive holder per post), contracts with their terms (hours, hourly rate, notice), documents, the employee's own terms and manager |
+| `api/leave` | F06 | done | Leave types as data, ledger-derived balances, automatic checks (balance, overlap, eligibility, evidence), approval by the employee's own manager then HR, doctor's note beyond the sick-leave balance, receipt with the days left, entitlements per contract, monthly accrual and yearly grant jobs |
 | `api/reports` | F17 | partial | Report definitions, establishment-versus-actual and headcount queries (JSON; PDF and Excel in Sprint 6) |
 | `api/notifications` | F11 | done | In-app notifications with email delivery and per-key deduplication; leave workflow, contract-expiry and probation alerts feed it |
 | `api/attendance` | F07 | scaffold | Shift patterns and attendance records, read-only |
 | `api/performance` | F08 | scaffold | Appraisal cycles and appraisals, read-only |
 | `api/training` | F09 | scaffold | Training records, read-only |
 | `api/payroll` | F13, F14 | scaffold | Payroll periods, effective-dated statutory rates, placeholder change-file and extract builders |
-| `web/` | F10 | partial | Installable web app (manifest, shell-only service worker, offline queue for leave requests); login with MFA; dashboard; people directory with tabbed file, create and edit, assignments, document upload and audited reveal; leave requests, approvals and balances; notifications bell. Attendance, appraisals, payroll, reports and admin screens are placeholders |
+| `web/` | F10 | partial | Installable web app laid out for phones (manifest, shell-only service worker, offline queue for leave requests); login with MFA; dashboard; people directory with tabbed file, create and edit, assignments, contract terms, document upload and audited reveal; leave: days left, request form that checks as it is filled in, photo of the doctor's note, progress of each request, approvals, receipt; My contract; notifications bell. Attendance, appraisals, payroll, reports and admin screens are placeholders |
 
 API documentation is generated at `/api/docs`. Every endpoint lives under `/api/v1/`.
 
@@ -115,7 +115,8 @@ systems, with fictional data only. How it is built and configured: [deploy/railw
 ## Demonstration data
 
 `seed_demo` loads an invented dataset for staging and development: four units, thirteen posts (three
-vacant, one frozen), nine staff with appointments, leave balances and requests, and a training record.
+vacant, one frozen), nine staff with appointments, contracts, leave balances and requests, and a
+training record.
 Every person is fictional, says so in the address line, and carries identifiers that start with `DEMO-`.
 **Never run it on a database that holds real records.**
 
@@ -125,3 +126,10 @@ docker compose exec api python manage.py seed_demo --fictional
 
 It is idempotent and leaves existing appointments alone. The employee numbers (E0001 to E0009) are the
 lecturers named by the SRMS demonstration data, so load the systems in this order: HRMS, SRMS, LMS.
+
+**Accounts.** With `DEMO_USER_PASSWORD` set in the environment, `seed_demo` also gives every invented
+employee an account named `first.last` (for example `asha.persaud`), all with that password. Heads of
+unit are supervisors and `natasha.khan` is the HR Officer, so one request can be followed from the
+employee to the manager to Human Resources. Without the variable no account is created: a database that
+can be reached from the internet never receives accounts with a password its owner did not choose.
+An account that already exists keeps its password.

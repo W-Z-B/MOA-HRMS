@@ -1,8 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { get, post } from "../api/client";
-import type { Campus, Me, Paginated } from "../api/types";
+import { isOfficeUser, type Campus, type Me, type Paginated } from "../api/types";
 import { NotificationsBell } from "./NotificationsBell";
-import { NAV } from "./router";
+import { navFor } from "./router";
 
 interface Props {
   me: Me;
@@ -17,10 +17,12 @@ interface Props {
 /** Common frame from the wireframes: side navigation, campus switch, search, user menu; bottom bar on phones. */
 export function Shell({ me, path, onNavigate, onLogout, campusId, onCampusChange, children }: Props) {
   const [campuses, setCampuses] = useState<Campus[]>([]);
+  const office = isOfficeUser(me);
 
   useEffect(() => {
+    if (!office) return; // the campus switch filters lists an employee does not have
     get<Paginated<Campus>>("/org/campuses/").then((r) => setCampuses(r.results)).catch(() => setCampuses([]));
-  }, []);
+  }, [office]);
 
   async function logout() {
     await post("/auth/logout/");
@@ -31,21 +33,23 @@ export function Shell({ me, path, onNavigate, onLogout, campusId, onCampusChange
     <div className="shell">
       <header className="topbar">
         <span className="brand">GSA HRMS</span>
-        <label className="campus">
-          <span className="sr-only">Campus</span>
-          <select
-            id="campus-switch"
-            value={campusId ?? ""}
-            onChange={(e) => onCampusChange(e.target.value ? Number(e.target.value) : null)}
-          >
-            <option value="">All campuses</option>
-            {campuses.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        {office && (
+          <label className="campus">
+            <span className="sr-only">Campus</span>
+            <select
+              id="campus-switch"
+              value={campusId ?? ""}
+              onChange={(e) => onCampusChange(e.target.value ? Number(e.target.value) : null)}
+            >
+              <option value="">All campuses</option>
+              {campuses.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <span className="spacer" />
         <NotificationsBell onNavigate={onNavigate} />
         <span className="user">
@@ -56,7 +60,7 @@ export function Shell({ me, path, onNavigate, onLogout, campusId, onCampusChange
         </button>
       </header>
       <nav className="sidenav" aria-label="Main">
-        {NAV.map((item) => (
+        {navFor(me).map((item) => (
           <a
             key={item.path}
             href={`#${item.path}`}

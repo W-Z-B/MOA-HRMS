@@ -88,6 +88,7 @@ class LeaveRequestSerializer(TimeStampedSerializer):
     state = serializers.CharField(read_only=True)
     allowed_actions = serializers.SerializerMethodField()
     balance_after = serializers.SerializerMethodField()
+    days_beyond = serializers.SerializerMethodField()
     evidence_required = serializers.SerializerMethodField()
     has_evidence = serializers.SerializerMethodField()
     is_mine = serializers.SerializerMethodField()
@@ -127,11 +128,7 @@ class LeaveRequestSerializer(TimeStampedSerializer):
             "created_at",
             "updated_at",
         )
-        read_only_fields = TimeStampedSerializer.Meta.read_only_fields + (
-            "decision_comment",
-            "days_beyond",
-            "receipt",
-        )
+        read_only_fields = TimeStampedSerializer.Meta.read_only_fields + ("decision_comment", "receipt")
 
     def _assessment(self, obj):
         """Only a request still to be decided is assessed; afterwards the stored figures stand."""
@@ -151,6 +148,11 @@ class LeaveRequestSerializer(TimeStampedSerializer):
         if obj.state == LeaveRequest.State.APPROVED:
             return max(balance(obj.employee, obj.leave_type), ZERO)
         return self._assessment(obj).remaining
+
+    def get_days_beyond(self, obj) -> str:
+        """As recorded on approval; before that, what the balance would not cover today."""
+        beyond = obj.days_beyond if obj.state in DECIDED else self._assessment(obj).beyond
+        return f"{beyond:.2f}"
 
     def get_evidence_required(self, obj) -> bool:
         if obj.state in DECIDED:
