@@ -68,10 +68,53 @@ export interface Position {
   id: number;
   number: string;
   title: string;
+  grade: number;
+  grade_name: string;
   org_unit: number;
   org_unit_name: string;
-  status: string;
+  campus_name: string;
+  status: "approved" | "frozen" | "abolished";
+  status_name: string;
+  fte: string;
   is_vacant: boolean;
+  /** The substantive holder, for roles that read the staff directory. */
+  holder: string | null;
+}
+
+export interface OrgUnit {
+  id: number;
+  code: string;
+  name: string;
+  unit_type: "department" | "farm" | "unit" | "section";
+  unit_type_name: string;
+  parent: number | null;
+  parent_name: string | null;
+  campus: number;
+  campus_name: string;
+  head: number | null;
+  head_name: string | null;
+}
+
+export interface SalaryScale {
+  id: number;
+  code: string;
+  name: string;
+}
+
+export interface Grade {
+  id: number;
+  scale: number;
+  scale_code: string;
+  code: string;
+  step: number;
+  /** Empty for roles that do not see pay. */
+  amount: string | null;
+  effective_from: string;
+}
+
+export interface CampusDetail extends Campus {
+  address: string;
+  region: string;
 }
 
 export interface Assignment {
@@ -278,6 +321,8 @@ export const RETENTION_WRITE_ROLES = ["administrator", "hr_manager"];
 /** Holidays and leave types: read by those who work with accounts, kept by the HR Manager and administrators. */
 export const SETUP_ROLES = ["administrator", "hr_manager", "hr_officer", "auditor"];
 export const SETUP_WRITE_ROLES = ["administrator", "hr_manager"];
+export const ORG_WRITE_ROLES = ["administrator", "hr_manager"];
+export const GRADE_WRITE_ROLES = ["administrator", "hr_manager", "finance"];
 export const hasAnyRole = (me: Me, roles: readonly string[]) => roles.some((r) => me.roles.includes(r));
 /** Staff with work to do in the system beyond their own leave: they see the full navigation. */
 export const isOfficeUser = (me: Me) => me.roles.some((r) => r !== "employee");

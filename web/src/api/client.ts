@@ -61,6 +61,19 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
 const encode = (data: unknown) => (data instanceof FormData ? data : JSON.stringify(data));
 
 export const get = <T>(path: string) => api<T>(path);
+
+/** Every page of a list, following `next` (up to `pages` pages): for short reference lists. */
+export async function getAll<T>(path: string, pages = 20): Promise<T[]> {
+  const rows: T[] = [];
+  let next: string | null = path;
+  for (let page = 0; next && page < pages; page++) {
+    const answer: { results: T[]; next: string | null } = await get(next);
+    rows.push(...answer.results);
+    const url = answer.next ? new URL(answer.next, window.location.origin) : null;
+    next = url ? `${url.pathname.replace(/^\/api\/v1/, "")}${url.search}` : null;
+  }
+  return rows;
+}
 export const post = <T>(path: string, data?: unknown) =>
   api<T>(path, { method: "POST", body: data === undefined ? undefined : encode(data) });
 export const patch = <T>(path: string, data: unknown) => api<T>(path, { method: "PATCH", body: encode(data) });

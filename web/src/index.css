@@ -1043,6 +1043,11 @@ td.to-check {
   }
 }
 
+/* Organisation: units indented under the unit they sit in. */
+.accounts > li.unit {
+  max-width: 720px;
+}
+
 /* Audit log: whether the chain is intact, beside the button that checks it. */
 .chain-state .notice {
   flex: 1 1 320px;
