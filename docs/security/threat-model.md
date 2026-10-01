@@ -1,8 +1,10 @@
 # Threat model
 
-**Version 1.1, 1 October 2026.** Method: STRIDE over the data flows in section 3, against the code on
+**Version 1.2, 1 October 2026.** Method: STRIDE over the data flows in section 3, against the code on
 branch `feature/phase-1-security-hardening`. Version 1.1 records the four gaps closed by pull request 16
-(items 1.28, 1.35, 1.36, 1.37) and one weakness found while closing them (forged addresses). Reviewed at every release gate and whenever a data flow, role or
+(items 1.28, 1.35, 1.36, 1.37) and one weakness found while closing them (forged addresses). Version 1.2
+records two weaknesses found while building the staff record (pull request 17): writes across campuses,
+and a leave balance disclosed in a refusal. Reviewed at every release gate and whenever a data flow, role or
 integration is added. Gaps point to items in the Gold Standard Plan checklist.
 
 ## 1. What is protected
@@ -98,7 +100,8 @@ flowchart LR
 |---|---|---|
 | Identifiers in lists, logs or the integration API | Encrypted at rest, masked in responses and audit snapshots, full values only through the audited reveal for HR roles, never in the integration API | Rotating the field key is a manual procedure; keep the key and the backups apart (item 7.09) |
 | Doctor's notes seen by the wrong person | Medical class; the employee and HR only; downloads audited | Authenticator code for HR officers (item 1.34) |
-| Pay seen by the wrong person | Pay fields blanked for roles without need | Bank details, when added, encrypted with a second person's approval (item 1.07) |
+| Pay seen by the wrong person | Pay fields blanked for roles without need; **bank details encrypted, shown by their last four digits, revealed only to those who decide and always audited; a change takes effect only when a second person approves it, and the employee is told** (pull request 17) | |
+| A refusal describing someone on another campus | **Fixed in pull request 17:** asking for leave for an employee on another campus was refused with that employee's leave balance in the message. Fields that name an employee, appointment, contract, document or post now accept only records in the caller's scope, before any other check, so an id on another campus reads as unknown | |
 | Script injection stealing data | React escapes output; no user HTML is rendered; `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`; **a Content-Security-Policy that allows only the app's own scripts, styles and data, checked on every screen of every browser journey**; **the API documentation is for signed-in people only outside development** (pull request 16) | The development server runs without the policy (hot reload needs inline scripts) |
 | Real data on staging abroad | Staging holds fictional data only; `seed_demo` refuses to run without `--fictional` and marks every record | Production hosting in Guyana (item 7.04) |
 | Data in backups | | Encrypted backups with an off-site copy (item 7.09) |
@@ -117,6 +120,7 @@ flowchart LR
 | Threat | In place | Gap |
 |---|---|---|
 | Reading another campus's or person's records | One permission layer for every endpoint; campus scoping in every viewset; scoping fails closed for callers who are not people (pull request 15); a test covers the whole permission table | Each new endpoint must join that test (definition of done) |
+| Writing records for another campus | **Fixed in pull request 17:** a campus-scoped HR officer could create an employee, appointment, contract, document, leave request or entitlement for staff on another campus, because scope was checked on reading and editing but not on creating. Every write now checks it, in the field and again in the view, and a test tries each path | |
 | Approving one's own request | The leave workflow refuses self-approval and sends requests to the employee's own manager | Carry the rule into the approvals engine (item 1.33) |
 | Privileged access without a second factor | Enforced in the permission layer, and now in the admin | HR officers (item 1.34) |
 

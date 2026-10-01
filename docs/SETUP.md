@@ -113,6 +113,8 @@ service volume; see the Development Specification section 4.5 for the full proce
 |---|---|
 | `scripts/e2e.sh` is slow the first time | It builds the hosted image and pulls the Playwright browsers (about 2 GB, stored wherever Docker keeps its data). Later runs reuse both. |
 | A browser journey fails | Run `KEEP=1 bash scripts/e2e.sh`, then open `web/playwright-report/index.html`; screenshots and traces of the failure are in `web/test-results/`. |
+| You want to see the screens a change touched | `SCREENSHOTS=1 bash scripts/e2e.sh` saves the main screens, desktop and phone, in `web/test-results/screens/`. |
+| Saving an employee asks for a reason | Changes to the personal record must say why (item 1.08); the reason is kept in the file's history. |
 | The admin sends you to the web app | Expected: sign in at the web app (with the authenticator code if your role needs one), then open `/admin/` again. |
 | You are sent back to sign-in with "signed out after 30 minutes without activity" | The idle time-out (`SESSION_IDLE_MINUTES`). Sessions also end 8 hours after sign-in. My account lists every device signed in. |
 | An upload is refused with "The file's contents do not match its name" | The file is not what its name says (for example a web page saved as `.pdf`). Save it again as a PDF or photograph. Limits: 10 MB for leave evidence, 20 MB for documents. |
