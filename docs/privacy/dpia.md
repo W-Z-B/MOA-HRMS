@@ -1,8 +1,9 @@
 # Data protection impact assessment
 
-**Draft 0.2, 1 October 2026,** prepared by the development team for GSA's data protection officer.
+**Draft 0.3, 1 October 2026,** prepared by the development team for GSA's data protection officer.
 Draft 0.2 records the privacy rights built in pull request 20: the notice and its acknowledgement, a
-person's own record, and correction requests.
+person's own record, and correction requests. Draft 0.3 records the retention schedule, reviewed disposal
+and the breach register built in pull request 21.
 GSA is the data controller and owns this assessment; the development team keeps it current as the
 system changes. It is signed in section 9 before any real staff record is loaded (checklist item 7.03).
 
@@ -60,13 +61,19 @@ dates of birth or addresses).
 is hosted (notices name people and dates; item 2.26 limits email to a link), and where off-site backups
 are kept (item 7.09).
 
-**Retention** (proposals for GSA to confirm, then set as data in the retention schedule, item 1.32):
+**Retention** (proposals for GSA to confirm). The schedule is now data in the system (pull request 21): the
+Admin screen's Retention tab shows each period, whether GSA has agreed it, and who confirmed it. Doctor's
+notes, other leave evidence and documents given a date are destroyed only when one person lists what is due
+and a second approves; anything can be kept back with a reason (a legal hold). Sign-in records and
+notifications already read are removed every night without review. Each destruction is written to the
+audit log with the rule that required it. Periods for records whose end the system cannot yet tell, such
+as a leaver's file, wait for the leaving process (item 1.12).
 
 | Records | Proposal |
 |---|---|
 | Personnel file and appointments | Employment plus the period required by Government records and pension rules |
 | Leave register and decisions | As the Leave with Pay Act and Labour Officer inspections require |
-| Doctor's notes | Two years after the leave they support |
+| Doctor's notes | Two years after the leave they support (in the schedule; GSA to confirm) |
 | Audit log | Seven years (Planning Pack requirement) |
 | Access review sign-offs | Seven years, with the audit log |
 | Sign-in records, devices, requests for a password link | Twelve months; a device record ends with its session |
@@ -99,10 +106,15 @@ Choices already made to collect and show less:
 | To be told what is processed and why (controller, data protection officer, purposes, recipients, legal authority, whether compulsory, retention) | **Built (pull request 20):** a versioned notice that HR publishes; each person reads and acknowledges each version once, after sign-in, and the acknowledgement is recorded; a report shows who has not yet read it. A starting draft for GSA to complete is `docs/privacy/privacy-notice-draft.md` | Item 1.31; GSA to approve the text |
 | To be told whether data is processed, and to receive its purposes, categories, recipients and retention | **Built (pull request 20):** My record shows everything held about the person, to read, print or download as a file, with the history of changes and who made them; HR can produce the same for a request made on paper. Every viewing is recorded. The file leaves out full bank account numbers | Item 1.31 |
 | Rectification | **Built (pull request 20):** a correction request names what is wrong and what it should say; HR on the person's campus answers within `PRIVACY_RESPONSE_DAYS` (30 by default, GSA's own standard until regulations set one), corrected or not changed with the reason, and the person is told. Nobody answers a request about themselves. Changing details directly from self-service, with HR's approval, comes later | Items 1.31 and 2.18 |
-| Erasure without undue delay | Disposal run under the retention schedule; employment records kept only as long as the law requires | Item 1.32 |
+| Erasure without undue delay | **Built (pull request 21):** disposal runs under the retention schedule, approved by a second person, each destruction recorded; logs removed nightly. Leavers' files follow once leaving is recorded | Items 1.32 and 1.12 |
 | Restriction while accuracy is contested or on objection | A restriction flag on a record, honoured by every module | Item 1.46 |
 | Objection in writing | Logged and decided by the data protection officer | Item 1.46 |
 | Complaint to the Data Protection Commissioner | Stated in the privacy notice | Item 1.31 |
+
+**Breaches** (pull request 21): every personal data breach is recorded in the register on the Admin
+screen: when it was found, what happened, whose data, how many people, the risk, when it was
+contained, when the Data Protection Commissioner and the people affected were told, and what was done.
+Recording one alerts the administrators at once; a breach is closed only after it is contained.
 
 ## 6. Risks and measures
 
