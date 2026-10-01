@@ -39,3 +39,16 @@ def mask(value: str | None, visible: int = 3) -> str | None:
     if not value:
         return None
     return "•" * max(len(value) - visible, 4) + value[-visible:]
+
+
+def fingerprint(value: str) -> str:
+    """A short keyed fingerprint of a sensitive value, for telling in the audit log that it changed.
+
+    HMAC-SHA256 under a key derived from FIELD_ENCRYPTION_KEY, cut to 10 hex characters: equal values
+    give equal fingerprints, and without the server key the value cannot be worked back from it.
+    """
+    import hmac
+
+    raw = getattr(settings, "FIELD_ENCRYPTION_KEY", "") or ""
+    key = hashlib.sha256(b"audit-fingerprint:" + raw.encode("utf-8")).digest()
+    return hmac.new(key, value.encode("utf-8"), hashlib.sha256).hexdigest()[:10]

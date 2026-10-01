@@ -1,5 +1,7 @@
 """GET /api/v1/reports/ lists definitions; GET /api/v1/reports/{key}/ runs one (JSON for now)."""
 
+import inspect
+
 from django.urls import path
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -69,9 +71,14 @@ def run_report(request, key: str):
             },
             status=status.HTTP_501_NOT_IMPLEMENTED,
         )
+    query = REPORTS[key]
     campus = request.query_params.get("campus")
-    kwargs = {"campus_id": int(campus)} if campus and key == "establishment-vs-actual" else {}
-    return Response({"key": key, "name": definition.name, "rows": REPORTS[key](**kwargs)})
+    kwargs = {}
+    if campus and "campus_id" in inspect.signature(query).parameters:
+        if not campus.isdigit():
+            return Response({"code": "bad_request", "detail": "campus must be a campus id."}, status=400)
+        kwargs["campus_id"] = int(campus)
+    return Response({"key": key, "name": definition.name, "rows": query(**kwargs)})
 
 
 urlpatterns = [

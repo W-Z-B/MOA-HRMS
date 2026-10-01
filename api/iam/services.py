@@ -35,6 +35,15 @@ def requires_mfa(user) -> bool:
     return bool(role_codes(user) & Role.MFA_REQUIRED) or getattr(user, "is_superuser", False)
 
 
+def campus_in_scope(user, campus_id) -> bool:
+    """Whether the user may write records on that campus: broad roles anywhere, others on their own."""
+    if not getattr(user, "is_authenticated", False) or getattr(user, "pk", None) is None:
+        return False
+    if getattr(user, "is_superuser", False) or role_codes(user) & BROAD_READ_ROLES:
+        return True
+    return campus_id in campus_ids(user)
+
+
 def scope_queryset(user, queryset, campus_field: str = "campus"):
     """Restrict a queryset to the user's campuses unless the user holds a broad role.
 

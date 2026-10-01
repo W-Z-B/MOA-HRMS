@@ -471,3 +471,29 @@ def test_an_opening_balance_counts_as_the_years_grant(team):
     assert created == 2
     assert balance(asha, sick) == Decimal("9") and balance(kwame, sick) == Decimal("14")
     assert grant_entitlements() == 0
+
+
+@pytest.mark.django_db
+def test_someone_with_no_role_yet_can_still_ask_for_their_own_leave(employee, seeded):
+    """The employee field is limited to the caller's campuses, but a person may always name themselves."""
+    from django.contrib.auth import get_user_model
+    from rest_framework.test import APIClient
+
+    from leave.models import LeaveType
+
+    person = get_user_model().objects.create_user("no.role.yet", password="x" * 14)
+    employee.user = person
+    employee.save()
+    client = APIClient()
+    client.force_login(person)
+    response = client.post(
+        "/api/v1/leave/requests/",
+        {
+            "employee": employee.id,
+            "leave_type": LeaveType.objects.get(code="SPE").id,
+            "from_date": "2026-11-02",
+            "to_date": "2026-11-02",
+        },
+        format="json",
+    )
+    assert response.status_code == 201, response.content
