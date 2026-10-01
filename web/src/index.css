@@ -10,6 +10,8 @@
   --stripe: #edf1e8;
   --danger: #9a2f2f;
   --amber: #9a6a14;
+  /* Amber for small text on the light backgrounds: 5.7:1 on --stripe, 6.5:1 on --card (WCAG AA). */
+  --amber-text: #7d5610;
   --nav-w: 200px;
   --topbar-h: 52px;
   color-scheme: light;
@@ -92,8 +94,29 @@ h2 {
   opacity: 0.8;
   margin-left: 6px;
 }
+/* Initials and the bell icon stand in for the name and the word on phones (see the phone rules). */
+.user-initials {
+  display: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  /* A ring with no fill: white on the accent green is 6.3:1, where a light fill would drop it below 4.5. */
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.bell-icon {
+  display: none;
+}
+/* Links inside tables and cards: the accent, so they read as part of the design and stand out from text. */
+table a {
+  color: var(--accent);
+  font-weight: 600;
+}
 .topbar select {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.18); /* darker than the bar, so white text stays above 4.5:1 */
   color: inherit;
   border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 4px;
@@ -554,7 +577,7 @@ button.accent {
 }
 .chip-submitted,
 .chip-supervisor_approved {
-  color: var(--amber);
+  color: var(--amber-text);
 }
 .chip-approved {
   background: var(--accent);
@@ -685,7 +708,7 @@ dl.terms dd {
 @media (max-width: 760px) {
   .shell {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: var(--topbar-h) minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, 1fr) auto; /* the top bar may wrap to two rows */
   }
   .sidenav {
     grid-row: 3;
@@ -707,8 +730,43 @@ dl.terms dd {
   .split {
     grid-template-columns: minmax(0, 1fr);
   }
-  .user small {
+  /* The bar wraps instead of overflowing: name, bell and Sign out stay on the first row, and the
+     campus switch takes a full-width second row. Nothing is pushed off the screen at 360px. */
+  .topbar {
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    min-height: var(--topbar-h);
+    padding: 6px 12px;
+  }
+  .topbar .campus {
+    order: 10;
+    flex: 1 0 100%;
+  }
+  .topbar .campus select {
+    width: 100%;
+  }
+  .brand {
+    white-space: nowrap;
+  }
+  .user-full,
+  .bell-text {
     display: none;
+  }
+  .user-initials {
+    display: inline-grid;
+  }
+  .bell-icon {
+    display: block;
+  }
+  .bell button.link {
+    position: relative;
+    padding: 8px;
+  }
+  .bell .badge {
+    position: absolute;
+    top: -2px;
+    right: -8px;
+    margin-left: 0;
   }
   /* Fingers, not pointers: controls 44px tall, and 16px type so that the phone does not zoom in. */
   button,
@@ -720,10 +778,6 @@ dl.terms dd {
   button.link,
   input[type="checkbox"] {
     min-height: 0;
-  }
-  .topbar {
-    gap: 10px;
-    padding: 0 12px;
   }
   .form-row {
     flex-direction: column;

@@ -62,13 +62,23 @@ export function LoginScreen({ onSignedIn }: Props) {
           <>
             <label>
               Username
-              <input id="username" value={username} onChange={(e) => setUsername(e.target.value)} autoFocus required />
+              <input
+                id="username"
+                autoComplete="username"
+                autoCapitalize="none"
+                spellCheck={false}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                autoFocus
+                required
+              />
             </label>
             <label>
               Password
               <input
                 id="password"
                 type="password"
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -87,6 +97,7 @@ export function LoginScreen({ onSignedIn }: Props) {
               Authenticator code
               <input
                 id="mfa-code"
+                autoComplete="one-time-code"
                 inputMode="numeric"
                 pattern="[0-9]*"
                 value={code}

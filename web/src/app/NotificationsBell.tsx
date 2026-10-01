@@ -44,7 +44,15 @@ export function NotificationsBell({ onNavigate }: Props) {
   return (
     <div className="bell">
       <button className="link" aria-expanded={open} aria-label={`Notifications, ${unread} unread`} onClick={() => setOpen(!open)}>
-        Notifications{unread > 0 && <span className="badge">{unread}</span>}
+        <span className="bell-text">Notifications</span>
+        {/* Phones show the bell alone; the button's label still says "Notifications". */}
+        <svg className="bell-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+          <path
+            fill="currentColor"
+            d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.5-6.84V3a1.5 1.5 0 0 0-3 0v1.16A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z"
+          />
+        </svg>
+        {unread > 0 && <span className="badge">{unread}</span>}
       </button>
       {open && (
         <div className="dropdown" role="dialog" aria-label="Notifications">
