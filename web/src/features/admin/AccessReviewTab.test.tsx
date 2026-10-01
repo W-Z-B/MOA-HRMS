@@ -108,7 +108,7 @@ describe("the Admin screen", () => {
     const onNavigate = vi.fn();
     render(<AdminScreen me={person(["auditor"])} campusId={null} path="/admin/review" onNavigate={onNavigate} />);
     const tabs = screen.getAllByRole("tab");
-    expect(tabs.map((t) => t.textContent)).toEqual(["Accounts", "Access review", "Audit log"]);
+    expect(tabs.map((t) => t.textContent)).toEqual(["Accounts", "Access review", "Audit log", "Privacy notice"]);
     expect(screen.getByRole("tab", { name: "Access review" })).toHaveAttribute("aria-selected", "true");
     await screen.findByRole("table");
     await userEvent.setup().click(screen.getByRole("tab", { name: "Accounts" }));

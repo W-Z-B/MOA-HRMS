@@ -21,6 +21,7 @@ export const NAV = [
   { path: "/people", label: "People", office: true },
   { path: "/leave", label: "Leave", office: false },
   { path: "/me", label: "My contract", office: false },
+  { path: "/my-record", label: "My record", office: false },
   { path: "/account", label: "My account", office: false },
   { path: "/attendance", label: "Attendance", office: true },
   { path: "/appraisals", label: "Appraisals", office: true },

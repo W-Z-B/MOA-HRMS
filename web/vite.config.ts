@@ -35,6 +35,7 @@ export default defineConfig({
         "src/app/router.ts",
         "src/features/auth/**",
         "src/features/admin/**",
+        "src/features/privacy/**",
         "src/features/me/AccountScreen.tsx",
         "src/features/leave/Receipt.tsx",
         "src/features/leave/RequestForm.tsx",

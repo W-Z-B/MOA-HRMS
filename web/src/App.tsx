@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { get, SIGNED_OUT_EVENT } from "./api/client";
+import { useCallback, useEffect, useState } from "react";
+import { get, post, SIGNED_OUT_EVENT } from "./api/client";
 import { isOfficeUser, type Me } from "./api/types";
 import { Shell } from "./app/Shell";
 import { useHashRoute } from "./app/router";
@@ -13,6 +13,8 @@ import { AccountScreen } from "./features/me/AccountScreen";
 import { MyContractScreen } from "./features/me/MyContractScreen";
 import { DirectoryScreen } from "./features/people/DirectoryScreen";
 import { ComingSoon } from "./features/placeholder/ComingSoon";
+import { MyRecordScreen } from "./features/privacy/MyRecordScreen";
+import { PrivacyNoticeScreen } from "./features/privacy/PrivacyNoticeScreen";
 import { ReportsScreen } from "./features/reports/ReportsScreen";
 
 const CAMPUS_KEY = "gsa-hrms.campus";
@@ -54,6 +56,13 @@ export default function App() {
     setMe(person);
   }
 
+  const noticeRead = useCallback(() => setMe((person) => (person ? { ...person, privacy_notice_due: null } : person)), []);
+
+  async function signOutFromNotice() {
+    await post("/auth/logout/").catch(() => undefined);
+    setMe(null);
+  }
+
   function changeCampus(id: number | null) {
     setCampusId(id);
     try {
@@ -92,6 +101,8 @@ export default function App() {
       />
     );
   }
+  // The privacy notice in force is read once, after sign-in, before anything else (item 1.31).
+  if (me.privacy_notice_due) return <PrivacyNoticeScreen onAcknowledged={noticeRead} onSignOut={signOutFromNotice} />;
 
   const idIn = (prefix: string) => {
     const m = path.match(new RegExp(`^${prefix}/(\\d+)`));
@@ -106,6 +117,7 @@ export default function App() {
     screen = <DirectoryScreen me={me} campusId={campusId} initialId={idIn("/people")} onNavigate={navigate} />;
   else if (path.startsWith("/leave")) screen = leave;
   else if (path === "/me") screen = <MyContractScreen />;
+  else if (path === "/my-record") screen = <MyRecordScreen />;
   else if (path === "/account") screen = <AccountScreen />;
   else if (path.startsWith("/attendance"))
     screen = <ComingSoon title="Attendance" sprint="Release 2" requirement="F07" />;

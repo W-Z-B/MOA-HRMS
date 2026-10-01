@@ -35,6 +35,12 @@ export const STAFF = {
   auditor: { username: "audit.reviewer", name: "Audit Reviewer" },
 } as const;
 
+/** Staff used only by the privacy journey, one for each browser project, each signing in first there. */
+const PRIVACY_PEOPLE = {
+  desktop: { username: "devon.charles", name: "Devon Charles", employeeNo: "E0007" },
+  phone: { username: "troy.benjamin", name: "Troy Benjamin", employeeNo: "E0009" },
+} as const;
+
 /**
  * New starters from seed_demo, on file but with no account yet: one for each browser project, so that each
  * journey invites its own person.
@@ -78,12 +84,29 @@ function password(): string {
   return value;
 }
 
+export const privacyPerson = (testInfo: TestInfo) =>
+  PRIVACY_PEOPLE[testInfo.project.name as keyof typeof PRIVACY_PEOPLE];
+
+/**
+ * After signing in: the first time, the privacy notice in force is read and acknowledged (item 1.31).
+ * Returns whether it was shown.
+ */
+export async function passNotice(page: Page): Promise<boolean> {
+  const read = page.getByRole("button", { name: "I have read this notice" });
+  const signOutButton = page.getByRole("button", { name: "Sign out", exact: true });
+  await expect(read.or(signOutButton).first()).toBeVisible();
+  const shown = await read.isVisible();
+  if (shown) await read.click();
+  await expect(signOutButton).toBeVisible();
+  return shown;
+}
+
 export async function signIn(page: Page, username: string) {
   await page.goto("/");
   await page.getByLabel("Username").fill(username);
   await page.getByLabel("Password").fill(password());
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page.getByRole("button", { name: "Sign out", exact: true })).toBeVisible();
+  await passNotice(page);
 }
 
 export async function signOut(page: Page) {
