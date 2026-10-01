@@ -19,6 +19,14 @@ const HEADINGS: Record<string, string> = {
   vacant: "Vacant",
   active: "Active",
   total: "Total",
+  username: "Username",
+  role: "Role",
+  where: "Where",
+  given: "Given on",
+  given_by: "Given by",
+  last_signed_in: "Last signed in",
+  authenticator: "Authenticator",
+  to_check: "To check",
 };
 const heading = (key: string) => HEADINGS[key] ?? key.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
 
@@ -58,7 +66,7 @@ export function ReportsScreen({ campusId, onNavigate }: Props) {
 
   const cell = (row: ReportRow, key: string) => {
     const value = row[key];
-    if (key === "employee_no" && row.employee_id !== undefined)
+    if (key === "employee_no" && row.employee_id)
       return (
         <a
           href={`#/people/${row.employee_id}`}

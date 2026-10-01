@@ -1,7 +1,7 @@
 /** Hash-based routing with no dependency. A router library is approved in principle (ADR 0009) and is added when a feature needs it. */
 
 import { useEffect, useState } from "react";
-import { isOfficeUser, type Me } from "../api/types";
+import { ACCOUNT_ROLES, hasAnyRole, isOfficeUser, type Me } from "../api/types";
 
 const read = () => window.location.hash.replace(/^#/, "") || "/";
 
@@ -15,7 +15,7 @@ export function useHashRoute(): [string, (to: string) => void] {
   return [path, (to: string) => (window.location.hash = to)];
 }
 
-/** `office` entries are for staff who work in the system; everyone sees the rest. */
+/** `office` entries are for staff who work in the system; everyone sees the rest. `roles` narrows an entry further. */
 export const NAV = [
   { path: "/", label: "Dashboard", office: true },
   { path: "/people", label: "People", office: true },
@@ -26,8 +26,9 @@ export const NAV = [
   { path: "/appraisals", label: "Appraisals", office: true },
   { path: "/payroll", label: "Payroll", office: true },
   { path: "/reports", label: "Reports", office: true },
-  { path: "/admin", label: "Admin", office: true },
+  { path: "/admin", label: "Admin", office: true, roles: ACCOUNT_ROLES },
 ] as const;
 
 /** An employee with no other role sees their own leave and contract, and nothing they cannot open. */
-export const navFor = (me: Me) => (isOfficeUser(me) ? NAV : NAV.filter((item) => !item.office));
+export const navFor = (me: Me) =>
+  NAV.filter((item) => (isOfficeUser(me) || !item.office) && (!("roles" in item) || hasAnyRole(me, item.roles)));

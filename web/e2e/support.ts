@@ -1,5 +1,7 @@
 /** Helpers shared by the journeys: signing in as the fictional demonstration staff, and the axe check. */
 
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import { test as base, expect, type Page, type TestInfo } from "@playwright/test";
 
@@ -30,6 +32,43 @@ export const STAFF = {
   // Used only by the session journey, so that ending sessions never disturbs the leave journey.
   lecturer: { username: "shanta.ramdeen", name: "Shanta Ramdeen" },
 } as const;
+
+/**
+ * New starters from seed_demo, on file but with no account yet: one for each browser project, so that each
+ * journey invites its own person.
+ */
+const NEW_STARTERS = {
+  desktop: { name: "Kemal Bacchus", username: "kemal.bacchus", email: "kemal.bacchus@gsa.example" },
+  phone: { name: "Petal Fredericks", username: "petal.fredericks", email: "petal.fredericks@gsa.example" },
+} as const;
+export const newStarter = (testInfo: TestInfo) => NEW_STARTERS[testInfo.project.name as keyof typeof NEW_STARTERS];
+
+/** Where the test stack writes the email it would send (compose.e2e.yml). */
+const MAIL_DIR = process.env.E2E_MAIL_DIR ?? "/files/mail";
+
+function messages(): string[] {
+  try {
+    return readdirSync(MAIL_DIR).sort();
+  } catch {
+    return []; // nothing has been sent yet
+  }
+}
+
+/** The email written so far. Take this before an action, then wait for what the action sends. */
+export const mailbox = () => new Set(messages());
+
+/** The link to choose a password in the first email to that address written after `before`. */
+export async function linkSentTo(address: string, before: Set<string>): Promise<string> {
+  for (let attempt = 0; attempt < 50; attempt++) {
+    for (const name of messages().filter((n) => !before.has(n))) {
+      const text = readFileSync(join(MAIL_DIR, name), "utf8");
+      const link = text.includes(`To: ${address}`) && text.match(/https:\/\/\S+\/#\/set-password\/\S+/);
+      if (link) return link[0];
+    }
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+  throw new Error(`No email with a password link reached ${address}`);
+}
 
 function password(): string {
   const value = process.env.E2E_PASSWORD;
