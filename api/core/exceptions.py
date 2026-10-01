@@ -7,12 +7,25 @@ per-field shape.
 """
 
 from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
+from django.db.models import ProtectedError
 from django.http import Http404
-from rest_framework import exceptions
+from rest_framework import exceptions, status
+from rest_framework.response import Response
 from rest_framework.views import exception_handler
 
 
 def api_exception_handler(exc, context):
+    if isinstance(exc, ProtectedError):
+        # Removing a record others still point to, such as a unit that still has posts: say so, not a 500.
+        held = exc.protected_objects
+        names = ", ".join(sorted({str(obj._meta.verbose_name_plural) for obj in held})) or "records"
+        return Response(
+            {
+                "code": "in_use",
+                "detail": f"It cannot be removed while {len(held)} {names} still refer to it.",
+            },
+            status=status.HTTP_409_CONFLICT,
+        )
     response = exception_handler(exc, context)
     if response is None or not isinstance(response.data, dict):
         return response
