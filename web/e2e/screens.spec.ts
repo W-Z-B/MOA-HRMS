@@ -40,4 +40,14 @@ test("main screens", async ({ page }, testInfo) => {
   await page.getByRole("region", { name: "Where you are signed in" }).getByRole("listitem").first().waitFor();
   await shot("my-account");
   await signOut(page);
+
+  await signIn(page, STAFF.auditor.username);
+  await openSection(page, "Admin");
+  await page.getByRole("tab", { name: "Access review" }).click();
+  await page.getByRole("table").waitFor();
+  await shot("admin-access-review");
+  await page.getByRole("tab", { name: "Audit log" }).click();
+  await page.getByRole("list", { name: "Audit entries" }).waitFor();
+  await shot("admin-audit");
+  await signOut(page);
 });

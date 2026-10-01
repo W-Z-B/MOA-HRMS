@@ -277,6 +277,9 @@ tbody tr.selected {
   flex: none;
   width: 100%;
 }
+.filters input[type="checkbox"] {
+  flex: none;
+}
 
 /* Directory split view. */
 .split {
@@ -520,6 +523,21 @@ button.accent {
 }
 .notice.good {
   border-left-color: var(--accent);
+}
+.notice.bad {
+  border-left-color: var(--danger);
+  color: var(--danger);
+}
+/* A link that does a button's job (a download): it looks like a secondary button. */
+a.button {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--card);
+  color: var(--accent);
+  text-decoration: none;
 }
 .check {
   background: var(--stripe);
@@ -799,6 +817,9 @@ dl.terms dd {
   input[type="checkbox"] {
     min-height: 0;
   }
+  a.button {
+    min-height: 44px;
+  }
   .form-row {
     flex-direction: column;
     align-items: stretch;
@@ -985,4 +1006,10 @@ td.to-check {
 }
 .sign-off {
   margin-top: 16px;
+}
+
+/* Audit log: whether the chain is intact, beside the button that checks it. */
+.chain-state .notice {
+  flex: 1 1 320px;
+  margin: 0;
 }

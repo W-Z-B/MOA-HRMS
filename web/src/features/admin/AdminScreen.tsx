@@ -1,6 +1,7 @@
-import { ACCOUNT_ROLES, ACCOUNT_WRITE_ROLES, REVIEW_ROLES, hasAnyRole, type Me } from "../../api/types";
+import { ACCOUNT_ROLES, ACCOUNT_WRITE_ROLES, AUDIT_ROLES, REVIEW_ROLES, hasAnyRole, type Me } from "../../api/types";
 import { AccessReviewTab } from "./AccessReviewTab";
 import { AccountsTab } from "./AccountsTab";
+import { AuditTab } from "./AuditTab";
 import { StaffTab } from "./StaffTab";
 
 interface Props {
@@ -14,9 +15,10 @@ const TABS = [
   { key: "accounts", path: "/admin", label: "Accounts", roles: ACCOUNT_ROLES },
   { key: "staff", path: "/admin/staff", label: "Staff without an account", roles: ACCOUNT_WRITE_ROLES },
   { key: "review", path: "/admin/review", label: "Access review", roles: REVIEW_ROLES },
+  { key: "audit", path: "/admin/audit", label: "Audit log", roles: AUDIT_ROLES },
 ] as const;
 
-/** Accounts and access: who can sign in, with which roles, and the review of who can see what. */
+/** Accounts and access: who can sign in, with which roles, the review of who can see what, and the audit log. */
 export function AdminScreen({ me, campusId, path, onNavigate }: Props) {
   const tabs = TABS.filter((t) => hasAnyRole(me, t.roles));
   const current = tabs.find((t) => t.path === path) ?? tabs[0];
@@ -47,6 +49,7 @@ export function AdminScreen({ me, campusId, path, onNavigate }: Props) {
             {current.key === "accounts" && <AccountsTab me={me} campusId={campusId} />}
             {current.key === "staff" && <StaffTab campusId={campusId} onNavigate={onNavigate} />}
             {current.key === "review" && <AccessReviewTab me={me} campusId={campusId} onNavigate={onNavigate} />}
+            {current.key === "audit" && <AuditTab />}
           </div>
         </>
       )}

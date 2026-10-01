@@ -98,7 +98,7 @@ describe("access review", () => {
     });
     render(<AccessReviewTab me={person(["hr_manager"])} campusId={null} onNavigate={vi.fn()} />);
     expect(await screen.findByRole("alert")).toHaveTextContent("Your role cannot run this report.");
-    expect(await screen.findByText(/has not been signed off yet/)).toBeInTheDocument();
+    expect(await screen.findByText(/has not been signed off yet\. Read the list below and sign it off\./)).toBeInTheDocument();
   });
 });
 
@@ -108,7 +108,7 @@ describe("the Admin screen", () => {
     const onNavigate = vi.fn();
     render(<AdminScreen me={person(["auditor"])} campusId={null} path="/admin/review" onNavigate={onNavigate} />);
     const tabs = screen.getAllByRole("tab");
-    expect(tabs.map((t) => t.textContent)).toEqual(["Accounts", "Access review"]);
+    expect(tabs.map((t) => t.textContent)).toEqual(["Accounts", "Access review", "Audit log"]);
     expect(screen.getByRole("tab", { name: "Access review" })).toHaveAttribute("aria-selected", "true");
     await screen.findByRole("table");
     await userEvent.setup().click(screen.getByRole("tab", { name: "Accounts" }));
