@@ -11,4 +11,8 @@ urlpatterns = [
     path("sessions/", views.sessions_view, name="auth-sessions"),
     path("sessions/end-others/", views.end_other_sessions_view, name="auth-sessions-end-others"),
     path("sessions/<int:pk>/", views.end_session_view, name="auth-session-end"),
+    path("password/forgot/", views.forgot_password_view, name="auth-password-forgot"),
+    path("password/check/", views.check_link_view, name="auth-password-check"),
+    path("password/set/", views.set_password_view, name="auth-password-set"),
+    path("password/change/", views.change_password_view, name="auth-password-change"),
 ]

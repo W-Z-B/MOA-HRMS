@@ -35,6 +35,12 @@ ACTIONS = {
     "transition:approve": "Approved",
     "transition:reject": "Rejected",
     "transition:cancel": "Cancelled",
+    "account_opened": "Opened",
+    "account_deactivated": "Switched off",
+    "account_reactivated": "Switched on again",
+    "authenticator_reset": "Authenticator removed",
+    "role_granted": "Role given",
+    "role_removed": "Role taken away",
 }
 # Account events belong to the audit log, not to the story of a person's file.
 NOT_FILE_HISTORY = (
@@ -45,6 +51,10 @@ NOT_FILE_HISTORY = (
     "mfa_failed",
     "session_ended",
     "sessions_ended",
+    "password_set",
+    "password_changed",
+    "password_change_failed",
+    "password_link_sent",
 )
 # Stored codes, said in words: (record, field) -> code -> words.
 VALUES = {
@@ -76,6 +86,7 @@ FIELD_LABELS = {
     "national_id": "National ID",
     "employee_no": "Employee number",
     "account_number": "Account number",
+    "roles": "Roles",
 }
 # Bookkeeping fields that change with every save and say nothing about the person.
 QUIET = {"id", "created_at", "updated_at", "created_by", "updated_by"}

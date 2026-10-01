@@ -1,8 +1,11 @@
 """Serializer base classes shared by the modules."""
 
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 
+@extend_schema_field(OpenApiTypes.INT)
 class InScope(serializers.PrimaryKeyRelatedField):
     """A related record the requesting user may see. Any other id reads as "does not exist".
 

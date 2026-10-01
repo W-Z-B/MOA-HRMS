@@ -58,6 +58,8 @@ REPORTS = [
     ("headcount-by-campus", "Headcount by campus", [], True),
     # Item 1.09: identifiers missing or repeated, unlikely dates of birth, no contact, no contract.
     ("data-quality", "Staff records to check", ["hr_officer", "hr_manager", "administrator"], False),
+    # Item 1.27: every role each account holds, signed off every three months on the Admin screen.
+    ("access-review", "Who can see what", ["administrator", "hr_manager", "auditor"], False),
 ]
 
 

@@ -18,6 +18,7 @@ urlpatterns = [
     path("api/v1/auth/", include("iam.urls")),
     path("api/v1/org/", include("org.urls")),
     path("api/v1/", include("people.urls")),
+    path("api/v1/", include("iam.account_urls")),
     path("api/v1/leave/", include("leave.urls")),
     path("api/v1/reports/", include("reports.api")),
     path("api/v1/notifications/", include("notifications.api")),

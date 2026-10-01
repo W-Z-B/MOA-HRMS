@@ -92,7 +92,21 @@ STAFF = [
         "contract",
         date(2025, 11, 17),
     ),
+    ("E0010", "Kemal", "Bacchus", date(1999, 1, 19), "M", "MRP", "LIV-003", "temporary", date(2026, 9, 28)),
+    (
+        "E0011",
+        "Petal",
+        "Fredericks",
+        date(2001, 4, 3),
+        "F",
+        "ESQ",
+        "ESQ-AGR-003",
+        "temporary",
+        date(2026, 9, 28),
+    ),
 ]
+# Joined this week: HR has yet to open their accounts, so there is someone to invite (item 1.29).
+NEW_STARTERS = {"E0010", "E0011"}
 # A contract that ends soon and a probation that is still running, so the daily alerts have work to do.
 ENDS = {"E0009": date(2026, 11, 16)}
 PROBATION_ENDS = {"E0005": date(2026, 12, 31)}
@@ -241,7 +255,9 @@ class Command(BaseCommand):
         if accounts is None:
             self.stdout.write(f"No accounts created: {PASSWORD_VARIABLE} is not set.")
         else:
-            self.stdout.write(f"Accounts: {accounts} created; every invented employee can sign in.")
+            self.stdout.write(
+                f"Accounts: {accounts} created. {len(NEW_STARTERS)} new starters have none, for HR to invite."
+            )
 
     def _grades(self) -> dict[str, Grade]:
         scale, _ = SalaryScale.objects.get_or_create(code="GS", defaults={"name": "General scale"})
@@ -312,6 +328,8 @@ class Command(BaseCommand):
         heads = set(HEADS.values())
         created = 0
         for number, employee in staff.items():
+            if number in NEW_STARTERS:
+                continue
             username = f"{employee.first_name}.{employee.last_name}".lower()
             user = employee.user or users.objects.filter(username=username).first()
             if user is None:

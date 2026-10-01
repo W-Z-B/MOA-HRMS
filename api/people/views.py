@@ -125,6 +125,8 @@ class EmployeeViewSet(AuditedModelViewSet):
             qs = qs.filter(campus_id=params["campus"])
         if params.get("status"):
             qs = qs.filter(status=params["status"])
+        if params.get("has_account") in ("0", "1"):
+            qs = qs.filter(user__isnull=params["has_account"] == "0")
         if params.get("org_unit"):
             qs = qs.filter(
                 assignments__position__org_unit_id=params["org_unit"], assignments__status="active"

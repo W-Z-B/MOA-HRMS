@@ -73,6 +73,9 @@ class EmployeeSerializer(TimeStampedSerializer):
             "created_at",
             "updated_at",
         )
+        # The account a record belongs to decides who acts as that person in self-service, so it is set
+        # only by opening an account (iam.accounts), never by editing the record.
+        read_only_fields = (*TimeStampedSerializer.Meta.read_only_fields, "user")
 
     def validate(self, attrs):
         attrs.pop("change_reason", None)  # read by the view and kept on the audit row, not on the employee

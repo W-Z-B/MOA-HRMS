@@ -68,17 +68,12 @@ def test_demonstration_data_is_fictional_idempotent_and_consistent(seeded):
         LeaveLedger.objects.count(),
         LeaveRequest.objects.count(),
     )
-    assert counts[:3] == (9, 13, 9)
+    assert counts[:3] == (11, 13, 11)
 
     assert not Employee.objects.exclude(address__icontains="fictional").exists()
     assert not Employee.objects.exclude(email__endswith="@gsa.example").exists()
     assert Employee.objects.get(employee_no="E0001").national_id.startswith("DEMO-")
-    assert sorted(p.number for p in Position.objects.all() if p.is_vacant) == [
-        "ADM-003",
-        "AGR-004",
-        "ESQ-AGR-003",
-        "LIV-003",
-    ]
+    assert sorted(p.number for p in Position.objects.all() if p.is_vacant) == ["ADM-003", "AGR-004"]
     assert OrgUnit.objects.get(code="AGR").head.employee_no == "E0002"
     # opening balance of 10 days less the approved week in August
     head = Employee.objects.get(employee_no="E0002")
@@ -99,7 +94,7 @@ def test_demonstration_staff_have_contracts_and_managers(seeded, monkeypatch):
     monkeypatch.delenv("DEMO_USER_PASSWORD", raising=False)
     call_command("seed_demo", fictional=True, verbosity=0)
     call_command("seed_demo", fictional=True, verbosity=0)
-    assert Contract.objects.count() == 9
+    assert Contract.objects.count() == 11
 
     staff = {e.employee_no: e for e in Employee.objects.all()}
     # Paid by the hour, and paid on grade GS7 at 250,000 a month over 40 hours a week.
@@ -134,6 +129,8 @@ def test_demonstration_accounts_need_a_password_from_the_owner(seeded, monkeypat
     call_command("seed_demo", fictional=True, verbosity=0)
     users = get_user_model().objects
     assert users.count() == 9 and users.get(username="asha.persaud").check_password("Correct-Horse-Battery-9")
+    # The new starters are left for HR to invite.
+    assert not Employee.objects.filter(employee_no__in=["E0010", "E0011"], user__isnull=False).exists()
 
     staff = {e.employee_no: e for e in Employee.objects.select_related("user")}
     assert role_codes(staff["E0001"].user) == {"employee"}
