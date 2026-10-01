@@ -14,9 +14,9 @@ const person = (roles: string[]): Me => ({
 });
 
 describe("navigation by role", () => {
-  it("shows an employee only their own leave and contract", () => {
-    expect(navFor(person(["employee"])).map((i) => i.label)).toEqual(["Leave", "My contract"]);
-    expect(navFor(person([])).map((i) => i.label)).toEqual(["Leave", "My contract"]);
+  it("shows an employee only their own leave, contract and account", () => {
+    expect(navFor(person(["employee"])).map((i) => i.label)).toEqual(["Leave", "My contract", "My account"]);
+    expect(navFor(person([])).map((i) => i.label)).toEqual(["Leave", "My contract", "My account"]);
   });
 
   it("shows staff who work in the system the whole menu", () => {

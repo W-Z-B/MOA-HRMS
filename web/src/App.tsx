@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { get } from "./api/client";
+import { get, SIGNED_OUT_EVENT } from "./api/client";
 import { isOfficeUser, type Me } from "./api/types";
 import { Shell } from "./app/Shell";
 import { useHashRoute } from "./app/router";
 import { LoginScreen } from "./features/auth/LoginScreen";
 import { DashboardScreen } from "./features/dashboard/DashboardScreen";
 import { LeaveScreen } from "./features/leave/LeaveScreen";
+import { AccountScreen } from "./features/me/AccountScreen";
 import { MyContractScreen } from "./features/me/MyContractScreen";
 import { DirectoryScreen } from "./features/people/DirectoryScreen";
 import { ComingSoon } from "./features/placeholder/ComingSoon";
@@ -25,12 +26,28 @@ export default function App() {
   const [me, setMe] = useState<Me | null | undefined>(undefined); // undefined = still loading
   const [path, navigate] = useHashRoute();
   const [campusId, setCampusId] = useState<number | null>(readCampus);
+  const [signedOutReason, setSignedOutReason] = useState<string | null>(null);
 
   useEffect(() => {
     get<Me>("/auth/me/")
       .then(setMe)
       .catch(() => setMe(null));
   }, []);
+
+  // The server ended the session (idle, expired, or ended from another device): back to sign-in.
+  useEffect(() => {
+    const onSignedOut = (event: Event) => {
+      setSignedOutReason((event as CustomEvent<string>).detail || null);
+      setMe(null);
+    };
+    window.addEventListener(SIGNED_OUT_EVENT, onSignedOut);
+    return () => window.removeEventListener(SIGNED_OUT_EVENT, onSignedOut);
+  }, []);
+
+  function signedIn(person: Me) {
+    setSignedOutReason(null);
+    setMe(person);
+  }
 
   function changeCampus(id: number | null) {
     setCampusId(id);
@@ -43,7 +60,8 @@ export default function App() {
   }
 
   if (me === undefined) return <p className="loading">Loading GSA HRMS…</p>;
-  if (me === null || (me.mfa_required && !me.mfa_verified)) return <LoginScreen onSignedIn={setMe} />;
+  if (me === null || (me.mfa_required && !me.mfa_verified))
+    return <LoginScreen onSignedIn={signedIn} notice={signedOutReason} />;
 
   const idIn = (prefix: string) => {
     const m = path.match(new RegExp(`^${prefix}/(\\d+)`));
@@ -58,6 +76,7 @@ export default function App() {
     screen = <DirectoryScreen me={me} campusId={campusId} initialId={idIn("/people")} onNavigate={navigate} />;
   else if (path.startsWith("/leave")) screen = leave;
   else if (path === "/me") screen = <MyContractScreen />;
+  else if (path === "/account") screen = <AccountScreen />;
   else if (path.startsWith("/attendance"))
     screen = <ComingSoon title="Attendance" sprint="Release 2" requirement="F07" />;
   else if (path.startsWith("/appraisals"))

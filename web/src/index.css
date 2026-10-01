@@ -831,3 +831,20 @@ dl.terms dd {
     flex: none;
   }
 }
+
+/* My account: one row per signed-in device. */
+.sessions li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.sessions li:last-child {
+  border-bottom: 0;
+}
+.sessions .chip {
+  margin-left: 8px;
+}

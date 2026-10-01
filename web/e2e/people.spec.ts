@@ -1,5 +1,4 @@
-import { expect, test } from "@playwright/test";
-import { expectAccessible, openSection, signIn, signOut, STAFF } from "./support";
+import { expect, expectAccessible, openSection, signIn, signOut, STAFF, test } from "./support";
 
 test("HR finds an employee, opens the file, and sees identifiers masked until revealed", async ({ page }, testInfo) => {
   await signIn(page, STAFF.hr.username);

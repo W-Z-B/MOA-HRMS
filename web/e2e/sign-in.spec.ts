@@ -1,8 +1,9 @@
-import { expect, test } from "@playwright/test";
-import { expectAccessible, signIn, signOut, STAFF } from "./support";
+import { expect, expectAccessible, signIn, signOut, STAFF, test } from "./support";
 
 test("the sign-in page is accessible and refuses a wrong password", async ({ page }, testInfo) => {
-  await page.goto("/");
+  const response = await page.goto("/");
+  // The hosted configuration sends the Content-Security-Policy with the web app (deploy/railway/Caddyfile).
+  expect(response?.headers()["content-security-policy"]).toContain("default-src 'self'");
   await expect(page.getByRole("heading", { name: "GSA HRMS" })).toBeVisible();
   await expectAccessible(page, testInfo, "sign-in");
 
@@ -16,6 +17,6 @@ test("an employee lands on their own leave and sees only their own pages", async
   await signIn(page, STAFF.employee.username);
   await expect(page.getByRole("heading", { name: "Leave", level: 1 })).toBeVisible();
   const nav = page.getByRole("navigation", { name: "Main" });
-  await expect(nav.getByRole("link")).toHaveText(["Leave", "My contract"]);
+  await expect(nav.getByRole("link")).toHaveText(["Leave", "My contract", "My account"]);
   await signOut(page);
 });

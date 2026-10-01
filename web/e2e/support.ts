@@ -1,13 +1,34 @@
 /** Helpers shared by the journeys: signing in as the fictional demonstration staff, and the axe check. */
 
 import AxeBuilder from "@axe-core/playwright";
-import { expect, type Page, type TestInfo } from "@playwright/test";
+import { test as base, expect, type Page, type TestInfo } from "@playwright/test";
+
+/**
+ * Every journey runs with a guard: a Content-Security-Policy violation in the browser fails the test,
+ * so the policy set in deploy/ can never quietly break a screen.
+ */
+export const test = base.extend<{ cspGuard: void }>({
+  cspGuard: [
+    async ({ page }, use) => {
+      const violations: string[] = [];
+      page.on("console", (message) => {
+        if (message.type() === "error" && /Content Security Policy/i.test(message.text())) violations.push(message.text());
+      });
+      await use();
+      expect(violations, "Content-Security-Policy violations").toEqual([]);
+    },
+    { auto: true },
+  ],
+});
+export { expect };
 
 /** Demonstration accounts from seed_demo (fictional people). Their shared password comes from the environment. */
 export const STAFF = {
   employee: { username: "asha.persaud", name: "Asha Persaud" },
   manager: { username: "michael.thomas", name: "Michael Thomas" },
   hr: { username: "natasha.khan", name: "Natasha Khan" },
+  // Used only by the session journey, so that ending sessions never disturbs the leave journey.
+  lecturer: { username: "shanta.ramdeen", name: "Shanta Ramdeen" },
 } as const;
 
 function password(): string {
@@ -21,11 +42,11 @@ export async function signIn(page: Page, username: string) {
   await page.getByLabel("Username").fill(username);
   await page.getByLabel("Password").fill(password());
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign out", exact: true })).toBeVisible();
 }
 
 export async function signOut(page: Page) {
-  await page.getByRole("button", { name: "Sign out" }).click();
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
 }
 

@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { fakeServer } from "../test/fetch";
-import { ApiError, errorMessage, get, patch, plainMessage, post, remove } from "./client";
+import { ApiError, errorMessage, get, patch, plainMessage, post, remove, SIGNED_OUT_EVENT } from "./client";
 
 describe("API client", () => {
   it("calls the versioned API with the session cookie and asks for JSON", async () => {
@@ -78,5 +78,24 @@ describe("API client", () => {
       },
     });
     await expect(get("/reports/")).rejects.toBeInstanceOf(TypeError);
+  });
+
+  it("tells the app when the server has ended the session, with the reason", async () => {
+    const heard = vi.fn();
+    window.addEventListener(SIGNED_OUT_EVENT, heard);
+    fakeServer({
+      "GET /leave/types/": { status: 401, body: { code: "session_expired", detail: "You were signed out after 30 minutes without activity." } },
+      "GET /employees/": { status: 403, body: { code: "not_authenticated", detail: "Authentication credentials were not provided." } },
+      "GET /reports/": { status: 403, body: { code: "permission_denied", detail: "You do not hold a role that permits this action." } },
+      "POST /auth/login/": { status: 403, body: { code: "not_authenticated", detail: "x" } },
+    });
+    await get("/leave/types/").catch(() => undefined);
+    await get("/employees/").catch(() => undefined);
+    await get("/reports/").catch(() => undefined);
+    await post("/auth/login/", {}).catch(() => undefined);
+    window.removeEventListener(SIGNED_OUT_EVENT, heard);
+    expect(heard).toHaveBeenCalledTimes(2);
+    expect((heard.mock.calls[0][0] as CustomEvent).detail).toBe("You were signed out after 30 minutes without activity.");
+    expect((heard.mock.calls[1][0] as CustomEvent).detail).toBe("");
   });
 });
