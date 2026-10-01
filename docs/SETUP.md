@@ -25,7 +25,7 @@ docker compose exec api python manage.py createsuperuser
 | URL | Purpose |
 |---|---|
 | https://hrms.localhost | Web application (Vite dev server with hot reload behind Caddy) |
-| https://hrms.localhost/api/docs | OpenAPI documentation (Swagger UI) |
+| https://hrms.localhost/api/docs | OpenAPI documentation (Swagger UI); open to anyone in development, signed-in people only elsewhere (`API_DOCS_PUBLIC`) |
 | https://hrms.localhost/api/health/ | Health check |
 | https://hrms.localhost/admin/ | Django admin. Sign in through the web app first; the admin accepts only that session, after the authenticator code for privileged roles |
 
@@ -114,6 +114,9 @@ service volume; see the Development Specification section 4.5 for the full proce
 | `scripts/e2e.sh` is slow the first time | It builds the hosted image and pulls the Playwright browsers (about 2 GB, stored wherever Docker keeps its data). Later runs reuse both. |
 | A browser journey fails | Run `KEEP=1 bash scripts/e2e.sh`, then open `web/playwright-report/index.html`; screenshots and traces of the failure are in `web/test-results/`. |
 | The admin sends you to the web app | Expected: sign in at the web app (with the authenticator code if your role needs one), then open `/admin/` again. |
+| You are sent back to sign-in with "signed out after 30 minutes without activity" | The idle time-out (`SESSION_IDLE_MINUTES`). Sessions also end 8 hours after sign-in. My account lists every device signed in. |
+| An upload is refused with "The file's contents do not match its name" | The file is not what its name says (for example a web page saved as `.pdf`). Save it again as a PDF or photograph. Limits: 10 MB for leave evidence, 20 MB for documents. |
+| Sign-in answers "Too many failed sign-ins from this network" | 20 failed sign-ins from one address in 15 minutes, across any accounts. Wait 15 minutes, or raise `LOGIN_MAX_FAILURES_PER_ADDRESS` if a campus shares one address and the limit is too tight. |
 | Document upload returns 500 and the API log shows `Permission denied: '/srv/files/...'` | The `files` volume was created before the image set its owner. Run `docker compose exec -u root api chown -R app:app /srv/files` once. |
 | Tests report "skipped: database tests need PostgreSQL" | You ran pytest on the host against SQLite. Run `docker compose run --rm api pytest -q`. |
 | Privileged user gets 403 with "Multi-factor verification is required" | Enrol and verify an authenticator code through the login screen (or `/api/v1/auth/mfa/`). |
