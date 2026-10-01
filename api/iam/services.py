@@ -8,7 +8,8 @@ BROAD_READ_ROLES = frozenset(
 
 
 def role_codes(user) -> set[str]:
-    if not getattr(user, "is_authenticated", False):
+    """Roles a signed-in person holds. A service key (no pk) is not a person and holds none."""
+    if not getattr(user, "is_authenticated", False) or getattr(user, "pk", None) is None:
         return set()
     cached = getattr(user, "_role_codes", None)
     if cached is None:
@@ -25,6 +26,8 @@ def has_role(user, *codes: str) -> bool:
 
 def campus_ids(user) -> set[int]:
     """Campuses the user is explicitly scoped to. Empty means unrestricted for broad roles."""
+    if not getattr(user, "is_authenticated", False) or getattr(user, "pk", None) is None:
+        return set()
     return set(RoleScope.objects.filter(user=user, campus__isnull=False).values_list("campus_id", flat=True))
 
 
@@ -33,7 +36,12 @@ def requires_mfa(user) -> bool:
 
 
 def scope_queryset(user, queryset, campus_field: str = "campus"):
-    """Restrict a queryset to the user's campuses unless the user holds a broad role."""
+    """Restrict a queryset to the user's campuses unless the user holds a broad role.
+
+    Fails closed: a caller who is not a signed-in person (anonymous, or a service key) gets nothing.
+    """
+    if not getattr(user, "is_authenticated", False) or getattr(user, "pk", None) is None:
+        return queryset.none()
     if getattr(user, "is_superuser", False) or role_codes(user) & BROAD_READ_ROLES:
         return queryset
     ids = campus_ids(user)

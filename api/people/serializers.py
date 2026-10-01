@@ -54,16 +54,16 @@ class EmployeeSerializer(TimeStampedSerializer):
             "updated_at",
         )
 
-    def get_national_id_masked(self, obj):
+    def get_national_id_masked(self, obj) -> str | None:
         return mask(obj.national_id)
 
-    def get_nis_no_masked(self, obj):
+    def get_nis_no_masked(self, obj) -> str | None:
         return mask(obj.nis_no)
 
-    def get_tin_masked(self, obj):
+    def get_tin_masked(self, obj) -> str | None:
         return mask(obj.tin)
 
-    def get_position_title(self, obj):
+    def get_position_title(self, obj) -> str | None:
         current = obj.current_assignment
         return current.position.title if current else None
 
@@ -137,7 +137,7 @@ class ContractSerializer(TimeStampedSerializer):
             "updated_at",
         )
 
-    def get_hourly_rate_effective(self, obj):
+    def get_hourly_rate_effective(self, obj) -> str | None:
         rate = hourly_rate(obj)
         return None if rate is None else str(rate)
 
@@ -182,8 +182,8 @@ class DocumentSerializer(TimeStampedSerializer):
             "updated_at",
         )
 
-    def get_filename(self, obj):
+    def get_filename(self, obj) -> str | None:
         return obj.file.name.rsplit("/", 1)[-1] if obj.file else None
 
-    def get_download_url(self, obj):
+    def get_download_url(self, obj) -> str:
         return f"/api/v1/documents/{obj.id}/download/"

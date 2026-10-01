@@ -5,12 +5,15 @@ No sensitive identifiers (NIS, TIN, national ID) are ever exposed here.
 
 from django.urls import path
 from django.utils.dateparse import parse_datetime
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers, status
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
 from audit.models import AuditLog
+from core.serializers import ErrorSerializer
 from integration.auth import ServiceKeyAuthentication, scope
 from org.models import Campus, OrgUnit
 from people.models import Employee
@@ -53,6 +56,68 @@ def _staff_row(employee: Employee) -> dict:
     }
 
 
+class StaffRowSerializer(serializers.Serializer):
+    """Describes _staff_row. No NIS number, TIN, national ID, date of birth or address, ever."""
+
+    employee_no = serializers.CharField()
+    first_name = serializers.CharField()
+    last_name = serializers.CharField()
+    other_names = serializers.CharField()
+    full_name = serializers.CharField()
+    email = serializers.EmailField()
+    campus_code = serializers.CharField()
+    status = serializers.CharField()
+    position_title = serializers.CharField(allow_null=True)
+    appointment_type = serializers.CharField(allow_null=True)
+    unit_code = serializers.CharField(allow_null=True)
+    unit_name = serializers.CharField(allow_null=True)
+    updated_at = serializers.DateTimeField()
+
+
+class StaffPageSerializer(serializers.Serializer):
+    count = serializers.IntegerField()
+    next = serializers.URLField(allow_null=True)
+    previous = serializers.URLField(allow_null=True)
+    results = StaffRowSerializer(many=True)
+
+
+class CampusRowSerializer(serializers.Serializer):
+    code = serializers.CharField()
+    name = serializers.CharField()
+    region = serializers.CharField()
+
+
+class UnitRowSerializer(serializers.Serializer):
+    code = serializers.CharField()
+    name = serializers.CharField()
+    unit_type = serializers.CharField()
+    campus_code = serializers.CharField()
+    parent_code = serializers.CharField(allow_null=True)
+    head_employee_no = serializers.CharField(allow_null=True)
+
+
+class OrgSerializer(serializers.Serializer):
+    campuses = CampusRowSerializer(many=True)
+    units = UnitRowSerializer(many=True)
+
+
+class TrainingResultSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    external_ref = serializers.CharField()
+    created = serializers.BooleanField()
+
+
+@extend_schema(
+    parameters=[
+        OpenApiParameter("campus", OpenApiTypes.STR, description="Campus code, for example MRP"),
+        OpenApiParameter("status", OpenApiTypes.STR, description="active, on_leave, suspended or separated"),
+        OpenApiParameter("updated_since", OpenApiTypes.DATETIME, description="Only rows changed since then"),
+        OpenApiParameter("page", OpenApiTypes.INT),
+        OpenApiParameter("page_size", OpenApiTypes.INT, description="At most 500"),
+    ],
+    responses={200: StaffPageSerializer, 400: ErrorSerializer},
+    summary="Staff directory for the sibling systems (scope staff:read)",
+)
 @api_view(["GET"])
 @authentication_classes([ServiceKeyAuthentication])
 @permission_classes([scope("staff:read")])
@@ -81,6 +146,7 @@ def staff(request):
     return pager.get_paginated_response([_staff_row(e) for e in page])
 
 
+@extend_schema(responses=OrgSerializer, summary="Campus and unit codes (scope org:read)")
 @api_view(["GET"])
 @authentication_classes([ServiceKeyAuthentication])
 @permission_classes([scope("org:read")])
@@ -113,6 +179,11 @@ class TrainingCompletionSerializer(serializers.Serializer):
     expiry_date = serializers.DateField(required=False, allow_null=True)
 
 
+@extend_schema(
+    request=TrainingCompletionSerializer,
+    responses={200: TrainingResultSerializer, 201: TrainingResultSerializer, 404: ErrorSerializer},
+    summary="Record a training completion from the LMS (scope training:write)",
+)
 @api_view(["POST"])
 @authentication_classes([ServiceKeyAuthentication])
 @permission_classes([scope("training:write")])

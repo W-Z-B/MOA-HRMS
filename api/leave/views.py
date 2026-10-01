@@ -42,6 +42,7 @@ class LeaveTypeViewSet(AuditedModelViewSet):
 class EntitlementViewSet(AuditedModelViewSet):
     """Leave and sick-day entitlements written into a contract. HR maintains them."""
 
+    queryset = Entitlement.objects.none()  # scoped per request in get_queryset; fails closed
     serializer_class = serializers.EntitlementSerializer
     read_roles = HR + (Role.PRINCIPAL, Role.FINANCE, Role.AUDITOR)
     write_roles = HR
@@ -60,6 +61,7 @@ class EntitlementViewSet(AuditedModelViewSet):
 class LeaveRequestViewSet(AuditedModelViewSet):
     """Employees see and create their own requests; managers those sent to them; HR their campuses."""
 
+    queryset = LeaveRequest.objects.none()  # scoped per request in get_queryset; fails closed
     serializer_class = serializers.LeaveRequestSerializer
     parser_classes = (JSONParser, FormParser, MultiPartParser)
 
@@ -212,6 +214,7 @@ class LeaveRequestViewSet(AuditedModelViewSet):
 
 
 class LeaveLedgerViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = LeaveLedger.objects.none()  # scoped per request in get_queryset; fails closed
     serializer_class = serializers.LeaveLedgerSerializer
     permission_classes = [RolePermission]
 

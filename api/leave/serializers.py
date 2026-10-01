@@ -1,5 +1,7 @@
 from pathlib import PurePath
 
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from core.serializers import TimeStampedSerializer
@@ -136,7 +138,7 @@ class LeaveRequestSerializer(TimeStampedSerializer):
             obj._assessed = assess(obj.employee, obj.leave_type, obj.from_date, obj.to_date, exclude=obj)
         return obj._assessed
 
-    def get_allowed_actions(self, obj):
+    def get_allowed_actions(self, obj) -> list[str]:
         request = self.context.get("request")
         return LEAVE_REQUEST.allowed_actions(obj, request.user) if request else []
 
@@ -144,6 +146,7 @@ class LeaveRequestSerializer(TimeStampedSerializer):
         request = self.context.get("request")
         return bool(request) and obj.employee.user_id == request.user.id
 
+    @extend_schema_field(OpenApiTypes.NUMBER)  # a Decimal, which the JSON renderer writes as a number
     def get_balance_after(self, obj):
         if obj.state == LeaveRequest.State.APPROVED:
             return max(balance(obj.employee, obj.leave_type), ZERO)
