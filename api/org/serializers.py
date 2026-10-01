@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from core.serializers import TimeStampedSerializer
 from iam.models import Role
-from iam.services import has_role
+from iam.services import campus_limit, has_role
 from org.models import Campus, Grade, OrgUnit, Position, SalaryScale
 
 # Who may see which member of staff holds a post: the roles that read the staff directory.
@@ -20,6 +20,18 @@ DIRECTORY_ROLES = (
 def _may(serializer, roles) -> bool:
     request = serializer.context.get("request")
     return request is not None and has_role(request.user, *roles)
+
+
+def _names(serializer, campus_id) -> bool:
+    """Whether to name who holds a post or heads a unit: as the directory would, so to its roles,
+    and only on the campuses the directory shows the reader."""
+    if not _may(serializer, DIRECTORY_ROLES):
+        return False
+    context = serializer.context
+    if "campus_limit" not in context:
+        context["campus_limit"] = campus_limit(context["request"].user)
+    limit = context["campus_limit"]
+    return limit is None or campus_id in limit
 
 
 class CampusSerializer(TimeStampedSerializer):
@@ -53,7 +65,7 @@ class OrgUnitSerializer(TimeStampedSerializer):
         )
 
     def get_head_name(self, unit) -> str | None:
-        return unit.head.full_name if unit.head_id and _may(self, DIRECTORY_ROLES) else None
+        return unit.head.full_name if unit.head_id and _names(self, unit.campus_id) else None
 
     def validate(self, attrs):
         parent = attrs.get("parent", getattr(self.instance, "parent", None))
@@ -108,7 +120,7 @@ class PositionSerializer(TimeStampedSerializer):
     grade_name = serializers.SerializerMethodField()
     status_name = serializers.CharField(source="get_status_display", read_only=True)
     holder = serializers.SerializerMethodField(
-        help_text="The substantive holder, for roles that read the directory"
+        help_text="The substantive holder, for roles that read the directory on the post's campus"
     )
 
     class Meta(TimeStampedSerializer.Meta):
@@ -135,7 +147,7 @@ class PositionSerializer(TimeStampedSerializer):
         return f"{position.grade.scale.code} {position.grade.code}, step {position.grade.step}"
 
     def get_holder(self, position) -> str | None:
-        if not _may(self, DIRECTORY_ROLES):
+        if not _names(self, position.org_unit.campus_id):
             return None
         holding = (
             position.assignments.filter(is_acting=False, status="active").select_related("employee").first()

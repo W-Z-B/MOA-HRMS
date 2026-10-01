@@ -98,6 +98,31 @@ def test_posts_and_units_say_who_and_where_in_words(api, unit, employee, make_us
 
 
 @pytest.mark.django_db
+def test_holders_are_named_only_on_the_campuses_the_reader_works_with(api, unit, employee, make_user):
+    from datetime import date
+
+    from rest_framework.test import APIClient
+
+    from org.models import Campus, Position
+    from people.models import Assignment
+
+    Assignment.objects.create(
+        employee=employee,
+        position=Position.objects.get(number="LIV-001"),
+        appointment_type="permanent",
+        start_date=date(2026, 1, 1),
+    )
+    unit.head = employee
+    unit.save()
+    elsewhere = APIClient()
+    elsewhere.force_login(make_user("esq.officer", "hr_officer", campus=Campus.objects.get(code="ESQ")))
+    post = elsewhere.get("/api/v1/org/positions/", {"org_unit": unit.id}).json()["results"][0]
+    assert post["number"] == "LIV-001" and post["is_vacant"] is False and post["holder"] is None
+    assert elsewhere.get(f"/api/v1/org/units/{unit.id}/").json()["head_name"] is None
+    assert api.get(f"/api/v1/org/units/{unit.id}/").json()["head_name"] == "Asha Persaud"
+
+
+@pytest.mark.django_db
 def test_removing_something_still_in_use_is_refused_in_words(hr_manager, unit):
     client = _manager(hr_manager)
     refused = client.delete(f"/api/v1/org/units/{unit.id}/")
