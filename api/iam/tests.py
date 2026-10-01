@@ -80,3 +80,20 @@ def test_account_locks_after_repeated_failures(hr_officer, settings):
         ).status_code
         == 401
     )
+
+
+@pytest.mark.django_db
+def test_admin_needs_the_verified_web_sign_in(make_user):
+    """The admin has no password form of its own and refuses a superuser who has not passed MFA."""
+    admin_user = make_user("root.admin", superuser=True)
+    client = APIClient()
+    client.force_login(admin_user)
+    assert client.get("/admin/").status_code == 302  # signed in, but no authenticator code yet
+
+    login_form = client.get("/admin/login/")
+    assert login_form.status_code == 302 and login_form["Location"] == "/"
+
+    session = client.session
+    session["mfa_verified"] = True
+    session.save()
+    assert client.get("/admin/").status_code == 200

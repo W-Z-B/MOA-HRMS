@@ -26,7 +26,8 @@ CSRF_TRUSTED_ORIGINS = [f"https://{h}" for h in ALLOWED_HOSTS if h not in {"loca
 FIELD_ENCRYPTION_KEY = env("FIELD_ENCRYPTION_KEY", "")
 
 INSTALLED_APPS = [
-    "django.contrib.admin",
+    # The admin, with sign-in only through the web app (lockout and authenticator): iam/admin_site.py
+    "iam.admin_apps.HrmsAdminConfig",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
