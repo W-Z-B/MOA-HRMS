@@ -65,6 +65,11 @@ notice tab). A starting draft for GSA to complete is `docs/privacy/privacy-notic
 and acknowledges it at their next sign-in, once for each version. `seed_demo --fictional` publishes a
 demonstration notice, so on staging everyone sees it once.
 
+The establishment (Organisation in the menu): posts, the units they sit in, the salary scales and campuses.
+The HR Manager and administrators keep posts, units and campuses; Finance also keeps the salary scales, where a
+new amount is a new line from its date. Something still in use, such as a unit with posts, cannot be removed,
+and the screen says why.
+
 Public holidays (Admin screen, Holidays tab): `seed` adds every holiday whose date follows a rule (the fixed
 dates, Labour Day included; Good Friday and Easter Monday from Easter; CARICOM Day on the first Monday in
 July) for this year and next. Phagwah, Eid ul-Adha, Youman Nabi and Deepavali, and any substitute day for a
