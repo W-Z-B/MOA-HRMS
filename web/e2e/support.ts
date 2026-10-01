@@ -92,12 +92,13 @@ export const privacyPerson = (testInfo: TestInfo) =>
  * Returns whether it was shown.
  */
 export async function passNotice(page: Page): Promise<boolean> {
+  // The app's main navigation, not a "Sign out" button: the notice screen has one of those too.
   const read = page.getByRole("button", { name: "I have read this notice" });
-  const signOutButton = page.getByRole("button", { name: "Sign out", exact: true });
-  await expect(read.or(signOutButton).first()).toBeVisible();
+  const inside = page.getByRole("navigation", { name: "Main" });
+  await expect(read.or(inside).first()).toBeVisible();
   const shown = await read.isVisible();
   if (shown) await read.click();
-  await expect(signOutButton).toBeVisible();
+  await expect(inside).toBeVisible();
   return shown;
 }
 
