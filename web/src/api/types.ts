@@ -42,8 +42,6 @@ export interface Employee {
   email: string;
   phone: string;
   address: string;
-  next_of_kin_name: string;
-  next_of_kin_phone: string;
 }
 
 /** Fields accepted on create and update; identifiers are write-only and optional. */
@@ -60,9 +58,7 @@ export type EmployeeInput = Pick<
   | "email"
   | "phone"
   | "address"
-  | "next_of_kin_name"
-  | "next_of_kin_phone"
-> & { national_id?: string; nis_no?: string; tin?: string };
+> & { national_id?: string; nis_no?: string; tin?: string; change_reason?: string };
 
 export interface Position {
   id: number;
@@ -276,4 +272,97 @@ export interface ReportResult {
   key: string;
   name: string;
   rows: ReportRow[];
+}
+
+export interface Qualification {
+  id: number;
+  employee: number;
+  level: string;
+  level_name: string;
+  title: string;
+  institution: string;
+  country: string;
+  year_awarded: number | null;
+  verified_on: string | null;
+  document: number | null;
+}
+
+export interface PreviousEmployment {
+  id: number;
+  employee: number;
+  employer: string;
+  position: string;
+  start_date: string;
+  end_date: string | null;
+  reason_for_leaving: string;
+}
+
+export interface Dependant {
+  id: number;
+  employee: number;
+  name: string;
+  relationship: string;
+  relationship_name: string;
+  date_of_birth: string | null;
+}
+
+export interface EmergencyContact {
+  id: number;
+  employee: number;
+  name: string;
+  relationship: string;
+  phone: string;
+  alternate_phone: string;
+  priority: number;
+}
+
+export interface BankAccount {
+  id: number;
+  employee: number;
+  bank_name: string;
+  branch: string;
+  account_name: string;
+  account_number_masked: string;
+  state: "pending" | "active" | "superseded" | "rejected";
+  state_name: string;
+  effective_from: string | null;
+  requested_by: number | null;
+  requested_by_name: string | null;
+  decided_by_name: string | null;
+  decided_at: string | null;
+  decision_note: string;
+  created_at: string;
+}
+
+export interface FieldChange {
+  field: string;
+  before: unknown;
+  after: unknown;
+}
+
+/** One change to a person's file, from /employees/{id}/history/. */
+export interface HistoryEntry {
+  id: number;
+  at: string;
+  actor: string;
+  action: string;
+  action_name: string;
+  record: string;
+  record_id: number | null;
+  changes: FieldChange[];
+  reason: string;
+  source_ip: string | null;
+}
+
+export interface RecordAsAt {
+  date: string;
+  current: boolean;
+  record: Record<string, unknown>;
+}
+
+export interface ReportSummary {
+  key: string;
+  name: string;
+  description: string;
+  ministry_pack: boolean;
 }

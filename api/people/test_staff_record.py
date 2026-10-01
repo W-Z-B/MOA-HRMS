@@ -375,3 +375,36 @@ def test_history_is_for_hr_principal_and_auditors(employee, make_user, campus):
     assert supervisor.get(f"/api/v1/employees/{employee.id}/history/").status_code == 403
     auditor = signed_in(make_user("the.auditor", "auditor"))
     assert auditor.get(f"/api/v1/employees/{employee.id}/history/").status_code == 200
+
+
+@pytest.mark.django_db
+def test_history_speaks_plainly_and_leaves_out_sign_ins(api, employee, seeded):
+    from leave.models import LeaveType
+
+    owner = get_user_model().objects.create_user("asha.p", password="Str0ng-Passw0rd-123")
+    employee.user = owner
+    employee.save()
+    signed = APIClient()
+    assert (
+        signed.post(
+            "/api/v1/auth/login/", {"username": "asha.p", "password": "Str0ng-Passw0rd-123"}, format="json"
+        ).status_code
+        == 200
+    )
+    created = signed.post(
+        "/api/v1/leave/requests/",
+        {
+            "employee": employee.id,
+            "leave_type": LeaveType.objects.get(code="SPE").id,
+            "from_date": "2026-11-02",
+            "to_date": "2026-11-02",
+        },
+        format="json",
+    ).json()
+    signed.post(f"/api/v1/leave/requests/{created['id']}/transition/", {"action": "submit"}, format="json")
+
+    history = api.get(f"/api/v1/employees/{employee.id}/history/").json()
+    sent = next(e for e in history if e["action"] == "transition:submit")
+    assert sent["record"] == "Leave request" and sent["action_name"] == "Sent for approval"
+    assert sent["changes"] == [{"field": "Stage", "before": "draft", "after": "with the manager"}]
+    assert not any(e["action"] in ("login", "logout") for e in history)

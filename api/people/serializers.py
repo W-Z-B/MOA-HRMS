@@ -316,6 +316,7 @@ class BankAccountSerializer(TimeStampedSerializer):
     account_number = serializers.CharField(write_only=True, max_length=40)
     account_number_masked = serializers.SerializerMethodField()
     state_name = serializers.CharField(source="get_state_display", read_only=True)
+    requested_by = serializers.IntegerField(source="created_by_id", read_only=True, allow_null=True)
     requested_by_name = serializers.SerializerMethodField()
     decided_by_name = serializers.SerializerMethodField()
 
@@ -332,6 +333,7 @@ class BankAccountSerializer(TimeStampedSerializer):
             "state",
             "state_name",
             "effective_from",
+            "requested_by",
             "requested_by_name",
             "decided_by_name",
             "decided_at",

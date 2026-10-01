@@ -10,6 +10,7 @@ import { AccountScreen } from "./features/me/AccountScreen";
 import { MyContractScreen } from "./features/me/MyContractScreen";
 import { DirectoryScreen } from "./features/people/DirectoryScreen";
 import { ComingSoon } from "./features/placeholder/ComingSoon";
+import { ReportsScreen } from "./features/reports/ReportsScreen";
 
 const CAMPUS_KEY = "gsa-hrms.campus";
 
@@ -82,7 +83,7 @@ export default function App() {
   else if (path.startsWith("/appraisals"))
     screen = <ComingSoon title="Appraisals" sprint="Release 2" requirement="F08" />;
   else if (path.startsWith("/payroll")) screen = <ComingSoon title="Payroll" sprint="Release 2" requirement="F13" />;
-  else if (path.startsWith("/reports")) screen = <ComingSoon title="Reports" sprint="Sprint 6" requirement="F17" />;
+  else if (path.startsWith("/reports")) screen = <ReportsScreen campusId={campusId} onNavigate={navigate} />;
   else if (path.startsWith("/admin")) screen = <ComingSoon title="Admin" sprint="Sprint 2" requirement="F05" />;
   else screen = <ComingSoon title="Not found" sprint="a later sprint" requirement="unknown route" />;
 

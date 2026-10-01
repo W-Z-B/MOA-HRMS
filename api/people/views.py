@@ -168,7 +168,7 @@ class EmployeeViewSet(AuditedModelViewSet):
             AuditLog.objects.filter(
                 Q(subject=employee.pk) | Q(entity="people.employee", entity_id=employee.pk)
             )
-            .exclude(action="view_history")
+            .exclude(action__in=history.NOT_FILE_HISTORY)
             .select_related("actor")
             .order_by("-at", "-id")[:500]
         )

@@ -70,6 +70,7 @@ services:
       E2E_BASE_URL: https://hrms-e2e
       E2E_PASSWORD: *password
       CI: ${CI:-}
+      SCREENSHOTS: ${SCREENSHOTS:-}
       HOME: /tmp
     volumes:
       - ./web:/web

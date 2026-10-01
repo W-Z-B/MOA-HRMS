@@ -30,9 +30,46 @@ ACTIONS = {
     "download": "Downloaded",
     "approve": "Approved",
     "reject": "Not approved",
-    "login": "Signed in",
-    "logout": "Signed out",
+    "attach_evidence": "Note attached",
+    "transition:submit": "Sent for approval",
+    "transition:approve": "Approved",
+    "transition:reject": "Rejected",
+    "transition:cancel": "Cancelled",
 }
+# Account events belong to the audit log, not to the story of a person's file.
+NOT_FILE_HISTORY = (
+    "view_history",
+    "login",
+    "logout",
+    "mfa_verified",
+    "mfa_failed",
+    "session_ended",
+    "sessions_ended",
+)
+# Stored codes, said in words: (record, field) -> code -> words.
+VALUES = {
+    ("leave.leaverequest", "state"): {
+        "draft": "draft",
+        "submitted": "with the manager",
+        "supervisor_approved": "with Human Resources",
+        "approved": "approved",
+        "rejected": "rejected",
+        "cancelled": "cancelled",
+    },
+    ("people.bankaccount", "state"): {
+        "pending": "waiting for approval",
+        "active": "in use",
+        "superseded": "replaced",
+        "rejected": "not approved",
+    },
+    ("people.employee", "status"): {
+        "active": "active",
+        "on_leave": "on leave",
+        "suspended": "suspended",
+        "separated": "separated",
+    },
+}
+FIELD_LABELS_BY_RECORD = {("leave.leaverequest", "state"): "Stage", ("people.bankaccount", "state"): "Stage"}
 FIELD_LABELS = {
     "nis_no": "NIS number",
     "tin": "TIN",
@@ -55,11 +92,20 @@ def shown(value):
     return value
 
 
-def changes(before: dict | None, after: dict | None) -> list[dict]:
+def changes(before: dict | None, after: dict | None, entity: str = "") -> list[dict]:
     if not before or not after:
         return []
+
+    def said(name, value):
+        words = VALUES.get((entity, name), {})
+        return words.get(value, shown(value)) if isinstance(value, str) else shown(value)
+
     return [
-        {"field": field_label(name), "before": shown(before.get(name)), "after": shown(after.get(name))}
+        {
+            "field": FIELD_LABELS_BY_RECORD.get((entity, name), field_label(name)),
+            "before": said(name, before.get(name)),
+            "after": said(name, after.get(name)),
+        }
         for name in after
         if name not in QUIET and before.get(name) != after.get(name)
     ]
@@ -75,7 +121,7 @@ def entry(row) -> dict:
         "action_name": ACTIONS.get(row.action, row.action.replace("_", " ").capitalize()),
         "record": RECORDS.get(row.entity, row.entity),
         "record_id": row.entity_id,
-        "changes": changes(row.before, row.after),
+        "changes": changes(row.before, row.after, row.entity),
         "reason": row.reason,
         "source_ip": row.source_ip,
     }
