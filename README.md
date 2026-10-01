@@ -2,11 +2,13 @@
 
 Human Resource Management System for the Guyana School of Agriculture (Ministry of Agriculture).
 A single product with no additional software licences: web application, REST API and PostgreSQL
-database, packaged with Docker Compose for on-premise or cloud deployment. All components are
-MIT, BSD, Apache 2.0, PostgreSQL or PSF licensed (see `docs/adr/0001-stack-selection.md`).
+database, packaged with Docker Compose for on-premise or cloud deployment. No licence fees: every
+shipped component is permissively licensed, apart from four LGPL or MPL libraries used unmodified as
+named exceptions (`docs/adr/0002-licence-policy.md`, checked in CI).
 
-**Status:** Release 1 in progress. Every module has models, migrations, an audited API and tests
-(46 backend tests against PostgreSQL). Core HR, leave and notifications are usable end to end from the
+**Status:** Release 1 in progress. Every module has models, migrations, an audited API and tests:
+75 backend tests (90 percent coverage) against PostgreSQL, 43 web component tests, and 14 browser
+journeys on a desktop and a 360px phone with accessibility checks, all run in CI. Core HR, leave and notifications are usable end to end from the
 web app; Release 2 modules are read-only scaffolds.
 
 ## Modules
@@ -47,25 +49,33 @@ enrol an authenticator app when prompted, and open People or the Dashboard.
 
 | Command | Purpose |
 |---|---|
-| `docker compose run --rm api pytest -q` | Backend tests (need PostgreSQL, so run in the stack or CI) |
+| `docker compose run --rm api pytest -q --cov` | Backend tests with coverage (need PostgreSQL, so run in the stack or CI) |
 | `docker compose run --rm api ruff check .` | Lint |
-| `docker compose exec web npm run lint && npm run build` | Front-end lint and production bundle |
+| `docker compose exec web sh -c "npm run lint && npm run test:coverage && npm run build"` | Front-end lint, tests and production bundle |
+| `bash scripts/e2e.sh` | Browser journeys on desktop and phone, with accessibility checks |
 | `docker compose -f compose.yml -f deploy/compose.prod.yml up -d --build` | Production stack |
 
-Full guide: [docs/SETUP.md](docs/SETUP.md). Design: [docs/architecture.md](docs/architecture.md),
+Full guide: [docs/SETUP.md](docs/SETUP.md). How to contribute and the definition of done:
+[CONTRIBUTING.md](CONTRIBUTING.md). Design: [docs/architecture.md](docs/architecture.md),
 [docs/components.md](docs/components.md).
 
 ## Branching strategy
 
 Trunk-based with short-lived branches.
 
-- `main` is always deployable and is protected: pull request, one review, green CI.
-- Branch names carry the requirement ID: `feature/F06-leave-ledger`, `fix/F02-mask-tin`, `docs/setup-guide`.
-- Squash-merge into `main`; the commit title starts with the requirement ID.
+- `main` is always deployable. Every change arrives by pull request with every CI gate green
+  (see CONTRIBUTING.md). Branch protection, which makes that mandatory, is a repository setting the
+  owner switches on (Gold Standard Plan item 0.17).
+- Branch names carry the checklist item: `feature/1.06-qualifications`, `fix/1.35-upload-limits`,
+  `docs/0.19-threat-model`.
+- Squash-merge into `main`; the commit title starts with the item number. Merging deploys to staging.
 - Releases are tags `v<major>.<minor>.<patch>`; `deploy/` scripts deploy a tag, never a branch.
 - Hotfixes branch from the tag, merge to `main`, and are re-tagged.
 
 ## Next development milestones
+
+Scope and order follow the Gold Standard Plan (decision records 0003 to 0008 in `docs/adr/`). The
+dates below are the Kick-off Plan's and stand for Release 1.
 
 | Milestone | Date | Scope |
 |---|---|---|
@@ -80,10 +90,18 @@ The Sprint 1 board is on GitHub: milestone "Sprint 1 (M1 walking skeleton and Ga
 
 ## Rules
 
-- Only permissively licensed components may be added; check ADR 0001 in review.
+- Licences follow ADR 0002; the licence gates in CI refuse anything else.
 - Never commit secrets. `.env` is ignored; `.env.example` holds placeholders only.
 - Personal data of GSA staff stays in Guyana. Sensitive identifiers are encrypted and never logged in clear.
 - Every write to personnel data goes through an audited view or service so an audit row is produced.
+
+## Assurance
+
+- Decision records: [docs/adr/README.md](docs/adr/README.md)
+- Threat model: [docs/security/threat-model.md](docs/security/threat-model.md)
+- Data protection impact assessment (draft for GSA): [docs/privacy/dpia.md](docs/privacy/dpia.md)
+- CI gates: `.github/workflows/ci.yml`; locked dependencies in `api/requirements*.txt` and
+  `web/package-lock.json`
 
 ## GSA ecosystem
 

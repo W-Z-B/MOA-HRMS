@@ -1,17 +1,22 @@
 ## Summary
 
-<!-- What changes and why. Link the issue: Closes #NN -->
+<!-- What changes and why, in a few sentences. -->
 
-## Requirement
+## Checklist items
 
-<!-- F01 to F17 identifier(s) this touches -->
+<!-- The Gold Standard Plan items this delivers, for example 1.06, 1.07. Name any decision record. -->
 
-## Checklist
+## How it was checked
 
-- [ ] Branch named `feature/<id>-<short-name>`, `fix/<short-name>` or `docs/<short-name>`
-- [ ] Tests added or updated; suite passes in the Compose stack (`docker compose run --rm api pytest -q`)
-- [ ] Migrations generated and `makemigrations --check` clean
-- [ ] No new dependency, or the licence is MIT, BSD, Apache 2.0, PostgreSQL or PSF and ADR updated
-- [ ] No secrets, personal data or real employee records in code, fixtures or screenshots
-- [ ] Writes to personnel data produce audit rows
-- [ ] Docs updated (`docs/components.md`, `docs/SETUP.md`) if behaviour or setup changed
+<!-- What you ran and saw: tests, the browser journey, a phone screenshot. -->
+
+## Definition of done
+
+- [ ] Acceptance points met and shown working on a phone and on a desktop
+- [ ] Rules and permissions tested, including what must be refused; new endpoints added to the permission-matrix test
+- [ ] Every change and every view of a sensitive item writes an audit row
+- [ ] Accessible (keyboard, labels, contrast) and fits a 360px phone without sideways scrolling
+- [ ] User guide, administrator note and API documentation updated
+- [ ] Every CI gate green; no secrets, real personal data or real employee records in code, fixtures or screenshots
+- [ ] New dependency: licence allowed by ADR 0002 (or a named exception with its reason), lock files updated
+- [ ] Checklist item marked done in the Gold Standard Plan

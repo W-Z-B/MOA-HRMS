@@ -1,4 +1,4 @@
-/** Hash-based routing with no dependency. Replace with a router library once approved (ADR 0002). */
+/** Hash-based routing with no dependency. A router library is approved in principle (ADR 0009) and is added when a feature needs it. */
 
 import { useEffect, useState } from "react";
 import { isOfficeUser, type Me } from "../api/types";
