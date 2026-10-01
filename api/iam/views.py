@@ -14,10 +14,12 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from audit.services import record
+from core.net import client_ip
 from core.serializers import ErrorSerializer
-from iam.models import LoginAttempt, TotpDevice
+from iam.models import LoginAttempt, TotpDevice, UserSession
 from iam.permissions import MFA_SESSION_KEY
 from iam.services import requires_mfa, role_codes
+from iam.sessions import describe_device, end_sessions
 
 
 class LoginSerializer(serializers.Serializer):
@@ -45,6 +47,19 @@ class MfaEnrolSerializer(serializers.Serializer):
     provisioning_uri = serializers.CharField(help_text="otpauth:// address to add to an authenticator app")
 
 
+class SessionSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    device = serializers.CharField(help_text="Browser and system, for example 'Chrome on Android'")
+    ip = serializers.IPAddressField(allow_null=True)
+    created_at = serializers.DateTimeField(help_text="When this session signed in")
+    last_seen_at = serializers.DateTimeField()
+    current = serializers.BooleanField(help_text="The session making this request")
+
+
+class EndedSerializer(serializers.Serializer):
+    ended = serializers.IntegerField()
+
+
 def _me_payload(user, session) -> dict:
     employee = getattr(user, "employee", None)
     return {
@@ -56,11 +71,6 @@ def _me_payload(user, session) -> dict:
         "mfa_verified": bool(session.get(MFA_SESSION_KEY, False)),
         "employee_id": employee.id if employee else None,
     }
-
-
-def _source_ip(request) -> str | None:
-    forwarded = request.META.get("HTTP_X_FORWARDED_FOR", "")
-    return forwarded.split(",")[0].strip() or request.META.get("REMOTE_ADDR") or None
 
 
 def _is_locked(username: str) -> bool:
@@ -75,9 +85,23 @@ def _is_locked(username: str) -> bool:
     return failures >= settings.LOGIN_MAX_FAILURES
 
 
+def _address_blocked(address: str | None) -> bool:
+    """True when one address has failed too often inside the window, whatever the accounts tried.
+
+    The account lockout stops guessing one person's password; this stops one password being tried
+    against many accounts. Only failures count, so a campus signing in through one network address is
+    not held up by its own successful sign-ins.
+    """
+    if address is None:
+        return False
+    window_start = timezone.now() - timedelta(minutes=settings.LOGIN_LOCKOUT_MINUTES)
+    failures = LoginAttempt.objects.filter(source_ip=address, success=False, at__gte=window_start).count()
+    return failures >= settings.LOGIN_MAX_FAILURES_PER_ADDRESS
+
+
 @extend_schema(
     request=LoginSerializer,
-    responses={200: MeSerializer, 401: ErrorSerializer, 423: ErrorSerializer},
+    responses={200: MeSerializer, 401: ErrorSerializer, 423: ErrorSerializer, 429: ErrorSerializer},
     summary="Sign in with a username and password",
 )
 @ensure_csrf_cookie
@@ -87,6 +111,16 @@ def login_view(request):
     data = LoginSerializer(data=request.data)
     data.is_valid(raise_exception=True)
     username = data.validated_data["username"]
+    address = client_ip(request)
+    if _address_blocked(address):
+        return Response(
+            {
+                "code": "too_many_attempts",
+                "detail": "Too many failed sign-ins from this network. "
+                f"Try again in {settings.LOGIN_LOCKOUT_MINUTES} minutes.",
+            },
+            status=status.HTTP_429_TOO_MANY_REQUESTS,
+        )
     if _is_locked(username):
         return Response(
             {
@@ -96,7 +130,7 @@ def login_view(request):
             status=status.HTTP_423_LOCKED,
         )
     user = authenticate(request, username=username, password=data.validated_data["password"])
-    LoginAttempt.objects.create(username=username, source_ip=_source_ip(request), success=user is not None)
+    LoginAttempt.objects.create(username=username, source_ip=address, success=user is not None)
     if user is None:
         return Response(
             {"code": "invalid_credentials", "detail": "Username or password is incorrect."}, status=401
@@ -165,3 +199,59 @@ def mfa_verify(request):
     request.session[MFA_SESSION_KEY] = True
     record(request, "mfa_verified", request.user)
     return Response(_me_payload(request.user, request.session))
+
+
+@extend_schema(responses=SessionSerializer(many=True), summary="Where I am signed in")
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def sessions_view(request):
+    current = request.session.session_key
+    rows = [
+        {
+            "id": row.id,
+            "device": describe_device(row.user_agent),
+            "ip": row.ip,
+            "created_at": row.created_at,
+            "last_seen_at": row.last_seen_at,
+            "current": row.session_key == current,
+        }
+        for row in UserSession.objects.filter(user=request.user)
+    ]
+    return Response(SessionSerializer(rows, many=True).data)
+
+
+@extend_schema(
+    request=None,
+    responses={204: None, 404: ErrorSerializer, 409: ErrorSerializer},
+    summary="End one of my other sessions",
+)
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def end_session_view(request, pk: int):
+    target = UserSession.objects.filter(user=request.user, pk=pk)
+    row = target.first()
+    if row is None:
+        return Response({"code": "not_found", "detail": "No such session."}, status=status.HTTP_404_NOT_FOUND)
+    if row.session_key == request.session.session_key:
+        return Response(
+            {"code": "current_session", "detail": "This is the session you are using. Sign out to end it."},
+            status=status.HTTP_409_CONFLICT,
+        )
+    end_sessions(target)
+    record(
+        request,
+        "session_ended",
+        request.user,
+        after={"session": pk, "device": describe_device(row.user_agent)},
+    )
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@extend_schema(request=None, responses=EndedSerializer, summary="End all my sessions except this one")
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def end_other_sessions_view(request):
+    others = UserSession.objects.filter(user=request.user).exclude(session_key=request.session.session_key)
+    ended = end_sessions(others)
+    record(request, "sessions_ended", request.user, after={"ended": ended})
+    return Response({"ended": ended})

@@ -85,8 +85,12 @@ def _move(client, request_id, action, comment=""):
     )
 
 
+# The start of a real JPEG: uploads are checked by their contents, not their names (core.uploads).
+JPEG_START = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00"
+
+
 def _note(name="note.jpg"):
-    return {"file": SimpleUploadedFile(name, b"scan of the note", content_type="image/jpeg")}
+    return {"file": SimpleUploadedFile(name, JPEG_START + b" scan of the note", content_type="image/jpeg")}
 
 
 @pytest.mark.django_db
