@@ -27,6 +27,9 @@ RECORDS = {
     "integration.serviceclient": "Service key",
     "privacy.correctionrequest": "Correction request",
     "privacy.privacynotice": "Privacy notice",
+    "privacy.retentionrule": "Retention rule",
+    "privacy.disposalrun": "Disposal run",
+    "privacy.breach": "Data breach",
 }
 ACTIONS = {
     "create": "Added",
@@ -72,6 +75,15 @@ ACTIONS = {
     "notice_acknowledged": "Privacy notice read",
     "record_viewed": "Own record viewed",
     "record_produced": "Record produced for a request",
+    "retention_changed": "Retention period changed",
+    "retention_confirmed": "Retention period confirmed",
+    "disposal_proposed": "Disposal proposed",
+    "disposal_kept": "Kept from disposal",
+    "disposal_approved": "Disposal approved",
+    "disposal_cancelled": "Disposal cancelled",
+    "disposed": "Destroyed under the retention schedule",
+    "purged": "Old logs removed",
+    "breach_closed": "Breach closed",
 }
 # Account events belong to the audit log, not to the story of a person's file.
 NOT_FILE_HISTORY = (
