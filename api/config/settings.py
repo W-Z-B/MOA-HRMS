@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "leave",
     "reports",
     "notifications",
+    "privacy",
     "integration",
     # Release 2 scaffolds
     "attendance",
@@ -210,6 +211,8 @@ INVITATION_DAYS = int(env("INVITATION_DAYS", "7"))
 PASSWORD_RESET_MINUTES = int(env("PASSWORD_RESET_MINUTES", "60"))
 # Django's own limit is the longest of the two; each kind of link then applies its own, stricter one.
 PASSWORD_RESET_TIMEOUT = max(INVITATION_DAYS * 24 * 3600, PASSWORD_RESET_MINUTES * 60)
+# Days HR has to answer a request to correct a record (GSA's own standard until regulations set one).
+PRIVACY_RESPONSE_DAYS = int(env("PRIVACY_RESPONSE_DAYS", "30"))
 # Reset requests from one address, and for one account, inside the lockout window.
 PASSWORD_RESETS_PER_ADDRESS = int(env("PASSWORD_RESETS_PER_ADDRESS", "5"))
 PASSWORD_RESETS_PER_ACCOUNT = 3

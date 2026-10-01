@@ -55,6 +55,9 @@ class MeSerializer(serializers.Serializer):
     mfa_required = serializers.BooleanField()
     mfa_verified = serializers.BooleanField()
     employee_id = serializers.IntegerField(allow_null=True)
+    privacy_notice_due = serializers.IntegerField(
+        allow_null=True, help_text="Version of the privacy notice still to read and acknowledge, if any"
+    )
 
 
 class MfaEnrolSerializer(serializers.Serializer):
@@ -112,6 +115,8 @@ INVALID_LINK = {
 
 
 def _me_payload(user, session) -> dict:
+    from privacy.services import notice_due
+
     employee = getattr(user, "employee", None)
     return {
         "id": user.id,
@@ -121,6 +126,7 @@ def _me_payload(user, session) -> dict:
         "mfa_required": requires_mfa(user),
         "mfa_verified": bool(session.get(MFA_SESSION_KEY, False)),
         "employee_id": employee.id if employee else None,
+        "privacy_notice_due": notice_due(user),
     }
 
 

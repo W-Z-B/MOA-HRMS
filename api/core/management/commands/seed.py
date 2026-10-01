@@ -60,6 +60,8 @@ REPORTS = [
     ("data-quality", "Staff records to check", ["hr_officer", "hr_manager", "administrator"], False),
     # Item 1.27: every role each account holds, signed off every three months on the Admin screen.
     ("access-review", "Who can see what", ["administrator", "hr_manager", "auditor"], False),
+    # Item 1.31: who has read the privacy notice in force.
+    ("privacy-acknowledgements", "Privacy notice read", ["administrator", "hr_manager", "auditor"], False),
 ]
 
 
