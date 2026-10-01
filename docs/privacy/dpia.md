@@ -1,6 +1,8 @@
 # Data protection impact assessment
 
-**Draft 0.1, 1 October 2026,** prepared by the development team for GSA's data protection officer.
+**Draft 0.2, 1 October 2026,** prepared by the development team for GSA's data protection officer.
+Draft 0.2 records the privacy rights built in pull request 20: the notice and its acknowledgement, a
+person's own record, and correction requests.
 GSA is the data controller and owns this assessment; the development team keeps it current as the
 system changes. It is signed in section 9 before any real staff record is loaded (checklist item 7.03).
 
@@ -47,6 +49,7 @@ personal data.
 | Applicants (Release 3) | Application, assessments | The applicant | Recruitment | Steps towards a contract at the applicant's request |
 | Staff | Training records | HR, the LMS | Development, certificates | Contract |
 | Everyone with an account | Username, email address, roles and who gave them, sign-ins, devices signed in, network addresses of sign-ins and of requests for a password link (what was typed is not kept) | The system, HR | Keeping the system secure; showing who can see what in the access review | Functions of a public body; the Act's security duty |
+| Everyone with an account | Which version of the privacy notice they read and when; their correction requests, HR's answers and reasons | The person, HR | Showing that people were told, and that their requests were answered | The Act's duties to inform and to correct |
 
 **Recipients:** GSA HR, the employee's own manager, Finance, the Principal and auditors (each limited by
 role and campus); the Ministry of Agriculture (totals, not individuals); NIS and GRA (statutory returns);
@@ -67,6 +70,7 @@ are kept (item 7.09).
 | Audit log | Seven years (Planning Pack requirement) |
 | Access review sign-offs | Seven years, with the audit log |
 | Sign-in records, devices, requests for a password link | Twelve months; a device record ends with its session |
+| Privacy notice acknowledgements, correction requests | As long as the staff record, then with it |
 | Unsuccessful applicants | Six months after the post is filled |
 | Fictional demonstration data | Never on a database with real records |
 
@@ -92,12 +96,12 @@ Choices already made to collect and show less:
 
 | Right (as summarised) | How the system supports it | Status |
 |---|---|---|
-| To be told what is processed and why (controller, data protection officer, purposes, recipients, legal authority, whether compulsory, retention) | Privacy notice shown and acknowledged in the app | Item 1.31 |
-| To be told whether data is processed, and to receive its purposes, categories, recipients and retention | Download of one's own record | Item 1.31 |
-| Rectification | Change requests from the employee, decided by HR | Item 2.18 |
+| To be told what is processed and why (controller, data protection officer, purposes, recipients, legal authority, whether compulsory, retention) | **Built (pull request 20):** a versioned notice that HR publishes; each person reads and acknowledges each version once, after sign-in, and the acknowledgement is recorded; a report shows who has not yet read it. A starting draft for GSA to complete is `docs/privacy/privacy-notice-draft.md` | Item 1.31; GSA to approve the text |
+| To be told whether data is processed, and to receive its purposes, categories, recipients and retention | **Built (pull request 20):** My record shows everything held about the person, to read, print or download as a file, with the history of changes and who made them; HR can produce the same for a request made on paper. Every viewing is recorded. The file leaves out full bank account numbers | Item 1.31 |
+| Rectification | **Built (pull request 20):** a correction request names what is wrong and what it should say; HR on the person's campus answers within `PRIVACY_RESPONSE_DAYS` (30 by default, GSA's own standard until regulations set one), corrected or not changed with the reason, and the person is told. Nobody answers a request about themselves. Changing details directly from self-service, with HR's approval, comes later | Items 1.31 and 2.18 |
 | Erasure without undue delay | Disposal run under the retention schedule; employment records kept only as long as the law requires | Item 1.32 |
-| Restriction while accuracy is contested or on objection | A restriction flag on a record, honoured by every module | Item 1.31 |
-| Objection in writing | Logged and decided by the data protection officer | Item 1.31 |
+| Restriction while accuracy is contested or on objection | A restriction flag on a record, honoured by every module | Item 1.46 |
+| Objection in writing | Logged and decided by the data protection officer | Item 1.46 |
 | Complaint to the Data Protection Commissioner | Stated in the privacy notice | Item 1.31 |
 
 ## 6. Risks and measures

@@ -60,6 +60,11 @@ screen; who may give which role is set out in `api/iam/accounts.py`. Nobody ever
 person's password, and links sent in development print to the API log (`docker compose logs api`).
 Administrator, HR Manager and Finance roles must enrol an authenticator app on first sign-in.
 
+Before real records are loaded, the HR Manager publishes GSA's privacy notice from the Admin screen (Privacy
+notice tab). A starting draft for GSA to complete is `docs/privacy/privacy-notice-draft.md`. Each person reads
+and acknowledges it at their next sign-in, once for each version. `seed_demo --fictional` publishes a
+demonstration notice, so on staging everyone sees it once.
+
 ## 3b. Import sample or migration data
 
 ```bash

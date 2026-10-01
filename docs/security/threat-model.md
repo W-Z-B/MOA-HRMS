@@ -1,7 +1,7 @@
 # Threat model
 
-**Version 1.4, 1 October 2026.** Method: STRIDE over the data flows in section 3, against the code on
-branch `feature/phase-1-audit`. Version 1.1 records the four gaps closed by pull request 16
+**Version 1.5, 1 October 2026.** Method: STRIDE over the data flows in section 3, against the code on
+branch `feature/phase-1-privacy`. Version 1.1 records the four gaps closed by pull request 16
 (items 1.28, 1.35, 1.36, 1.37) and one weakness found while closing them (forged addresses). Version 1.2
 records two weaknesses found while building the staff record (pull request 17): writes across campuses,
 and a leave balance disclosed in a refusal. Version 1.3 records accounts and access (pull request 18:
@@ -9,7 +9,8 @@ invitations, password links, roles, switching off, the access review) and three 
 building them: a new role that skipped its authenticator code, accounts linked to staff records through the
 employee form, and a report that named staff on every campus. Version 1.4 records the audit log's chained
 fingerprints and viewer (pull request 19, item 1.26), which close the gap of a database superuser changing
-the log unseen. Reviewed at every release gate and whenever a data flow, role or integration is added. Gaps
+the log unseen. Version 1.5 records a person's own copy of their record and correction requests (pull request
+20, item 1.31). Reviewed at every release gate and whenever a data flow, role or integration is added. Gaps
 point to items in the Gold Standard Plan checklist.
 
 ## 1. What is protected
@@ -117,6 +118,8 @@ flowchart LR
 | Data in backups | | Encrypted backups with an off-site copy (item 7.09) |
 | Error details | Debug is off in production; `check --deploy` must pass in CI | |
 | Personal details in email | | Email notices should carry a link, not names and dates, in case GSA's mail service is outside Guyana (item 2.26) |
+| A person's own record leaking once downloaded | **The file a person downloads under My record leaves out full bank account numbers (the last four digits identify the account); every viewing, and every copy HR produces for a paper request, is recorded** (pull request 20). The person's own identity numbers are in it, as the right of access requires | Tell staff, in the privacy notice, to keep the file safe |
+| Changing someone's record through a "correction" | A correction request changes nothing by itself: HR makes the change on the staff record, where it needs a reason and is audited. HR cannot answer a request about themselves, and only answers for staff on their campus (pull request 20) | |
 | A spreadsheet export that runs formulas | **The audit export prefixes any cell that a spreadsheet would run as a formula** (`=`, `+`, `-`, `@`), so text typed into a reason cannot run when the file is opened (pull request 19) | Apply the same rule to every export as reports gain Excel output (item 6.02) |
 
 ### Denial of service
