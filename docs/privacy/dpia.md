@@ -46,6 +46,7 @@ personal data.
 | Next of kin, dependants | Name, phone | The employee | Emergencies; tax deductions for children (Release 2) | Contract; vital interests |
 | Applicants (Release 3) | Application, assessments | The applicant | Recruitment | Steps towards a contract at the applicant's request |
 | Staff | Training records | HR, the LMS | Development, certificates | Contract |
+| Everyone with an account | Username, email address, roles and who gave them, sign-ins, devices signed in, network addresses of sign-ins and of requests for a password link (what was typed is not kept) | The system, HR | Keeping the system secure; showing who can see what in the access review | Functions of a public body; the Act's security duty |
 
 **Recipients:** GSA HR, the employee's own manager, Finance, the Principal and auditors (each limited by
 role and campus); the Ministry of Agriculture (totals, not individuals); NIS and GRA (statutory returns);
@@ -64,6 +65,8 @@ are kept (item 7.09).
 | Leave register and decisions | As the Leave with Pay Act and Labour Officer inspections require |
 | Doctor's notes | Two years after the leave they support |
 | Audit log | Seven years (Planning Pack requirement) |
+| Access review sign-offs | Seven years, with the audit log |
+| Sign-in records, devices, requests for a password link | Twelve months; a device record ends with its session |
 | Unsuccessful applicants | Six months after the post is filled |
 | Fictional demonstration data | Never on a database with real records |
 
