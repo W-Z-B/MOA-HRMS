@@ -1,14 +1,16 @@
 # Threat model
 
-**Version 1.3, 1 October 2026.** Method: STRIDE over the data flows in section 3, against the code on
-branch `feature/phase-1-accounts`. Version 1.1 records the four gaps closed by pull request 16
+**Version 1.4, 1 October 2026.** Method: STRIDE over the data flows in section 3, against the code on
+branch `feature/phase-1-audit`. Version 1.1 records the four gaps closed by pull request 16
 (items 1.28, 1.35, 1.36, 1.37) and one weakness found while closing them (forged addresses). Version 1.2
 records two weaknesses found while building the staff record (pull request 17): writes across campuses,
 and a leave balance disclosed in a refusal. Version 1.3 records accounts and access (pull request 18:
 invitations, password links, roles, switching off, the access review) and three weaknesses found while
 building them: a new role that skipped its authenticator code, accounts linked to staff records through the
-employee form, and a report that named staff on every campus. Reviewed at every release gate and whenever a
-data flow, role or integration is added. Gaps point to items in the Gold Standard Plan checklist.
+employee form, and a report that named staff on every campus. Version 1.4 records the audit log's chained
+fingerprints and viewer (pull request 19, item 1.26), which close the gap of a database superuser changing
+the log unseen. Reviewed at every release gate and whenever a data flow, role or integration is added. Gaps
+point to items in the Gold Standard Plan checklist.
 
 ## 1. What is protected
 
@@ -19,7 +21,7 @@ data flow, role or integration is added. Gaps point to items in the Gold Standar
 | Financial records | Hourly rate, grade amount; later pay and bank details | Sensitive personal data (financial record) | Contract terms; pay fields blanked for roles without need |
 | Employment records | Appointments, contracts, leave, decisions, receipts | Personal | PostgreSQL |
 | Contact data | Phone, address, next of kin | Personal | PostgreSQL |
-| Audit log | Who did what, when, from where, before and after | Integrity-critical | Insert-only table; a database trigger refuses UPDATE and DELETE |
+| Audit log | Who did what, when, from where, before and after | Integrity-critical | Insert-only table; a database trigger refuses UPDATE and DELETE; every entry chained to the one before by a keyed fingerprint, checked every night |
 | Credentials | Passwords, TOTP secrets, service keys, session cookies, password links | Secret | PBKDF2-SHA256 with 1,000,000 iterations; TOTP secrets encrypted; service keys stored as SHA-256 hashes; password links signed over the password and the last sign-in, so each works once, for 7 days (invitation) or 60 minutes (reset) |
 | Server secrets | `DJANGO_SECRET_KEY`, `FIELD_ENCRYPTION_KEY`, database and SMTP passwords | Secret | Environment only (git-ignored `.env`, platform variables) |
 | Backups | Database dumps, copies of the file volume | As their content | Not built yet (item 7.09) |
@@ -88,7 +90,8 @@ flowchart LR
 
 | Threat | In place | Gap |
 |---|---|---|
-| Changing records without trace | Every write goes through audited views in the same transaction | A database superuser can disable the trigger; chain the audit rows by hash so that tampering shows (item 1.26) |
+| Changing records without trace | Every write goes through audited views in the same transaction | |
+| Changing or removing audit entries with the trigger switched off | **Closed in pull request 19 (item 1.26):** every entry carries an HMAC-SHA256 of the entry before it and of its own content, under a key derived from the server's field-encryption key, which is never in the database. Entries are written one at a time under a lock, so the chain follows commit order. A check walks the chain every night, and on request in the audit viewer; a changed or removed entry shows at the first entry that no longer fits, and entries removed from the end show at the next check because each check keeps the newest entry it saw. A broken chain alerts the administrators and the auditor at once, and every result is written to the platform log, outside the database | Someone holding both the database and the server's key could rewrite the chain: keep the key apart from the database and its backups (item 7.09). Entries removed from the end after the last check show only at the next one |
 | Cross-site request forgery | Django CSRF protection on every session write | |
 | Harmful uploads | **Every upload is checked by its contents, not its name** (PDF, photographs, and Word or Excel without macros), with limits of 10 MB for evidence and 20 MB for documents; **Caddy refuses any request over 25 MB**; **files are stored under random names** and downloaded under the name chosen; every download is an attachment with `nosniff`, never a public URL (pull request 16) | |
 | Tampered dependencies | Python packages locked with hashes; npm lockfile; CI actions pinned to commits; licence, vulnerability and secret gates | Base images follow tags (ADR 0009); software bill of materials per release (item 7.17) |
@@ -97,7 +100,7 @@ flowchart LR
 
 | Threat | In place | Gap |
 |---|---|---|
-| Denying an approval or a change | Audit rows with actor, time, address, before and after; leave decisions stored with the decider's name; **opening, switching off and on, roles given and taken (with the roles before and after), links sent and authenticators reset are audited, most with a reason, and appear in the person's history** (pull request 18) | Keep audit rows at least 7 years (item 1.32); synchronise the production clock (item 7.11) |
+| Denying an approval or a change | Audit rows with actor, time, address, before and after; leave decisions stored with the decider's name; **opening, switching off and on, roles given and taken (with the roles before and after), links sent and authenticators reset are audited, most with a reason, and appear in the person's history** (pull request 18); **the auditor and administrators read every entry in words, filter it and export it; the export and each check of the chain are recorded too** (pull request 19) | Keep audit rows at least 7 years (item 1.32); synchronise the production clock (item 7.11) |
 | Forging the address recorded in the audit log | **Fixed in pull request 16:** the address came from the left-most `X-Forwarded-For` entry, which the client writes. Caddy now sets `X-Real-IP` to the address it saw (strict trusted-proxy parsing behind the hosting platform's edge) and only that is recorded | Sibling systems on the private network reach the API without Caddy; their calls are recorded against their service key |
 
 ### Information disclosure
@@ -114,6 +117,7 @@ flowchart LR
 | Data in backups | | Encrypted backups with an off-site copy (item 7.09) |
 | Error details | Debug is off in production; `check --deploy` must pass in CI | |
 | Personal details in email | | Email notices should carry a link, not names and dates, in case GSA's mail service is outside Guyana (item 2.26) |
+| A spreadsheet export that runs formulas | **The audit export prefixes any cell that a spreadsheet would run as a formula** (`=`, `+`, `-`, `@`), so text typed into a reason cannot run when the file is opened (pull request 19) | Apply the same rule to every export as reports gain Excel output (item 6.02) |
 
 ### Denial of service
 
@@ -143,6 +147,7 @@ flowchart LR
 | 1.35 | Upload controls for every file (closed in pull request 16) |
 | 1.36 | Content-Security-Policy; API documentation for signed-in people (closed in pull request 16) |
 | 1.37 | Sign-in limit by source address (closed in pull request 16) |
+| 1.26 | Chained fingerprints over the audit log, a nightly check and an audit viewer (closed in pull request 19) |
 | 1.41 | A first sign-in for staff with no email address: a one-use set-up code in person or by text message |
 | 1.42 | The sign-in email address changed through an audited step that tells the old address |
 | 7.17 | Software bill of materials and third-party notices with each release |
