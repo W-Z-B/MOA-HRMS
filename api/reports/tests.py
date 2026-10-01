@@ -56,6 +56,41 @@ def test_data_quality_lists_what_hr_should_check(api, employee, campus, seeded):
 
 
 @pytest.mark.django_db
+def test_a_report_that_names_people_stays_inside_the_campuses_of_whoever_runs_it(
+    api, employee, campus, hr_manager
+):
+    """A Mon Repos officer never sees Essequibo staff in the data-quality report, asked for or not."""
+    from rest_framework.test import APIClient
+
+    from org.models import Campus
+    from people.models import Employee
+
+    essequibo = Campus.objects.get(code="ESQ")
+    Employee.objects.create(
+        employee_no="E0200",
+        first_name="Ravi",
+        last_name="Singh",
+        date_of_birth=date(1985, 5, 5),
+        campus=essequibo,
+    )
+    rows = api.get("/api/v1/reports/data-quality/").json()["rows"]
+    assert rows and {r["campus"] for r in rows} == {campus.name}
+    refused = api.get("/api/v1/reports/data-quality/", {"campus": essequibo.id})
+    assert refused.status_code == 403 and refused.json()["code"] == "forbidden"
+    assert "E0200" not in refused.content.decode()
+
+    manager = APIClient()
+    manager.force_login(hr_manager)
+    session = manager.session
+    session["mfa_verified"] = True
+    session.save()
+    everyone = manager.get("/api/v1/reports/data-quality/").json()["rows"]
+    assert {"E0001", "E0200"} <= {r["employee_no"] for r in everyone}
+    only_essequibo = manager.get("/api/v1/reports/data-quality/", {"campus": essequibo.id}).json()["rows"]
+    assert {r["employee_no"] for r in only_essequibo} == {"E0200"}
+
+
+@pytest.mark.django_db
 def test_data_quality_is_for_hr_only(make_user, campus, seeded):
     from rest_framework.test import APIClient
 

@@ -1,6 +1,8 @@
 """Report queries keyed by ReportDefinition.key. Each returns a list of dict rows.
 
-A query that takes `campus_id` can be limited to one campus (?campus= on the report API).
+A query that takes `campus_id` counts, and can be limited to one campus (?campus= on the report API).
+A query whose rows name people takes `campus_ids` instead: the API always passes the campuses the
+person running it works with (None for every campus), so the report never reaches past their scope.
 """
 
 from collections import defaultdict
@@ -63,7 +65,7 @@ def _normalised(value: str) -> str:
     return "".join(ch for ch in value.upper() if ch.isalnum())
 
 
-def data_quality(campus_id: int | None = None, today: date | None = None) -> list[dict]:
+def data_quality(campus_ids: set[int] | None = None, today: date | None = None) -> list[dict]:
     """Records HR should check before they are relied on (item 1.09).
 
     Identifiers are compared after decryption, in memory, and never appear in the rows: a repeated NIS
@@ -76,8 +78,8 @@ def data_quality(campus_id: int | None = None, today: date | None = None) -> lis
         .prefetch_related("emergency_contacts")
         .order_by("employee_no")
     )
-    if campus_id:
-        staff = staff.filter(campus_id=campus_id)
+    if campus_ids is not None:
+        staff = staff.filter(campus_id__in=campus_ids)
 
     rows: list[dict] = []
     holders: dict[str, dict[str, list[Employee]]] = {field: defaultdict(list) for field, _ in IDENTIFIERS}

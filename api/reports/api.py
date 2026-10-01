@@ -11,7 +11,7 @@ from rest_framework.response import Response
 
 from core.serializers import ErrorSerializer
 from iam.permissions import RolePermission
-from iam.services import has_role
+from iam.services import campus_limit, has_role
 from reports.models import ReportDefinition
 from reports.queries import REPORTS
 
@@ -73,10 +73,22 @@ def run_report(request, key: str):
         )
     query = REPORTS[key]
     campus = request.query_params.get("campus")
+    if campus and not campus.isdigit():
+        return Response({"code": "bad_request", "detail": "campus must be a campus id."}, status=400)
+    parameters = inspect.signature(query).parameters
     kwargs = {}
-    if campus and "campus_id" in inspect.signature(query).parameters:
-        if not campus.isdigit():
-            return Response({"code": "bad_request", "detail": "campus must be a campus id."}, status=400)
+    if "campus_ids" in parameters:
+        # Rows that name people stay inside the campuses the person running the report works with.
+        allowed = campus_limit(request.user)
+        if campus:
+            if allowed is not None and int(campus) not in allowed:
+                return Response(
+                    {"code": "forbidden", "detail": "That campus is not one you work with."}, status=403
+                )
+            kwargs["campus_ids"] = {int(campus)}
+        else:
+            kwargs["campus_ids"] = allowed
+    elif campus and "campus_id" in parameters:
         kwargs["campus_id"] = int(campus)
     return Response({"key": key, "name": definition.name, "rows": query(**kwargs)})
 
