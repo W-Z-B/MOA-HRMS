@@ -273,6 +273,8 @@ export const AUDIT_ROLES = ["administrator", "auditor"];
 export const CORRECTION_ROLES = ["hr_officer", "hr_manager", "administrator"];
 export const NOTICE_ROLES = ["administrator", "hr_manager", "auditor"];
 export const NOTICE_WRITE_ROLES = ["administrator", "hr_manager"];
+export const RETENTION_ROLES = ["administrator", "hr_manager", "auditor"];
+export const RETENTION_WRITE_ROLES = ["administrator", "hr_manager"];
 export const hasAnyRole = (me: Me, roles: readonly string[]) => roles.some((r) => me.roles.includes(r));
 /** Staff with work to do in the system beyond their own leave: they see the full navigation. */
 export const isOfficeUser = (me: Me) => me.roles.some((r) => r !== "employee");
@@ -528,4 +530,64 @@ export interface OwnRecord {
   about: string;
   account: Record<string, unknown> | null;
   staff_record: Record<string, unknown> | null;
+}
+
+/** One line of the retention schedule. */
+export interface RetentionRule {
+  id: number;
+  code: string;
+  name: string;
+  keep_months: number | null;
+  counted_from: string;
+  action: string;
+  action_name: string;
+  automatic: boolean;
+  confirmed: boolean;
+  confirmed_by_name: string | null;
+  confirmed_at: string | null;
+  note: string;
+  open_run: number | null;
+}
+
+export interface DisposalItem {
+  id: number;
+  description: string;
+  employee: number | null;
+  employee_no: string | null;
+  due_since: string;
+  keep_reason: string;
+  disposed_at: string | null;
+}
+
+export interface DisposalRun {
+  id: number;
+  rule: number;
+  rule_name: string;
+  state: "proposed" | "done" | "cancelled";
+  state_name: string;
+  created_at: string;
+  proposed_by: string | null;
+  approved_by_name: string | null;
+  approved_at: string | null;
+  proposed_by_me: boolean;
+  items: DisposalItem[];
+}
+
+export interface Breach {
+  id: number;
+  reference: string;
+  discovered_at: string;
+  happened: string;
+  summary: string;
+  data_affected: string;
+  people_affected: number | null;
+  risk: "low" | "medium" | "high";
+  risk_name: string;
+  contained_at: string | null;
+  commissioner_told_at: string | null;
+  people_told_at: string | null;
+  actions: string;
+  closed_at: string | null;
+  recorded_by: string | null;
+  created_at: string;
 }

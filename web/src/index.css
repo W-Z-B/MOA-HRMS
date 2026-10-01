@@ -1022,6 +1022,12 @@ td.to-check {
 .chip-correction-declined {
   color: var(--danger);
 }
+.chip-risk-high {
+  color: var(--danger);
+}
+.chip-risk-medium {
+  color: var(--amber-text);
+}
 .overdue {
   color: var(--danger);
   font-weight: 600;

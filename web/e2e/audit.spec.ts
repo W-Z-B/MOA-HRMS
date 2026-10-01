@@ -19,5 +19,15 @@ test("the auditor checks the audit log, finds what happened to a file, and downl
     page.getByRole("link", { name: "Download as a spreadsheet (CSV)" }).click(),
   ]);
   expect(download.suggestedFilename()).toMatch(/^gsa-hrms-audit-\d{8}-\d{4}\.csv$/);
+
+  // The auditor also reads the retention schedule and the breach register, and changes neither.
+  await page.getByRole("tab", { name: "Retention" }).click();
+  const schedule = page.getByRole("table", { name: "The retention schedule" });
+  await expect(schedule.locator("tbody").getByRole("row")).toHaveCount(5); // the heading row is hidden on phones
+  await expect(schedule.getByRole("button")).toHaveCount(0);
+  await expectAccessible(page, testInfo, "retention schedule");
+  await page.getByRole("tab", { name: "Breaches" }).click();
+  await expect(page.getByText("No breaches recorded.")).toBeVisible();
+  await expectAccessible(page, testInfo, "breach register");
   await signOut(page);
 });

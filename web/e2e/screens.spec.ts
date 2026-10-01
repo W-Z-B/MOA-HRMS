@@ -52,5 +52,8 @@ test("main screens", async ({ page }, testInfo) => {
   await page.getByRole("tab", { name: "Audit log" }).click();
   await page.getByRole("list", { name: "Audit entries" }).waitFor();
   await shot("admin-audit");
+  await page.getByRole("tab", { name: "Retention" }).click();
+  await page.getByRole("table", { name: "The retention schedule" }).waitFor();
+  await shot("admin-retention");
   await signOut(page);
 });
