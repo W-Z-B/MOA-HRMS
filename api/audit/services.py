@@ -67,16 +67,32 @@ def subject_of(instance) -> int | None:
     return None
 
 
-def record(
-    request, action: str, instance, *, before=None, after=None, entity_id=None, reason: str = ""
-) -> AuditLog:
+def _actor(request):
     user = getattr(request, "user", None)
     actor = user if user is not None and getattr(user, "is_authenticated", False) else None
     # A service key stands in for request.user without being a person: it is never stored as the actor.
     if actor is not None and getattr(actor, "pk", None) is None:
         actor = None
+    return actor
+
+
+def record_event(request, action: str, entity: str, *, after=None, reason: str = "") -> AuditLog:
+    """An entry about the system rather than about one record: an export of the log, a check of its chain."""
     return AuditLog.objects.create(
-        actor=actor,
+        actor=_actor(request),
+        action=action,
+        entity=entity,
+        after=after,
+        source_ip=client_ip(request),
+        reason=(reason or "")[:300],
+    )
+
+
+def record(
+    request, action: str, instance, *, before=None, after=None, entity_id=None, reason: str = ""
+) -> AuditLog:
+    return AuditLog.objects.create(
+        actor=_actor(request),
         action=action,
         entity=instance._meta.label_lower,
         entity_id=entity_id if entity_id is not None else instance.pk,
