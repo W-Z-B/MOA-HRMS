@@ -30,6 +30,8 @@ RECORDS = {
     "privacy.retentionrule": "Retention rule",
     "privacy.disposalrun": "Disposal run",
     "privacy.breach": "Data breach",
+    "letters.lettertemplate": "Letter template",
+    "letters.letter": "Letter",
 }
 ACTIONS = {
     "create": "Added",
@@ -84,6 +86,10 @@ ACTIONS = {
     "disposed": "Destroyed under the retention schedule",
     "purged": "Old logs removed",
     "breach_closed": "Breach closed",
+    "letter_issued": "Letter issued",
+    "template_revised": "Letter template revised",
+    "template_retired": "Letter template retired",
+    "template_restored": "Letter template back in use",
 }
 # Account events belong to the audit log, not to the story of a person's file.
 NOT_FILE_HISTORY = (

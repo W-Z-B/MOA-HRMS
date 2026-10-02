@@ -12,6 +12,7 @@ from core.holidays import by_rule
 from core.models import PublicHoliday
 from iam.models import Role
 from leave.models import LeaveType
+from letters.defaults import seed_templates
 from org.models import Campus
 from privacy.models import RetentionRule
 from privacy.retention import RULES as RETENTION_RULES
@@ -118,8 +119,11 @@ class Command(BaseCommand):
                 RetentionRule.objects.filter(pk=rule.pk).update(
                     name=name, counted_from=counted_from, automatic=automatic
                 )
+        # The first letter templates: draft wording, added once, never over GSA's own.
+        seed_templates()
         self.stdout.write(
             self.style.SUCCESS(
-                "Seed data applied: campuses, roles, leave types, holidays, reports, retention schedule."
+                "Seed data applied: campuses, roles, leave types, holidays, reports, retention schedule, "
+                "letter templates."
             )
         )

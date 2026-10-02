@@ -1,5 +1,7 @@
 """F01 Organisation and establishment: campuses, units, grades, salary scales, positions."""
 
+from decimal import Decimal
+
 from django.db import models
 
 from core.models import TimeStampedModel
@@ -67,6 +69,22 @@ class Grade(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"{self.scale.code} {self.code}/{self.step}"
+
+    def amount_on(self, day) -> Decimal:
+        """What this grade and step pays on a day: the latest amount in force by then, else this row's own.
+
+        A revised amount is added as a new row from its date, while posts keep pointing at the row they
+        were given, so the amount in force is looked up rather than read from that row.
+        """
+        latest = (
+            Grade.objects.filter(
+                scale_id=self.scale_id, code=self.code, step=self.step, effective_from__lte=day
+            )
+            .order_by("-effective_from")
+            .values_list("amount", flat=True)
+            .first()
+        )
+        return self.amount if latest is None else latest
 
 
 class Position(TimeStampedModel):
