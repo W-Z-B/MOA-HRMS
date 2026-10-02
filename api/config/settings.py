@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "letters",
     "signing",
     "approvals",
+    "cases",
     "integration",
     # Release 2 scaffolds
     "attendance",
@@ -142,6 +143,10 @@ SPECTACULAR_SETTINGS = {
         "LetterKindEnum": "letters.models.LetterTemplate.Kind",
         "LeavingReasonEnum": "people.models.Separation.Reason",
         "SignatureKindEnum": "signing.models.SignatureRequest.Kind",
+        "CaseKindEnum": "cases.models.Case.Kind",
+        "CaseOutcomeEnum": "cases.models.Case.Outcome",
+        "CaseAppealOutcomeEnum": "cases.models.Case.AppealOutcome",
+        "CaseStepEnum": "cases.models.CaseEntry.Kind",
     },
 }
 

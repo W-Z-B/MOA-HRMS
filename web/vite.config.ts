@@ -40,6 +40,7 @@ export default defineConfig({
         "src/features/letters/**",
         "src/features/signing/**",
         "src/features/approvals/**",
+        "src/features/cases/**",
         "src/features/me/AccountScreen.tsx",
         "src/features/leave/Receipt.tsx",
         "src/features/leave/RequestForm.tsx",

@@ -39,6 +39,7 @@ RECORDS = {
     "letters.letter": "Letter",
     "signing.signaturerequest": "Signature request",
     "approvals.delegation": "Stand-in",
+    "cases.case": "Case",
 }
 ACTIONS = {
     "create": "Added",
@@ -104,6 +105,13 @@ ACTIONS = {
     "item_returned": "Given back",
     "signature_requested": "Asked to sign",
     "escalated": "Sent on up the line",
+    "case_opened": "Case opened",
+    "case_officer_named": "Named on a case",
+    "case_entry": "Case step recorded",
+    "case_decided": "Case decided",
+    "case_appealed": "Appeal lodged",
+    "case_appeal_decided": "Appeal decided",
+    "case_closed": "Case closed",
     "delegation_ended": "Stand-in ended",
     "document_signed": "Signed",
     "signature_declined": "Declined to sign",

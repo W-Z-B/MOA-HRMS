@@ -1286,6 +1286,22 @@ code.fingerprint {
   overflow-wrap: anywhere;
 }
 
+/* Cases (item 1.15): the allegation as written, and the steps in order. */
+.case-summary {
+  white-space: pre-wrap;
+  max-width: 760px;
+}
+ol.case-steps {
+  margin: 0;
+  padding-left: 20px;
+  max-width: 760px;
+}
+ol.case-steps > li {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--stripe);
+  white-space: pre-wrap;
+}
+
 /* Audit log: whether the chain is intact, beside the button that checks it. */
 .chain-state .notice {
   flex: 1 1 320px;

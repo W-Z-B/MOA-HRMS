@@ -27,6 +27,7 @@ urlpatterns = [
     path("api/v1/letters/", include("letters.urls")),
     path("api/v1/signing/", include("signing.urls")),
     path("api/v1/approvals/", include("approvals.urls")),
+    path("api/v1/cases/", include("cases.urls")),
     path("api/v1/", include("core.api")),
     path("api/v1/integration/", include("integration.api")),
     # Release 2 scaffolds (read-only until their sprints)

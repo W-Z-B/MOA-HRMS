@@ -460,6 +460,43 @@ export interface Delegation {
   created_at: string;
 }
 
+export type CaseKind = "discipline" | "grievance";
+
+/** A discipline or grievance case (item 1.15): seen only by the HR Manager and those named on it. */
+export interface CaseRecord {
+  id: number;
+  reference: string;
+  kind: CaseKind;
+  kind_name: string;
+  employee: number;
+  employee_name: string;
+  employee_no: string;
+  summary: string;
+  opened_on: string;
+  state: "open" | "decided" | "appeal" | "closed";
+  state_name: string;
+  outcome: string;
+  outcome_name: string;
+  outcome_reasons: string;
+  decided_on: string | null;
+  decided_by_name: string | null;
+  lapses_on: string | null;
+  appeal_lodged_on: string | null;
+  appeal_grounds: string;
+  appeal_outcome: string;
+  appeal_outcome_name: string;
+  appeal_reasons: string;
+  appeal_decided_on: string | null;
+  appeal_decided_by_name: string | null;
+  closed_on: string | null;
+  officers: { id: number; user: number; name: string; part: string; named_by_name: string | null; named_at: string }[];
+  entries: { id: number; kind: string; kind_name: string; on: string; text: string; by: string | null; created_at: string }[];
+  fair_steps: { allegation: boolean; answered: boolean };
+}
+
+export const CASE_ROLES = ["hr_officer", "hr_manager", "principal", "supervisor"];
+export const CASE_OPEN_ROLES = ["hr_officer", "hr_manager"];
+
 export interface EmployeeDocument {
   id: number;
   doc_type: string;

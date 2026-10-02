@@ -22,6 +22,7 @@ describe("navigation by role", () => {
 
   it("shows staff who work in the system the whole menu, Admin to those who manage accounts, Letters to HR", () => {
     expect(navFor(person(["employee", "supervisor"]))).toEqual(NAV.filter((i) => !["Admin", "Letters"].includes(i.label)));
+    expect(navFor(person(["finance"])).map((i) => i.label)).not.toContain("Cases");
     expect(navFor(person(["hr_officer"]))).toEqual(NAV);
     expect(navFor(person(["auditor"])).map((i) => i.label)).toEqual(expect.arrayContaining(["Admin", "Letters"]));
     expect(navFor(person(["finance"])).map((i) => i.label)).not.toContain("Letters");

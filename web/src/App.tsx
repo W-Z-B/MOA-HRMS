@@ -11,6 +11,7 @@ import { DashboardScreen } from "./features/dashboard/DashboardScreen";
 import { LeaveScreen } from "./features/leave/LeaveScreen";
 import { LettersScreen } from "./features/letters/LettersScreen";
 import { ToDoScreen } from "./features/approvals/ToDoScreen";
+import { CasesScreen } from "./features/cases/CasesScreen";
 import { AccountScreen } from "./features/me/AccountScreen";
 import { MyContractScreen } from "./features/me/MyContractScreen";
 import { OrganisationScreen } from "./features/organisation/OrganisationScreen";
@@ -122,6 +123,8 @@ export default function App() {
     screen = <OrganisationScreen me={me} campusId={campusId} path={path} onNavigate={navigate} />;
   else if (path.startsWith("/letters")) screen = <LettersScreen me={me} path={path} onNavigate={navigate} />;
   else if (path === "/to-do") screen = <ToDoScreen me={me} onNavigate={navigate} />;
+  else if (path.startsWith("/cases"))
+    screen = <CasesScreen me={me} caseId={idIn("/cases")} onNavigate={navigate} />;
   else if (path.startsWith("/leave")) screen = leave;
   else if (path === "/me") screen = <MyContractScreen />;
   else if (path === "/my-record") screen = <MyRecordScreen />;
