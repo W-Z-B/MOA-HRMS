@@ -1,7 +1,7 @@
 # Threat model
 
-**Version 1.12, 1 October 2026.** Method: STRIDE over the data flows in section 3, against the code on
-branch `feature/phase-1-clearance`. Version 1.1 records the four gaps closed by pull request 16
+**Version 1.13, 1 October 2026.** Method: STRIDE over the data flows in section 3, against the code on
+branch `feature/phase-1-signing`. Version 1.1 records the four gaps closed by pull request 16
 (items 1.28, 1.35, 1.36, 1.37) and one weakness found while closing them (forged addresses). Version 1.2
 records two weaknesses found while building the staff record (pull request 17): writes across campuses,
 and a leave balance disclosed in a refusal. Version 1.3 records accounts and access (pull request 18:
@@ -17,6 +17,7 @@ request 24, item 1.10), which names people by the staff directory's rule. Versio
 supervisors and Finance could read, fixed there. Version 1.10 records career changes (pull request 26, item
 1.11). Version 1.11 records leaving and the figures owed (pull request 27, items 1.12 to 1.14). Version 1.12
 records the clearance, the exit interview and the register of items issued (pull request 28, items 1.13, 1.17).
+Version 1.13 records electronic signatures and their evidence (pull request 29, item 1.20).
 Reviewed at every release gate and whenever a data flow, role or integration is added. Gaps
 point to items in the Gold Standard Plan checklist.
 
@@ -89,6 +90,7 @@ with the other document files.
 
 | Threat | In place | Gap |
 |---|---|---|
+| Guessing a password through the signing form | Wrong passwords while signing count towards the same lockout as sign-in, by account and by address, and are audited (pull request 29) | |
 | Password guessing at sign-in | Lockout after 5 failures in 15 minutes per account; **one address that fails 20 times in 15 minutes, across any accounts, waits out the window** (pull request 16); 12-character minimum and common-password check; authenticator code for administrators, HR managers, Finance and superusers | HR officers can reveal identifiers and open doctor's notes without an authenticator code (item 1.34) |
 | The admin site as a side door | **Fixed in pull request 15:** the admin has no password form of its own and accepts only a web sign-in that has passed the authenticator step | |
 | Stolen session cookie | HttpOnly; Secure in production; SameSite Lax; HSTS for one year; **a session ends after 30 minutes idle or 8 hours in all; people see every device they are signed in on and can end any of them, or all but the current one** (pull request 16) | |
@@ -115,6 +117,7 @@ with the other document files.
 
 | Threat | In place | Gap |
 |---|---|---|
+| Denying having signed, or what was signed | **A signature is the person, signed in, ticking a stated sentence and confirming with their own password** (pull request 29). The evidence is written once and never changed: who, when, the address and device, the sentence as shown, the document's version and the SHA-256 fingerprint of its file; it is also in the chained audit log. Reading it later says whether the file still matches what was signed. The Electronic Communications and Transactions Act 2023 gives such records legal standing | GSA's legal adviser should confirm whether any document needs a stronger signature, such as one witnessed or certified |
 | Denying an approval or a change | Audit rows with actor, time, address, before and after; leave decisions stored with the decider's name; **opening, switching off and on, roles given and taken (with the roles before and after), links sent and authenticators reset are audited, most with a reason, and appear in the person's history** (pull request 18); **the auditor and administrators read every entry in words, filter it and export it; the export and each check of the chain are recorded too** (pull request 19) | Keep audit rows at least 7 years (item 1.32); synchronise the production clock (item 7.11) |
 | Forging the address recorded in the audit log | **Fixed in pull request 16:** the address came from the left-most `X-Forwarded-For` entry, which the client writes. Caddy now sets `X-Real-IP` to the address it saw (strict trusted-proxy parsing behind the hosting platform's edge) and only that is recorded | Sibling systems on the private network reach the API without Caddy; their calls are recorded against their service key |
 
