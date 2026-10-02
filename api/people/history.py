@@ -21,6 +21,10 @@ RECORDS = {
     "leave.leaverequest": "Leave request",
     "leave.entitlement": "Leave entitlement",
     "auth.user": "Account",
+    "iam.accessreview": "Access review",
+    "audit.auditlog": "Audit log",
+    "audit.auditcheck": "Audit check",
+    "integration.serviceclient": "Service key",
 }
 ACTIONS = {
     "create": "Added",
@@ -41,6 +45,22 @@ ACTIONS = {
     "authenticator_reset": "Authenticator removed",
     "role_granted": "Role given",
     "role_removed": "Role taken away",
+    # Account and system events: in the audit viewer, not in a person's file.
+    "login": "Signed in",
+    "logout": "Signed out",
+    "mfa_verified": "Authenticator code accepted",
+    "mfa_failed": "Authenticator code refused",
+    "session_ended": "Session ended",
+    "sessions_ended": "Other sessions ended",
+    "password_set": "Password chosen",
+    "password_changed": "Password changed",
+    "password_change_failed": "Password change refused",
+    "password_link_sent": "Password link sent",
+    "view_history": "History read",
+    "import": "Imported",
+    "access_review_signed": "Access review signed off",
+    "audit_exported": "Audit log exported",
+    "audit_checked": "Audit log checked",
 }
 # Account events belong to the audit log, not to the story of a person's file.
 NOT_FILE_HISTORY = (
@@ -92,6 +112,22 @@ FIELD_LABELS = {
 QUIET = {"id", "created_at", "updated_at", "created_by", "updated_by"}
 
 
+def actor_name(row) -> str:
+    """Who did it: a person, a linked system, someone not signed in (an emailed link), or the system."""
+    if row.actor is not None:
+        return row.actor.get_full_name() or row.actor.get_username()
+    if row.action.startswith("integration:"):
+        return "A linked system"
+    return "Someone not signed in" if row.source_ip else "System"
+
+
+def action_name(code: str) -> str:
+    """What was done, in words: integration:staff_list reads as "Integration: staff list"."""
+    if code in ACTIONS:
+        return ACTIONS[code]
+    return ": ".join(part.replace("_", " ") for part in code.split(":")).capitalize()
+
+
 def field_label(name: str) -> str:
     return FIELD_LABELS.get(name, name.replace("_", " ").capitalize())
 
@@ -123,13 +159,12 @@ def changes(before: dict | None, after: dict | None, entity: str = "") -> list[d
 
 
 def entry(row) -> dict:
-    actor = row.actor
     return {
         "id": row.id,
         "at": row.at,
-        "actor": (actor.get_full_name() or actor.get_username()) if actor else "System",
+        "actor": actor_name(row),
         "action": row.action,
-        "action_name": ACTIONS.get(row.action, row.action.replace("_", " ").capitalize()),
+        "action_name": action_name(row.action),
         "record": RECORDS.get(row.entity, row.entity),
         "record_id": row.entity_id,
         "changes": changes(row.before, row.after, row.entity),

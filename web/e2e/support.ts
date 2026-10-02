@@ -31,6 +31,8 @@ export const STAFF = {
   hr: { username: "natasha.khan", name: "Natasha Khan" },
   // Used only by the session journey, so that ending sessions never disturbs the leave journey.
   lecturer: { username: "shanta.ramdeen", name: "Shanta Ramdeen" },
+  // Not on the staff: reads the audit log and the access review, changes nothing.
+  auditor: { username: "audit.reviewer", name: "Audit Reviewer" },
 } as const;
 
 /**

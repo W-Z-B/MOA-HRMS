@@ -267,6 +267,7 @@ export const ACCOUNT_ROLES = ["administrator", "hr_manager", "hr_officer", "audi
 export const ACCOUNT_WRITE_ROLES = ["administrator", "hr_manager", "hr_officer"];
 export const REVIEW_ROLES = ["administrator", "hr_manager", "auditor"];
 export const REVIEW_SIGN_ROLES = ["administrator", "hr_manager"];
+export const AUDIT_ROLES = ["administrator", "auditor"];
 export const hasAnyRole = (me: Me, roles: readonly string[]) => roles.some((r) => me.roles.includes(r));
 /** Staff with work to do in the system beyond their own leave: they see the full navigation. */
 export const isOfficeUser = (me: Me) => me.roles.some((r) => r !== "employee");
@@ -434,4 +435,48 @@ export interface AccessReview {
   reviewed_at: string;
   accounts: number;
   notes: string;
+}
+
+/** One entry of the audit log, from /audit/. */
+export interface AuditEntry {
+  id: number;
+  at: string;
+  actor: string;
+  actor_username: string | null;
+  action: string;
+  action_name: string;
+  entity: string;
+  record: string;
+  entity_id: number | null;
+  subject: number | null;
+  employee_no: string | null;
+  reason: string;
+  source_ip: string | null;
+  changes: FieldChange[];
+  before: unknown;
+  after: unknown;
+  chain: string;
+}
+
+/** One walk of the audit chain. */
+export interface AuditCheck {
+  id: number;
+  checked_at: string;
+  checked_by: string;
+  rows: number;
+  intact: boolean;
+  last_id: number | null;
+  first_broken_id: number | null;
+  detail: string;
+}
+
+export interface AuditChainState {
+  entries: number;
+  newest: number | null;
+  latest_check: AuditCheck | null;
+}
+
+export interface AuditChoices {
+  actions: { code: string; name: string }[];
+  records: { code: string; name: string }[];
 }

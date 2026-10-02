@@ -89,7 +89,9 @@ export function AccessReviewTab({ me, campusId, onNavigate }: Props) {
           {last
             ? `Last signed off on ${dmyTime(last.reviewed_at)} by ${last.reviewed_by_name}, with ${last.accounts} accounts. `
             : "The access review has not been signed off yet. "}
-          {due ? `${overdue ? "It was due by" : "Next due by"} ${dateOnly(due)}.` : "Read the list below and sign it off."}
+          {due ? `${overdue ? "It was due by" : "Next due by"} ${dateOnly(due)}.` : maySign
+              ? "Read the list below and sign it off."
+              : "The HR Manager or an administrator signs it off."}
         </p>
       )}
       {error && (

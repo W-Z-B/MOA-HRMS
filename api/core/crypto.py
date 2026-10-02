@@ -52,3 +52,16 @@ def fingerprint(value: str) -> str:
     raw = getattr(settings, "FIELD_ENCRYPTION_KEY", "") or ""
     key = hashlib.sha256(b"audit-fingerprint:" + raw.encode("utf-8")).digest()
     return hmac.new(key, value.encode("utf-8"), hashlib.sha256).hexdigest()[:10]
+
+
+def chain_key() -> bytes:
+    """The key of the audit log's chained fingerprints (audit.chain), derived from FIELD_ENCRYPTION_KEY.
+
+    It is never stored in the database, so changing a row there cannot be hidden by recomputing the chain.
+    Rotating FIELD_ENCRYPTION_KEY starts a new key: verify the chain first, and keep the old key with the
+    backups so that the earlier entries can still be checked.
+    """
+    raw = getattr(settings, "FIELD_ENCRYPTION_KEY", "") or ""
+    if not raw:
+        raise ImproperlyConfigured("FIELD_ENCRYPTION_KEY is not set; audit entries cannot be sealed")
+    return hashlib.sha256(b"audit-chain:" + raw.encode("utf-8")).digest()

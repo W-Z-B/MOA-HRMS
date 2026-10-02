@@ -128,7 +128,10 @@ def test_demonstration_accounts_need_a_password_from_the_owner(seeded, monkeypat
     monkeypatch.setenv("DEMO_USER_PASSWORD", "Correct-Horse-Battery-9")
     call_command("seed_demo", fictional=True, verbosity=0)
     users = get_user_model().objects
-    assert users.count() == 9 and users.get(username="asha.persaud").check_password("Correct-Horse-Battery-9")
+    assert users.count() == 10 and users.get(username="asha.persaud").check_password(
+        "Correct-Horse-Battery-9"
+    )
+    assert role_codes(users.get(username="audit.reviewer")) == {"auditor"}  # read-only, not on the staff
     # The new starters are left for HR to invite.
     assert not Employee.objects.filter(employee_no__in=["E0010", "E0011"], user__isnull=False).exists()
 
@@ -150,4 +153,4 @@ def test_demonstration_accounts_need_a_password_from_the_owner(seeded, monkeypat
     staff["E0001"].user.save()
     monkeypatch.setenv("DEMO_USER_PASSWORD", "Another-Password-Entirely-2")
     call_command("seed_demo", fictional=True, verbosity=0)
-    assert users.count() == 9 and users.get(username="asha.persaud").check_password("Changed-By-The-Owner-1")
+    assert users.count() == 10 and users.get(username="asha.persaud").check_password("Changed-By-The-Owner-1")

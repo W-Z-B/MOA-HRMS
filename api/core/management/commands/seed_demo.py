@@ -107,6 +107,8 @@ STAFF = [
 ]
 # Joined this week: HR has yet to open their accounts, so there is someone to invite (item 1.29).
 NEW_STARTERS = {"E0010", "E0011"}
+# Accounts for people who are not on the staff: username, first name, last name, role (on every campus).
+OUTSIDE_ACCOUNTS = [("audit.reviewer", "Audit", "Reviewer", "auditor")]
 # A contract that ends soon and a probation that is still running, so the daily alerts have work to do.
 ENDS = {"E0009": date(2026, 11, 16)}
 PROBATION_ENDS = {"E0005": date(2026, 12, 31)}
@@ -351,4 +353,16 @@ class Command(BaseCommand):
                 grants += [("hr_officer", campus) for campus in campuses.values()]
             for code, campus in grants:
                 RoleScope.objects.get_or_create(user=user, role=roles[code], campus=campus, org_unit=None)
+        for username, first, last, code in OUTSIDE_ACCOUNTS:
+            user, made = users.objects.get_or_create(
+                username=username,
+                defaults={"first_name": first, "last_name": last, "email": f"{username}@{EMAIL_DOMAIN}"},
+            )
+            if made:
+                user.set_password(password)
+                user.save(update_fields=["password"])
+                created += 1
+            RoleScope.objects.get_or_create(
+                user=user, role=Role.objects.get(code=code), campus=None, org_unit=None
+            )
         return created
