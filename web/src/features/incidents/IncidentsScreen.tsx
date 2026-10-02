@@ -40,9 +40,20 @@ function MyAction({ item, onDone }: { item: MySafetyAction; onDone: () => void }
 }
 
 /** Accidents and incidents (item 1.16): anyone reports; HR keeps the register and sends the notices. */
-export function IncidentsScreen({ me, incidentId, onNavigate }: { me: Me; incidentId: number | null; onNavigate: (to: string) => void }) {
+export function IncidentsScreen({
+  me,
+  incidentId,
+  reportNow = false,
+  onNavigate,
+}: {
+  me: Me;
+  incidentId: number | null;
+  /** Opened from search's "Report an incident": the form is open from the start. */
+  reportNow?: boolean;
+  onNavigate: (to: string) => void;
+}) {
   const reader = hasAnyRole(me, INCIDENT_READ_ROLES);
-  const [reporting, setReporting] = useState(false);
+  const [reporting, setReporting] = useState(reportNow);
   const [mine, setMine] = useState<MyIncident[]>([]);
   const [actions, setActions] = useState<MySafetyAction[]>([]);
   const [register, setRegister] = useState<IncidentSummary[] | null>(null);

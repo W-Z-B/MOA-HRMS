@@ -26,13 +26,23 @@ export default defineConfig({
     unstubGlobals: true,
     coverage: {
       provider: "v8",
-      // The client-side rules: API access, formatting, the offline queue, routing and the leave forms.
-      // Whole screens are covered by the Playwright journeys instead.
+      // The client-side rules: API access, formatting, the offline queue, routing, the frame and search
+      // (item 2.26), Home and the leave forms. Whole screens are covered by the Playwright journeys instead.
       include: [
         "src/api/**",
         "src/app/format.ts",
         "src/app/offlineQueue.ts",
         "src/app/router.ts",
+        "src/app/people.ts",
+        "src/app/frame.ts",
+        "src/app/Shell.tsx",
+        "src/app/SearchPalette.tsx",
+        "src/app/AccountMenu.tsx",
+        "src/app/CampusSwitch.tsx",
+        "src/app/Breadcrumbs.tsx",
+        "src/app/Popover.tsx",
+        "src/app/NotificationsBell.tsx",
+        "src/features/home/**",
         "src/features/auth/**",
         "src/features/admin/**",
         "src/features/privacy/**",

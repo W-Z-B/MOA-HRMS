@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ApiError, get } from "../../api/client";
 import { HR_ROLES, hasAnyRole, type Employee, type Me, type Paginated } from "../../api/types";
+import { useCrumb } from "../../app/frame";
 import { EmployeeFile } from "./EmployeeFile";
 import { EmployeeForm } from "./EmployeeForm";
 
@@ -8,6 +9,8 @@ interface Props {
   me: Me;
   campusId: number | null;
   initialId: number | null;
+  /** Opened from search's "New employee": the form for a new file is open from the start. */
+  creating?: boolean;
   onNavigate: (to: string) => void;
 }
 
@@ -21,16 +24,18 @@ const STATUS_LABEL: Record<Employee["status"], string> = {
 type Panel = { mode: "view" } | { mode: "create" } | { mode: "edit" };
 
 /** Wireframe 2: searchable directory; the panel shows the selected file, or a create or edit form. */
-export function DirectoryScreen({ me, campusId, initialId, onNavigate }: Props) {
+export function DirectoryScreen({ me, campusId, initialId, creating = false, onNavigate }: Props) {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
   const [rows, setRows] = useState<Employee[]>([]);
   const [count, setCount] = useState(0);
   const [selected, setSelected] = useState<Employee | null>(null);
-  const [panel, setPanel] = useState<Panel>({ mode: "view" });
+  const isHr = hasAnyRole(me, HR_ROLES);
+  const [panel, setPanel] = useState<Panel>({ mode: creating && isHr ? "create" : "view" });
+  // Home / People / Asha Persaud, while a file is open.
+  useCrumb(initialId && selected?.id === initialId ? selected.full_name : creating ? "New employee" : null);
   const [error, setError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
-  const isHr = hasAnyRole(me, HR_ROLES);
 
   useEffect(() => {
     const params = new URLSearchParams();

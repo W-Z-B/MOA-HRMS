@@ -61,7 +61,7 @@ test("HR writes a job letter, the person reads it under My contract, and a bank 
   await signOut(page);
 
   // A bank shown the letter checks it with no account, by the reference and code at its foot (item 1.47).
-  await page.getByRole("button", { name: "Shown a letter from the School? Check it is genuine" }).click();
+  await page.getByRole("button", { name: "Check that it is genuine" }).click();
   const check = page.getByRole("form", { name: "Check a letter" });
   await check.getByLabel("Reference").fill(reference);
   await check.getByLabel("Code").fill("ABCD-EFGH-JKMN");

@@ -15,6 +15,7 @@ the decisions in the Gold Standard Plan.
 | [0007](0007-ai-and-automated-decisions.md) | AI and automated decisions | D4 | Proposed |
 | [0008](0008-equal-opportunity-and-monitoring.md) | Equal opportunity data and monitoring software | D5 | Proposed |
 | [0009](0009-quality-tooling.md) | Test tooling, quality gates and locked dependencies | D8 | Proposed; accepted when pull request 15 merges |
+| [0010](0010-navigation-by-role.md) | Navigation by role: a Home for each role, search for everything, and To do | | Proposed; accepted when pull request 37 merges |
 
 To accept a proposed record, change its status line to "Accepted", with the date and who decided, in
 a pull request.

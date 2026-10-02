@@ -35,6 +35,8 @@ export const STAFF = {
   auditor: { username: "audit.reviewer", name: "Audit Reviewer" },
   // Not on the staff: decides objections (item 1.46).
   dpo: { username: "privacy.officer", name: "Privacy Officer" },
+  // Not on the staff: the Principal's Home shows the establishment (item 2.30).
+  principal: { username: "principal.office", name: "Office of the Principal" },
 } as const;
 
 /** Staff used only by the privacy journey, one for each browser project, each signing in first there. */
@@ -126,9 +128,9 @@ export const privacyPerson = (testInfo: TestInfo) =>
  * Returns whether it was shown.
  */
 export async function passNotice(page: Page): Promise<boolean> {
-  // The app's main navigation, not a "Sign out" button: the notice screen has one of those too.
+  // The crest's link to Home, in the frame of every page inside: the notice screen has no frame.
   const read = page.getByRole("button", { name: "I have read this notice" });
-  const inside = page.getByRole("navigation", { name: "Main" });
+  const inside = page.getByRole("link", { name: "GSA HRMS Home" });
   await expect(read.or(inside).first()).toBeVisible();
   const shown = await read.isVisible();
   if (shown) await read.click();
@@ -139,19 +141,35 @@ export async function passNotice(page: Page): Promise<boolean> {
 export async function signIn(page: Page, username: string) {
   await page.goto("/");
   await page.getByLabel("Username").fill(username);
-  await page.getByLabel("Password").fill(password());
+  await page.getByLabel("Password", { exact: true }).fill(password());
   await page.getByRole("button", { name: "Sign in" }).click();
   await passNotice(page);
 }
 
+/** Sign out from the person's menu, behind their initials in the header. */
 export async function signOut(page: Page) {
-  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await page.getByRole("button", { name: /^Signed in as / }).click();
+  await page.getByRole("dialog", { name: "Your account" }).getByRole("button", { name: "Sign out", exact: true }).click();
   await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
 }
 
-/** Open a main section from the side navigation, or from the bottom bar on a phone. */
+/** Open search: the bar in the header, or the Search tab at the bottom of a phone, whichever the page has. */
+export async function openSearch(page: Page) {
+  const tab = page.getByRole("navigation", { name: "Main" }).getByRole("button", { name: "Search" });
+  const bar = page.getByRole("banner").getByRole("button", { name: "Search people, pages and actions" });
+  await expect(tab.or(bar)).toBeVisible();
+  await tab.or(bar).click();
+  await expect(page.getByRole("dialog", { name: "Search" })).toBeVisible();
+}
+
+/** Open a page as people do, with no menu to click (item 2.30): search for it by name and choose it. */
 export async function openSection(page: Page, label: string) {
-  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: label, exact: true }).click();
+  await openSearch(page);
+  const dialog = page.getByRole("dialog", { name: "Search" });
+  await dialog.getByRole("combobox").fill(label);
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  await dialog.getByRole("group", { name: "Pages" }).getByRole("option", { name: new RegExp(`^${escaped}(,|$)`) }).click();
+  await expect(dialog).toBeHidden();
 }
 
 /**

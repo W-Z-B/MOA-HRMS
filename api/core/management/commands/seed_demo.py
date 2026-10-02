@@ -114,6 +114,8 @@ NEW_STARTERS = {"E0010", "E0011"}
 OUTSIDE_ACCOUNTS = [
     ("audit.reviewer", "Audit", "Reviewer", "auditor"),
     ("privacy.officer", "Privacy", "Officer", "data_protection_officer"),
+    # The Principal's own Home (item 2.30): the establishment and what ends soon, on every campus.
+    ("principal.office", "Office of the", "Principal", "principal"),
 ]
 # A contract that ends soon and a probation that is still running, so the daily alerts have work to do.
 ENDS = {"E0009": date(2026, 11, 16)}

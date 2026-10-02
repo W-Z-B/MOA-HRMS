@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import type { Delegation, Employee, Me, WaitingItem } from "../../api/types";
+import type { Delegation, Employee, LeaveRequest, Me, WaitingItem } from "../../api/types";
 import { fakeServer } from "../../test/fetch";
 import { ToDoScreen } from "./ToDoScreen";
 
@@ -113,5 +113,66 @@ describe("to do", () => {
     fakeServer({ "GET /approvals/waiting/": { status: 500, body: { code: "error", detail: "Server error." } } });
     render(<ToDoScreen me={person(["employee"])} onNavigate={vi.fn()} />);
     expect(await screen.findByRole("alert")).toHaveTextContent("Server error.");
+  });
+
+  it("decides leave in place, lets HR stop leave still with a manager, and keeps what was decided today", async () => {
+    const asha: LeaveRequest = {
+      id: 12,
+      employee: 1,
+      employee_name: "Asha Persaud",
+      is_mine: false,
+      leave_type: 1,
+      leave_type_code: "ANN",
+      leave_type_name: "Annual leave",
+      from_date: "2026-10-05",
+      to_date: "2026-10-06",
+      days: "2.00",
+      days_beyond: "0.00",
+      reason: "",
+      state: "submitted",
+      evidence_name: "",
+      evidence_required: false,
+      has_evidence: false,
+      manager_name: "Michael Thomas",
+      decision_comment: "",
+      decisions: [],
+      allowed_actions: ["approve", "reject"],
+      balance_after: "8.00",
+      receipt: null,
+    };
+    const roxanne = { ...asha, id: 14, employee: 5, employee_name: "Roxanne Williams", allowed_actions: ["reject"] };
+    const server = fakeServer({
+      "GET /approvals/waiting/": { body: [leave, signature] },
+      "GET /approvals/delegations/": page([]),
+      "GET /leave/requests/?state=submitted": page([asha, roxanne]),
+      "GET /leave/requests/?state=supervisor_approved": page([]),
+      "POST /leave/requests/12/transition/": { body: { ...asha, state: "supervisor_approved" } },
+      "POST /leave/requests/14/transition/": { body: { ...roxanne, state: "rejected" } },
+    });
+    render(<ToDoScreen me={person(["employee", "supervisor", "hr_officer"])} onNavigate={vi.fn()} />);
+    expect(await screen.findByText("2 decisions wait for you, oldest first.")).toBeInTheDocument();
+    const list = screen.getByRole("list", { name: "Waiting for you" });
+    const row = (await within(list).findByRole("button", { name: "Approve annual leave for Asha Persaud" })).closest("li")!;
+    expect(row).toHaveTextContent("Leave to decide");
+    expect(row).toHaveTextContent("Waiting since 01/10/2026, 4 working days · standing in for Michael Thomas");
+    const user = userEvent.setup();
+    await user.click(within(row).getByRole("button", { name: "Approve annual leave for Asha Persaud" }));
+    expect(await within(row).findByRole("status")).toHaveTextContent("Approved. It is now with Human Resources.");
+
+    const elsewhere = screen.getByRole("region", { name: "Still with a manager" });
+    await user.click(within(elsewhere).getByRole("button", { name: "Stop annual leave for Roxanne Williams" }));
+    await user.type(within(elsewhere).getByLabelText("Reason for stopping it. Roxanne will see it."), "The farm needs her");
+    await user.click(within(elsewhere).getByRole("button", { name: "Reject request" }));
+    expect(await within(elsewhere).findByRole("status")).toHaveTextContent("Rejected. Roxanne has been told why.");
+    expect(server.calls.filter((c) => c.method === "POST").map((c) => c.body)).toEqual([
+      { action: "approve", comment: "" },
+      { action: "reject", comment: "The farm needs her" },
+    ]);
+
+    const today = screen.getByRole("region", { name: "Decided today" });
+    expect(within(today).getAllByRole("listitem").map((li) => li.textContent)).toEqual([
+      "Roxanne Williams, annual leaveRejected. Roxanne has been told why.",
+      "Asha Persaud, annual leaveApproved. It is now with Human Resources.",
+    ]);
   });
 });

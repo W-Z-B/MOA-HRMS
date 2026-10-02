@@ -3,6 +3,7 @@
 Leave already approved keeps the days it was approved with; a changed holiday counts from the next request.
 """
 
+from django.urls import path
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -12,6 +13,7 @@ from rest_framework.response import Response
 from rest_framework.routers import SimpleRouter
 
 from core import holidays
+from core.home import home
 from core.models import PublicHoliday
 from core.serializers import TimeStampedSerializer
 from core.views import AuditedModelViewSet
@@ -98,4 +100,4 @@ class HolidayViewSet(AuditedModelViewSet):
 
 router = SimpleRouter()
 router.register("holidays", HolidayViewSet, basename="holiday")
-urlpatterns = router.urls
+urlpatterns = [path("home/", home, name="home"), *router.urls]

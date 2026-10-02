@@ -245,6 +245,10 @@ EMAIL_CHANGE_HOURS = int(env("EMAIL_CHANGE_HOURS", "48"))
 DECISION_DAYS = int(env("DECISION_DAYS", "3"))
 ESCALATE_AFTER_DAYS = int(env("ESCALATE_AFTER_DAYS", "2"))
 
+# Home (item 2.30) lists contracts and probation periods ending this many days ahead: the first contract alert
+# goes out 90 days before the end (people.tasks), so Home shows everything already alerted on.
+HOME_ENDING_DAYS = int(env("HOME_ENDING_DAYS", "90"))
+
 # Accidents and incidents (item 1.16): whether GSA has a safety and health committee, representative or trade
 # union to be told alongside the Occupational Safety and Health Authority. The Act says "if any": set "no" if
 # there is none.
