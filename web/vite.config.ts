@@ -53,6 +53,7 @@ export default defineConfig({
         "src/features/people/LeavingSection.tsx",
         "src/features/people/ClearancePanel.tsx",
         "src/features/people/ItemsTab.tsx",
+        "src/features/people/ScanningScreen.tsx",
         "src/features/people/ContactsTab.tsx",
         "src/features/people/BankTab.tsx",
         "src/features/people/HistoryTab.tsx",

@@ -1,11 +1,13 @@
 # Data protection impact assessment
 
-**Draft 0.6, 2 October 2026,** prepared by the development team for GSA's data protection officer.
+**Draft 0.7, 2 October 2026,** prepared by the development team for GSA's data protection officer.
 Draft 0.2 records the privacy rights built in pull request 20: the notice and its acknowledgement, a
 person's own record, and correction requests. Draft 0.3 records the retention schedule, reviewed disposal
 and the breach register built in pull request 21. Draft 0.4 adds the accident and incident register (pull
 request 32), which holds injuries: health data. Draft 0.5 adds the public page that checks a letter (pull
-request 33): what it shows, and the log of checks. Draft 0.6 adds changes of sign-in email (pull request 34).
+request 33): what it shows, and the log of checks. Draft 0.6 adds changes of sign-in email (pull request 34). Draft 0.7 adds scanned papers
+filed in bulk (pull request 35): they become documents in each person's file, under the same rules as any
+document, and each batch keeps a list of where its files went.
 GSA is the data controller and owns this assessment; the development team keeps it current as the
 system changes. It is signed in section 9 before any real staff record is loaded (checklist item 7.03).
 

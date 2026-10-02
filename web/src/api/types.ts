@@ -990,6 +990,34 @@ export interface Account {
   pending_email: string | null;
 }
 
+/** One scanned paper of a batch: filed into someone's record, or not, and why (item 1.21). */
+export interface ScanItem {
+  id: number;
+  name: string;
+  employee: number | null;
+  employee_name: string | null;
+  employee_no: string | null;
+  document: number | null;
+  document_title: string | null;
+  filed: boolean;
+  refused: string;
+  at: string;
+}
+
+/** A pile of scanned papers filed at one sitting; `items` only when one batch is read. */
+export interface ScanBatch {
+  id: number;
+  doc_type: string;
+  doc_type_name: string;
+  classification: Classification;
+  note: string;
+  created_by_name: string | null;
+  created_at: string;
+  filed: number;
+  not_filed: number;
+  items?: ScanItem[];
+}
+
 /** Where links to choose a password go, and any change to it waiting for its confirmation (item 1.42). */
 export interface SignInEmail {
   email: string;

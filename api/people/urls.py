@@ -1,12 +1,13 @@
 from rest_framework.routers import DefaultRouter
 
-from people import career_views, item_views, leaving_views, views
+from people import career_views, item_views, leaving_views, scan_views, views
 
 router = DefaultRouter()
 router.register("employees", views.EmployeeViewSet, basename="employee")
 router.register("assignments", views.AssignmentViewSet, basename="assignment")
 router.register("contracts", views.ContractViewSet, basename="contract")
 router.register("documents", views.DocumentViewSet, basename="document")
+router.register("scan-batches", scan_views.ScanBatchViewSet, basename="scan-batch")
 router.register("qualifications", views.QualificationViewSet, basename="qualification")
 router.register("previous-employment", views.PreviousEmploymentViewSet, basename="previous-employment")
 router.register("dependants", views.DependantViewSet, basename="dependant")
