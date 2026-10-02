@@ -16,8 +16,9 @@ from rest_framework.response import Response
 
 from audit.services import record
 from core.serializers import ErrorSerializer, InScope
-from iam import accounts
-from iam.models import AccessReview, Role, RoleScope, TotpDevice
+from iam import accounts, email_change
+from iam.email_views import CONFLICTS as EMAIL_CONFLICTS
+from iam.models import AccessReview, EmailChange, Role, RoleScope, TotpDevice
 from iam.permissions import RolePermission
 from iam.services import campus_limit, has_role, scope_queryset
 from org.models import Campus
@@ -73,7 +74,12 @@ class AccountSerializer(serializers.ModelSerializer):
     roles = GrantSerializer(source="role_scopes", many=True, read_only=True)
     sessions = serializers.IntegerField(source="session_count", read_only=True)
     emailed = serializers.BooleanField(
-        read_only=True, required=False, help_text="On opening an account: whether the invitation was sent"
+        read_only=True,
+        required=False,
+        help_text="On opening an account, or changing its email: whether the email was sent",
+    )
+    pending_email = serializers.SerializerMethodField(
+        help_text="A new sign-in email address waiting for its confirmation"
     )
 
     class Meta:
@@ -92,6 +98,7 @@ class AccountSerializer(serializers.ModelSerializer):
             "roles",
             "sessions",
             "emailed",
+            "pending_email",
         )
         read_only_fields = fields
 
@@ -106,6 +113,10 @@ class AccountSerializer(serializers.ModelSerializer):
     def get_authenticator(self, user) -> bool:
         device = getattr(user, "totp_device", None)
         return bool(device and device.is_confirmed)
+
+    def get_pending_email(self, user) -> str | None:
+        waiting = [c for c in getattr(user, "open_email_changes", []) if c.pending]
+        return waiting[0].new_email if waiting else None
 
     @extend_schema_field(AccountEmployeeSerializer(allow_null=True))
     def get_employee(self, user):
@@ -130,6 +141,15 @@ class InviteSerializer(serializers.Serializer):
                 }
             )
         return attrs
+
+
+class AccountEmailSerializer(serializers.Serializer):
+    email = serializers.EmailField(help_text="The new sign-in email address")
+    reason = serializers.CharField(
+        max_length=300,
+        help_text="Why; kept in the audit log",
+        error_messages={"required": "Say why.", "blank": "Say why."},
+    )
 
 
 class ReasonSerializer(serializers.Serializer):
@@ -202,7 +222,14 @@ class AccountViewSet(
         qs = (
             get_user_model()
             .objects.select_related("employee__campus", "totp_device")
-            .prefetch_related(Prefetch("role_scopes", queryset=grants.order_by("role_id", "campus_id")))
+            .prefetch_related(
+                Prefetch("role_scopes", queryset=grants.order_by("role_id", "campus_id")),
+                Prefetch(
+                    "email_changes",
+                    queryset=EmailChange.objects.filter(confirmed_at=None, cancelled_at=None),
+                    to_attr="open_email_changes",
+                ),
+            )
             .annotate(session_count=Count("user_sessions", distinct=True))
         )
         qs = scope_queryset(self.request.user, qs, campus_field="employee__campus")
@@ -301,6 +328,30 @@ class AccountViewSet(
         account = self.get_queryset().get(pk=user.pk)
         account.emailed = emailed
         return Response(self.get_serializer(account).data, status=status.HTTP_201_CREATED)
+
+    @extend_schema(
+        request=AccountEmailSerializer,
+        responses={200: AccountSerializer, 400: ErrorSerializer, 403: ErrorSerializer, 409: ErrorSerializer},
+        summary="Change someone's sign-in email address: a link goes to the new one to confirm it",
+    )
+    @action(detail=True, methods=["post"])
+    def email(self, request, pk=None):
+        """The old address is told, and nothing changes until the link sent to the new one is followed."""
+        user = self._changeable(request)
+        if not user.is_active:
+            return _refused("switched_off", "Switch the account on first.")
+        data = AccountEmailSerializer(data=request.data)
+        data.is_valid(raise_exception=True)
+        try:
+            _, sent = email_change.ask(
+                request, user, data.validated_data["email"], reason=data.validated_data["reason"]
+            )
+        except email_change.Refused as exc:
+            code = status.HTTP_409_CONFLICT if exc.code in EMAIL_CONFLICTS else status.HTTP_400_BAD_REQUEST
+            return _refused(exc.code, exc.detail, code)
+        account = self.get_queryset().get(pk=user.pk)
+        account.emailed = sent
+        return Response(self.get_serializer(account).data)
 
     @extend_schema(
         request=None,
