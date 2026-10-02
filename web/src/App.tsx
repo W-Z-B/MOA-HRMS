@@ -4,6 +4,7 @@ import { isOfficeUser, type Me } from "./api/types";
 import { Shell } from "./app/Shell";
 import { useHashRoute } from "./app/router";
 import { AdminScreen } from "./features/admin/AdminScreen";
+import { ConfirmEmailScreen } from "./features/auth/ConfirmEmailScreen";
 import { ForgotPasswordScreen } from "./features/auth/ForgotPasswordScreen";
 import { CheckLetterScreen } from "./features/letters/CheckLetterScreen";
 import { LoginScreen } from "./features/auth/LoginScreen";
@@ -94,6 +95,9 @@ export default function App() {
         onAskAgain={() => navigate("/forgot-password")}
       />
     );
+  // The link sent to a new sign-in email address works on any browser, signed in or not (item 1.42).
+  const confirmEmail = path.match(/^\/confirm-email\/([^/]+)$/);
+  if (confirmEmail) return <ConfirmEmailScreen token={confirmEmail[1]} onDone={() => navigate("/")} />;
   // Anyone shown a letter checks it here, signed in or not (item 1.47).
   if (path === "/check-letter") return <CheckLetterScreen onBack={() => navigate("/")} />;
   if (me === undefined) return <p className="loading">Loading GSA HRMS…</p>;

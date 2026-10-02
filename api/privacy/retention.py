@@ -46,7 +46,7 @@ RULES = [
     ),
     (
         "sign-in-records",
-        "Sign-in attempts and requests for a password link",
+        "Sign-in attempts, requests for a password link, and changes of sign-in email",
         12,
         "the attempt or the request",
         True,
@@ -166,7 +166,7 @@ def dispose(request, item, rule) -> None:
 
 def purge(today: date | None = None) -> dict[str, int]:
     """Every night: delete the logs that the automatic rules say are old enough. No review needed."""
-    from iam.models import LoginAttempt, PasswordResetRequest
+    from iam.models import EmailChange, LoginAttempt, PasswordResetRequest
     from letters.models import LetterCheck
     from notifications.models import Notification
     from privacy.models import RetentionRule
@@ -179,6 +179,7 @@ def purge(today: date | None = None) -> dict[str, int]:
             if rule.code == "sign-in-records":
                 count = LoginAttempt.objects.filter(at__lt=cut).delete()[0]
                 count += PasswordResetRequest.objects.filter(at__lt=cut).delete()[0]
+                count += EmailChange.objects.filter(asked_at__lt=cut).delete()[0]
             elif rule.code == "letter-checks":
                 count = LetterCheck.objects.filter(at__lt=cut).delete()[0]
             elif rule.code == "read-notifications":

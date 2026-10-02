@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
-import type { SignedInSession } from "../../api/types";
+import type { SignedInSession, SignInEmail } from "../../api/types";
 import { fakeServer } from "../../test/fetch";
 import { AccountScreen } from "./AccountScreen";
 
@@ -15,10 +15,13 @@ const here: SignedInSession = {
 };
 const laptop: SignedInSession = { ...here, id: 2, device: "Edge on Windows", ip: "190.80.9.9", current: false };
 const tablet: SignedInSession = { ...here, id: 3, device: "Safari on iPhone or iPad", ip: null, current: false };
+const address: SignInEmail = { email: "asha@gsa.example", pending: null };
+const signInEmail = { "GET /auth/email/": { body: address } };
 
 describe("my account", () => {
   it("lists where I am signed in and marks this device", async () => {
-    fakeServer({ "GET /auth/sessions/": { body: [here, laptop] } });
+    fakeServer({
+      ...signInEmail, "GET /auth/sessions/": { body: [here, laptop] } });
     render(<AccountScreen />);
     const items = await screen.findAllByRole("listitem");
     expect(items).toHaveLength(2);
@@ -30,6 +33,7 @@ describe("my account", () => {
 
   it("signs out one other device", async () => {
     const server = fakeServer({
+      ...signInEmail,
       "GET /auth/sessions/": [{ body: [here, laptop] }, { body: [here] }],
       "DELETE /auth/sessions/2/": { status: 204 },
     });
@@ -42,6 +46,7 @@ describe("my account", () => {
 
   it("signs out everywhere else at once", async () => {
     fakeServer({
+      ...signInEmail,
       "GET /auth/sessions/": [{ body: [here, laptop, tablet] }, { body: [here] }],
       "POST /auth/sessions/end-others/": { body: { ended: 2 } },
     });
@@ -53,6 +58,7 @@ describe("my account", () => {
 
   it("changes my password and says how many other devices were signed out", async () => {
     const server = fakeServer({
+      ...signInEmail,
       "GET /auth/sessions/": [{ body: [here, laptop] }, { body: [here] }],
       "POST /auth/password/change/": { body: { ended: 1 } },
     });
@@ -72,6 +78,7 @@ describe("my account", () => {
 
   it("refuses two new passwords that differ, and shows the server's reasons", async () => {
     const server = fakeServer({
+      ...signInEmail,
       "GET /auth/sessions/": { body: [here] },
       "POST /auth/password/change/": [
         { status: 400, body: { code: "wrong_password", detail: "Your current password is not right." } },
@@ -96,8 +103,45 @@ describe("my account", () => {
   });
 
   it("says so when the list cannot be loaded", async () => {
-    fakeServer({ "GET /auth/sessions/": { status: 500, body: { code: "error", detail: "Server error." } } });
+    fakeServer({
+      ...signInEmail, "GET /auth/sessions/": { status: 500, body: { code: "error", detail: "Server error." } } });
     render(<AccountScreen />);
     expect(await screen.findByRole("alert")).toHaveTextContent("Server error.");
+  });
+
+  it("changes my sign-in email only once the new address confirms it", async () => {
+    const waiting = { ...address, pending: { new_email: "asha.new@gsa.example", expires_at: "2026-10-04T10:00:00-04:00" } };
+    const server = fakeServer({
+      "GET /auth/sessions/": { body: [here] },
+      "GET /auth/email/": [{ body: address }, { body: waiting }],
+      "POST /auth/email/change/": [
+        { status: 400, body: { code: "wrong_password", detail: "Your password is not right." } },
+        { body: { detail: "A link to confirm it was sent to asha.new@gsa.example. The address changes only when the link is followed.", emailed: true, pending: waiting.pending } },
+      ],
+    });
+    render(<AccountScreen />);
+    const form = screen.getByRole("form", { name: "Change your sign-in email" });
+    expect(await within(form).findByText("asha@gsa.example")).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.type(within(form).getByLabelText("New email address"), "asha.new@gsa.example");
+    await user.type(within(form).getByLabelText("Your password"), "not-it");
+    await user.click(within(form).getByRole("button", { name: "Send the link" }));
+    expect(await within(form).findByRole("alert")).toHaveTextContent("Your password is not right.");
+    await user.clear(within(form).getByLabelText("Your password"));
+    await user.type(within(form).getByLabelText("Your password"), "Guava-Season-Starts-2026");
+    await user.click(within(form).getByRole("button", { name: "Send the link" }));
+    expect(await within(form).findByRole("status")).toHaveTextContent("A link to confirm it was sent to asha.new@gsa.example.");
+    expect(await within(form).findByText(/Waiting for you to follow the link sent to asha.new@gsa.example/)).toBeInTheDocument();
+    expect(server.calls.filter((c) => c.path === "/auth/email/change/").at(-1)?.body).toEqual({
+      email: "asha.new@gsa.example",
+      password: "Guava-Season-Starts-2026",
+    });
+    expect(within(form).getByLabelText("New email address")).toHaveValue("");
+  });
+
+  it("says when there is no address yet, or it cannot be loaded", async () => {
+    fakeServer({ "GET /auth/sessions/": { body: [here] }, "GET /auth/email/": { body: { email: "", pending: null } } });
+    render(<AccountScreen />);
+    expect(await screen.findByText("No address yet: ask Human Resources.")).toBeInTheDocument();
   });
 });

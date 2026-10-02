@@ -93,17 +93,21 @@ function messages(): string[] {
 /** The email written so far. Take this before an action, then wait for what the action sends. */
 export const mailbox = () => new Set(messages());
 
-/** The link to choose a password in the first email to that address written after `before`. */
-export async function linkSentTo(address: string, before: Set<string>): Promise<string> {
+/**
+ * The link in the first email to that address written after `before`: by default the one to choose a password,
+ * or another page of the app, such as "confirm-email".
+ */
+export async function linkSentTo(address: string, before: Set<string>, page = "set-password"): Promise<string> {
+  const pattern = new RegExp(String.raw`https://\S+/#/${page}/\S+`);
   for (let attempt = 0; attempt < 50; attempt++) {
     for (const name of messages().filter((n) => !before.has(n))) {
       const text = readFileSync(join(MAIL_DIR, name), "utf8");
-      const link = text.includes(`To: ${address}`) && text.match(/https:\/\/\S+\/#\/set-password\/\S+/);
+      const link = text.includes(`To: ${address}`) && text.match(pattern);
       if (link) return link[0];
     }
     await new Promise((resolve) => setTimeout(resolve, 200));
   }
-  throw new Error(`No email with a password link reached ${address}`);
+  throw new Error(`No email with a ${page} link reached ${address}`);
 }
 
 export function password(): string {

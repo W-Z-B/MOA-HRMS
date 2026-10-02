@@ -236,6 +236,9 @@ PRIVACY_RESPONSE_DAYS = int(env("PRIVACY_RESPONSE_DAYS", "30"))
 PASSWORD_RESETS_PER_ADDRESS = int(env("PASSWORD_RESETS_PER_ADDRESS", "5"))
 PASSWORD_RESETS_PER_ACCOUNT = 3
 
+# A change of sign-in email address waits this many hours for the link sent to the new address (item 1.42).
+EMAIL_CHANGE_HOURS = int(env("EMAIL_CHANGE_HOURS", "48"))
+
 # Time limits on decisions (item 1.33), in working days: a reminder when a request has waited this long at a
 # step, and it goes on up the line (or to the HR Manager) when it has waited this many more.
 DECISION_DAYS = int(env("DECISION_DAYS", "3"))
