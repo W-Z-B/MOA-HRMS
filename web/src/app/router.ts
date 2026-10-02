@@ -24,6 +24,7 @@ export const NAV = [
   { path: "/letters", label: "Letters", office: true, roles: LETTER_ROLES },
   { path: "/cases", label: "Cases", office: true, roles: CASE_ROLES },
   { path: "/leave", label: "Leave", office: false },
+  { path: "/incidents", label: "Incidents", office: false },
   { path: "/me", label: "My contract", office: false },
   { path: "/my-record", label: "My record", office: false },
   { path: "/account", label: "My account", office: false },

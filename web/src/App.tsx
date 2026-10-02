@@ -12,6 +12,7 @@ import { LeaveScreen } from "./features/leave/LeaveScreen";
 import { LettersScreen } from "./features/letters/LettersScreen";
 import { ToDoScreen } from "./features/approvals/ToDoScreen";
 import { CasesScreen } from "./features/cases/CasesScreen";
+import { IncidentsScreen } from "./features/incidents/IncidentsScreen";
 import { AccountScreen } from "./features/me/AccountScreen";
 import { MyContractScreen } from "./features/me/MyContractScreen";
 import { OrganisationScreen } from "./features/organisation/OrganisationScreen";
@@ -125,6 +126,8 @@ export default function App() {
   else if (path === "/to-do") screen = <ToDoScreen me={me} onNavigate={navigate} />;
   else if (path.startsWith("/cases"))
     screen = <CasesScreen me={me} caseId={idIn("/cases")} onNavigate={navigate} />;
+  else if (path.startsWith("/incidents"))
+    screen = <IncidentsScreen me={me} incidentId={idIn("/incidents")} onNavigate={navigate} />;
   else if (path.startsWith("/leave")) screen = leave;
   else if (path === "/me") screen = <MyContractScreen />;
   else if (path === "/my-record") screen = <MyRecordScreen />;
