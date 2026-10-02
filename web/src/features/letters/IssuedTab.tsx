@@ -58,6 +58,7 @@ export function IssuedTab() {
               <th>Letter</th>
               <th>To</th>
               <th>Issued</th>
+              <th>For checking</th>
             </tr>
           </thead>
           <tbody>
@@ -75,6 +76,21 @@ export function IssuedTab() {
                 <td data-label="Issued">
                   {dmy(l.issued_on)}
                   {l.issued_by ? <span className="muted small"> by {l.issued_by}</span> : null}
+                </td>
+                <td data-label="For checking">
+                  {l.check_code ? (
+                    <>
+                      <code>{l.check_code}</code>
+                      <span className="muted small">
+                        {" "}
+                        {l.times_checked === 0
+                          ? "not checked yet"
+                          : `checked ${l.times_checked === 1 ? "once" : `${l.times_checked} times`}, last ${dmy(l.last_checked_at)}`}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="muted small">No code: issued before letters carried one</span>
+                  )}
                 </td>
               </tr>
             ))}

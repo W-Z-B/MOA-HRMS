@@ -1,7 +1,11 @@
-"""Item 1.19: letter templates that draw on the staff record, and the letters issued from them."""
+"""Item 1.19: letter templates that draw on the staff record, and the letters issued from them.
+
+Item 1.47: each letter carries a code at its foot, so that whoever it is shown to can check it is genuine.
+"""
 
 from django.db import models
 
+from core.fields import EncryptedTextField
 from core.models import TimeStampedModel
 from people.models import Document, Employee
 
@@ -64,9 +68,29 @@ class Letter(TimeStampedModel):
     career_event = models.ForeignKey(
         "people.CareerEvent", null=True, blank=True, on_delete=models.SET_NULL, related_name="letters"
     )
+    check_code = EncryptedTextField(
+        null=True, blank=True, help_text="Printed on the letter for checking it; none before item 1.47"
+    )
 
     class Meta:
         ordering = ["-issued_on", "-id"]
 
     def __str__(self) -> str:
         return self.reference
+
+
+class LetterCheck(models.Model):
+    """One use of the page that checks a letter: the reference asked about, whether the code matched, and
+    the network address it came from. Kept a year, like sign-in attempts (the retention schedule)."""
+
+    at = models.DateTimeField(auto_now_add=True, db_index=True)
+    reference = models.CharField(max_length=40)
+    letter = models.ForeignKey(Letter, null=True, blank=True, on_delete=models.CASCADE, related_name="checks")
+    matched = models.BooleanField()
+    source_ip = models.GenericIPAddressField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-at"]
+
+    def __str__(self) -> str:
+        return f"{self.reference} checked at {self.at:%d/%m/%Y %H:%M}"

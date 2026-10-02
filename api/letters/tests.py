@@ -265,3 +265,121 @@ def test_the_first_templates_pass_their_own_checks(seeded):
         checked = LetterTemplateSerializer(data=spec, context={"revising": True})
         assert checked.is_valid(), (spec["code"], checked.errors)
     assert LetterTemplate.objects.count() == len(TEMPLATES)
+
+
+CODE = "K0Q1-9XMB-4T3V"
+
+
+def _issued_with_code(api, placed, monkeypatch):
+    from letters import checking
+
+    monkeypatch.setattr(checking, "new_code", lambda: CODE)
+    made = _issue(api, placed, answers={"purpose": "a loan application at a bank"})
+    assert made.status_code == 201, made.content
+    return made.json()
+
+
+def _check(client, reference, code, address="190.80.1.2"):
+    body = {"reference": reference, "code": code}
+    return client.post("/api/v1/letters/check/", body, format="json", REMOTE_ADDR=address)
+
+
+def test_a_check_code_is_twelve_letters_and_digits_that_cannot_be_misread():
+    from letters import checking
+
+    code = checking.new_code()
+    assert len(code) == 14 and code[4] == code[9] == "-"
+    assert not set(code) & set("ILOU") and checking.plain(" k0q1 9xmb-4t3v ") == "K0Q19XMB4T3V"
+    assert checking.plain("KOQL-9XMB-4T3V") == "K0Q19XMB4T3V"  # O read as 0, L as 1
+
+
+def test_the_foot_of_a_letter_says_where_and_how_to_check_it(seeded, settings):
+    from letters import pdf
+
+    settings.LETTER_CHECK_URL = "https://hrms.gsa.example/#/check-letter"
+    values = {
+        "reference": "GSA/HR/2026/0001",
+        "campus": "Mon Repos Campus",
+        "campus_address": "",
+        "today": "2 October 2026",
+        "full_name": "Asha Persaud",
+        "post_title": "Lecturer",
+        "unit": "Livestock Unit",
+    }
+    template = _template("job_letter")
+    page = pdf.page(template=template, values=values, body_html="<p>Text</p>", subject="S", check_code=CODE)
+    assert (
+        "go to https://hrms.gsa.example/#/check-letter and enter its reference, GSA/HR/2026/0001, "
+        f"and the code {CODE}." in page
+    )
+    older = pdf.page(template=template, values=values, body_html="<p>Text</p>", subject="S")
+    assert "contact Human Resources and quote reference GSA/HR/2026/0001." in older
+
+
+@pytest.mark.django_db
+def test_anyone_checks_a_letter_and_learns_only_what_it_says(api, placed, monkeypatch):
+    from letters.models import Letter
+    from notifications.models import Notification
+
+    issued = _issued_with_code(api, placed, monkeypatch)
+    assert issued["check_code"] == CODE and issued["times_checked"] == 0
+    stranger = APIClient()
+    answer = _check(stranger, issued["reference"].lower(), "koql 9xmb 4t3v")
+    assert answer.status_code == 200, answer.content
+    found = answer.json()
+    assert found["genuine"] and found["about"] == "Asha Persaud" and found["letter"] == "Job letter"
+    assert found["subject"] == "Confirmation of employment: Asha Persaud" and found["addressed"] is False
+    assert found["values"] == {}  # nothing beyond the letter's own words
+    assert found["blocks"][1]["lines"][0][1] == {"text": "Asha Persaud", "bold": True}
+    assert found["sha256"] == Letter.objects.get().sha256
+    assert set(found) == {
+        "genuine", "detail", "reference", "letter", "about", "issued_on",
+        "subject", "addressed", "blocks", "values", "sha256",
+    }  # fmt: skip
+
+    _check(stranger, issued["reference"], CODE)
+    told = Notification.objects.filter(recipient=placed.user, title__endswith="was checked")
+    assert told.count() == 1 and not told.get().emailed  # once a day, and not by email
+    row = api.get(f"/api/v1/letters/{issued['id']}/").json()
+    assert row["times_checked"] == 2 and row["last_checked_at"]
+    assert AuditLog.objects.filter(action="letter_checked", subject=None, actor=None).count() == 2
+    mine = _signed_in(placed.user).get("/api/v1/letters/mine/").json()["results"]
+    assert mine[0]["times_checked"] == 2
+
+
+@pytest.mark.django_db
+def test_a_wrong_code_tells_nothing_and_too_many_wait(api, placed, monkeypatch, settings):
+    from letters.models import Letter, LetterCheck
+
+    issued = _issued_with_code(api, placed, monkeypatch)
+    stranger = APIClient()
+    wrong = _check(stranger, issued["reference"], "AAAA-AAAA-AAAA").json()
+    unknown = _check(stranger, "GSA/HR/1999/9999", CODE).json()
+    assert wrong == unknown and wrong["genuine"] is False and wrong["about"] is None
+    assert LetterCheck.objects.filter(matched=False, letter=None).count() == 2
+
+    settings.LETTER_CHECK_FAILURES = 3
+    _check(stranger, issued["reference"], "BBBB-BBBB-BBBB")
+    blocked = _check(stranger, issued["reference"], CODE)  # three failures from this address
+    assert blocked.status_code == 429 and blocked.json()["code"] == "too_many_attempts"
+    _check(stranger, issued["reference"], "CCCC-CCCC-CCCC", address="190.80.1.3")
+    elsewhere = _check(stranger, issued["reference"], CODE, address="190.80.1.4")
+    assert elsewhere.status_code == 429  # three failures for this letter, from anywhere
+
+    LetterCheck.objects.all().delete()
+    Letter.objects.update(check_code=None)  # issued before letters carried a code
+    assert _check(stranger, issued["reference"], CODE).json()["genuine"] is False
+
+
+@pytest.mark.django_db
+def test_checks_are_kept_a_year(api, placed, monkeypatch):
+    from datetime import timedelta
+
+    from letters.models import LetterCheck
+    from privacy.retention import purge
+
+    issued = _issued_with_code(api, placed, monkeypatch)
+    _check(APIClient(), issued["reference"], CODE)
+    LetterCheck.objects.update(at=timezone.now() - timedelta(days=400))
+    _check(APIClient(), issued["reference"], CODE)
+    assert purge()["letter-checks"] == 1 and LetterCheck.objects.count() == 1

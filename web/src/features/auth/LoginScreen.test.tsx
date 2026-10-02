@@ -99,4 +99,11 @@ describe("sign-in", () => {
     await userEvent.setup().click(screen.getByRole("button", { name: "Forgot your password?" }));
     expect(onForgotPassword).toHaveBeenCalled();
   });
+
+  it("sends someone shown a letter from the School to the page that checks it", async () => {
+    const onCheckLetter = vi.fn();
+    render(<LoginScreen onSignedIn={vi.fn()} onCheckLetter={onCheckLetter} />);
+    await userEvent.setup().click(screen.getByRole("button", { name: "Shown a letter from the School? Check it is genuine" }));
+    expect(onCheckLetter).toHaveBeenCalled();
+  });
 });

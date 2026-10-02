@@ -1327,3 +1327,11 @@ ol.case-steps > li {
   flex-basis: 100%;
   margin: 0;
 }
+
+/* Checking a letter (item 1.47): a wider card, to hold the letter as it was issued. */
+.card.wide {
+  width: min(760px, 100%);
+}
+.card .letter-paper {
+  max-width: none;
+}

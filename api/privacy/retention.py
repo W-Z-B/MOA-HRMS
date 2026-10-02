@@ -53,6 +53,14 @@ RULES = [
         "Proposal in the impact assessment; GSA to confirm",
     ),
     (
+        "letter-checks",
+        "Checks of letters on the public checking page",
+        12,
+        "the check",
+        True,
+        "Proposal in the impact assessment; GSA to confirm",
+    ),
+    (
         "read-notifications",
         "Notifications already read",
         24,
@@ -159,6 +167,7 @@ def dispose(request, item, rule) -> None:
 def purge(today: date | None = None) -> dict[str, int]:
     """Every night: delete the logs that the automatic rules say are old enough. No review needed."""
     from iam.models import LoginAttempt, PasswordResetRequest
+    from letters.models import LetterCheck
     from notifications.models import Notification
     from privacy.models import RetentionRule
 
@@ -170,6 +179,8 @@ def purge(today: date | None = None) -> dict[str, int]:
             if rule.code == "sign-in-records":
                 count = LoginAttempt.objects.filter(at__lt=cut).delete()[0]
                 count += PasswordResetRequest.objects.filter(at__lt=cut).delete()[0]
+            elif rule.code == "letter-checks":
+                count = LetterCheck.objects.filter(at__lt=cut).delete()[0]
             elif rule.code == "read-notifications":
                 count = Notification.objects.filter(read_at__lt=cut).delete()[0]
             else:  # pragma: no cover - a rule the code does not know is left alone

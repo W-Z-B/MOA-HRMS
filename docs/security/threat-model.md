@@ -1,7 +1,7 @@
 # Threat model
 
-**Version 1.16, 2 October 2026.** Method: STRIDE over the data flows in section 3, against the code on
-branch `feature/phase-1-incidents`. Version 1.1 records the four gaps closed by pull request 16
+**Version 1.17, 2 October 2026.** Method: STRIDE over the data flows in section 3, against the code on
+branch `feature/phase-1-letter-check`. Version 1.1 records the four gaps closed by pull request 16
 (items 1.28, 1.35, 1.36, 1.37) and one weakness found while closing them (forged addresses). Version 1.2
 records two weaknesses found while building the staff record (pull request 17): writes across campuses,
 and a leave balance disclosed in a refusal. Version 1.3 records accounts and access (pull request 18:
@@ -20,7 +20,8 @@ records the clearance, the exit interview and the register of items issued (pull
 Version 1.13 records electronic signatures and their evidence (pull request 29, item 1.20). Version 1.14
 records the approvals engine, stand-ins and time limits (pull request 30, item 1.33). Version 1.15 records the
 discipline and grievance register (pull request 31, item 1.15). Version 1.16 records the accident and
-incident register (pull request 32, item 1.16).
+incident register (pull request 32, item 1.16). Version 1.17 records the public page that checks a letter
+(pull request 33, item 1.47), the first part of the system open to people with no account.
 Reviewed at every release gate and whenever a data flow, role or integration is added. Gaps
 point to items in the Gold Standard Plan checklist.
 
@@ -109,7 +110,8 @@ with the other document files.
 |---|---|---|
 | Moving someone, or changing their pay, without a trace | **Transfers, promotions, increments, acting appointments and confirmations change appointments only as recorded events with a reason** (pull request 26): each is checked against the file as it will stand on its date, audited when recorded and when it takes effect, and one dated later is applied by the nightly task, which records itself as the system and leaves nothing half done when a change can no longer happen | First appointments are still added directly, until recruitment and onboarding (Phase 3) open them through their own events |
 | Changing records without trace | Every write goes through audited views in the same transaction | |
-| A forged or altered letter | Every letter has a reference, and its record keeps the template version, the values that went in and the SHA-256 fingerprint of the PDF as issued; HR confirms a letter by its reference and can compare the fingerprint (pull request 25) | A way for a bank, embassy or employer to check a letter by its reference without signing in (item 1.47) |
+| A forged or altered letter | Every letter has a reference, and its record keeps the template version, the values that went in and the SHA-256 fingerprint of the PDF as issued (pull request 25). Since pull request 33 each letter also carries a random code at its foot; anyone shown it can check it on a public page by its reference and code and sees the letter's words as issued, to compare, and can check a PDF file against the fingerprint in their own browser | Letters issued before the code existed are confirmed by HR, as before |
+| Someone with no account reads letters through the checking page | The page answers only to a reference with its code: twelve characters from a 32-letter alphabet (60 bits), kept encrypted. A wrong code and an unknown reference get the same answer, so references cannot be found by trying; ten wrong codes from one address, or for one letter, in the lockout window make checks wait. What it shows is only what the letter says: the kind of letter, whom it is about, its date and its words, never the rest of the file. Every check is logged with its address, the person is told their letter was checked, and the audit log keeps each successful check (pull request 33) | Anyone holding a copy of a letter can read it there, which they could already do from the copy |
 | Destroying records to hide something | Records are destroyed only under the retention schedule, in a run that one person lists and a **second person approves**; anything can be kept back with a reason; a record no longer due when the run is approved is left; each destruction is in the audit log with its rule and what the record was (pull request 21) | |
 | Changing or removing audit entries with the trigger switched off | **Closed in pull request 19 (item 1.26):** every entry carries an HMAC-SHA256 of the entry before it and of its own content, under a key derived from the server's field-encryption key, which is never in the database. Entries are written one at a time under a lock, so the chain follows commit order. A check walks the chain every night, and on request in the audit viewer; a changed or removed entry shows at the first entry that no longer fits, and entries removed from the end show at the next check because each check keeps the newest entry it saw. A broken chain alerts the administrators and the auditor at once, and every result is written to the platform log, outside the database | Someone holding both the database and the server's key could rewrite the chain: keep the key apart from the database and its backups (item 7.09). Entries removed from the end after the last check show only at the next one |
 | Cross-site request forgery | Django CSRF protection on every session write | |
@@ -187,7 +189,7 @@ with the other document files.
 | 1.26 | Chained fingerprints over the audit log, a nightly check and an audit viewer (closed in pull request 19) |
 | 1.41 | A first sign-in for staff with no email address: a one-use set-up code in person or by text message |
 | 1.42 | The sign-in email address changed through an audited step that tells the old address |
-| 1.47 | A way for a bank, embassy or employer to check a letter by its reference, without signing in |
+| 1.47 | A way for a bank, embassy or employer to check a letter by its reference, without signing in (closed in pull request 33) |
 | 7.17 | Software bill of materials and third-party notices with each release |
 
 ## 6. Next review

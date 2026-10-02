@@ -1,10 +1,11 @@
 # Data protection impact assessment
 
-**Draft 0.4, 2 October 2026,** prepared by the development team for GSA's data protection officer.
+**Draft 0.5, 2 October 2026,** prepared by the development team for GSA's data protection officer.
 Draft 0.2 records the privacy rights built in pull request 20: the notice and its acknowledgement, a
 person's own record, and correction requests. Draft 0.3 records the retention schedule, reviewed disposal
 and the breach register built in pull request 21. Draft 0.4 adds the accident and incident register (pull
-request 32), which holds injuries: health data.
+request 32), which holds injuries: health data. Draft 0.5 adds the public page that checks a letter (pull
+request 33): what it shows, and the log of checks.
 GSA is the data controller and owns this assessment; the development team keeps it current as the
 system changes. It is signed in section 9 before any real staff record is loaded (checklist item 7.03).
 
@@ -54,6 +55,7 @@ personal data.
 | Staff in a discipline or grievance case | The allegation or grievance, each step taken, the decision with its reasons, any appeal | HR, the officers named on the case | Handling discipline and grievances fairly, and showing that a dismissal was for good cause (Termination of Employment and Severance Pay Act 1997) | Contract; legal obligation; seen only by the HR Manager and those named |
 | Staff, students, contractors and visitors hurt or made ill at work | Name; what the injury or illness was and the part of the body; treatment; the days off work; a death; when the NIS notice of accident was given | The person reporting, HR | Keeping the register and sending the notices the Occupational Safety and Health Act 1997 requires (sections 69, 70 and 74); a claim to NIS injury benefit; preventing it happening again | Legal obligation; health data handled under the Act's conditions for employment and social security; the injury is read only by HR and the person hurt |
 | Anyone who reports an incident | Their name, and what they saw | The person | Finding out what happened | Legal obligation; functions of a public body |
+| People who check a letter on the public page (banks, embassies, employers) | The reference they asked about, whether the code matched, the network address it came from, and when | The person checking | Confirming a letter is genuine; stopping guessing; telling the member of staff their letter was checked | Legitimate interests of the person checking and of the member of staff; functions of a public body |
 | Staff who decide requests | Who stands in for them, when and why; reminders and escalations of requests waiting for them | The person, HR, the system | Making sure requests are decided in time | Functions of a public body; contract |
 | Staff | Their signatures on documents: when, from which address and device, the sentence agreed to, and the fingerprint of the document | The person, the system | Showing that a document was received or accepted (Electronic Communications and Transactions Act 2023) | Contract; legal obligation |
 | Staff | Letters issued to them (appointment, confirmation, transfer, job letters, certificates of service), the values each drew from the record, and a fingerprint of each PDF | HR | Employment administration; proof of employment at the employee's request | Contract; functions of a public body |
@@ -89,6 +91,7 @@ as a leaver's file, wait for the leaving process (item 1.12).
 | Audit log | Seven years (Planning Pack requirement) |
 | Access review sign-offs | Seven years, with the audit log |
 | Sign-in records, devices, requests for a password link | Twelve months; a device record ends with its session |
+| Checks of letters on the public page | Twelve months (in the schedule; removed every night once due; GSA to confirm) |
 | Privacy notice acknowledgements, correction requests | As long as the staff record, then with it |
 | Unsuccessful applicants | Six months after the post is filled |
 | Fictional demonstration data | Never on a database with real records |

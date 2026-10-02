@@ -8,8 +8,8 @@ function Runs({ runs }: { runs: LetterRun[] }) {
   );
 }
 
-/** A letter as it will read once issued: who it is to, its subject, and its wording with the fields filled. */
-export function Paper({ letter }: { letter: LetterPreview }) {
+/** A letter as it reads: who it is to, its subject, and its wording with the fields filled. */
+export function Paper({ letter }: { letter: Pick<LetterPreview, "subject" | "addressed" | "blocks" | "values"> }) {
   const v = letter.values;
   const to = [v.full_name, v.post_title, [v.unit, v.campus].filter(Boolean).join(", ")].filter(Boolean);
   return (
