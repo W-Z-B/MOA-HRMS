@@ -25,6 +25,8 @@ RECORDS = {
     "audit.auditlog": "Audit log",
     "audit.auditcheck": "Audit check",
     "integration.serviceclient": "Service key",
+    "privacy.correctionrequest": "Correction request",
+    "privacy.privacynotice": "Privacy notice",
 }
 ACTIONS = {
     "create": "Added",
@@ -61,6 +63,15 @@ ACTIONS = {
     "access_review_signed": "Access review signed off",
     "audit_exported": "Audit log exported",
     "audit_checked": "Audit log checked",
+    "correction_requested": "Correction asked for",
+    "correction_corrected": "Corrected as asked",
+    "correction_declined": "Correction not made",
+    "notice_drafted": "Privacy notice drafted",
+    "notice_edited": "Privacy notice edited",
+    "notice_published": "Privacy notice published",
+    "notice_acknowledged": "Privacy notice read",
+    "record_viewed": "Own record viewed",
+    "record_produced": "Record produced for a request",
 }
 # Account events belong to the audit log, not to the story of a person's file.
 NOT_FILE_HISTORY = (
@@ -75,6 +86,8 @@ NOT_FILE_HISTORY = (
     "password_changed",
     "password_change_failed",
     "password_link_sent",
+    "notice_acknowledged",
+    "record_viewed",
 )
 # Stored codes, said in words: (record, field) -> code -> words.
 VALUES = {

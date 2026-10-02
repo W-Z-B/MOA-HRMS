@@ -17,6 +17,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand, CommandError
 from django.db import IntegrityError, transaction
+from django.utils import timezone
 
 from iam.models import Role, RoleScope
 from leave.models import Entitlement, LeaveLedger, LeaveRequest, LeaveType
@@ -24,6 +25,7 @@ from leave.services import debit_for_request, working_days
 from org.models import Campus, Grade, OrgUnit, Position, SalaryScale
 from people.models import Assignment, Contract, Employee
 from people.services import manager_of
+from privacy.models import PrivacyNotice
 from training.models import TrainingRecord
 
 FICTIONAL = "Demonstration record (fictional person)"
@@ -140,6 +142,22 @@ LEAVE_REQUESTS = [
     ("E0007", "SIC", date(2026, 9, 21), date(2026, 9, 22), "Medical certificate to follow", "submitted"),
 ]
 
+# Shown to each person at their first sign-in (item 1.31). GSA's own notice replaces it before real records.
+DEMO_NOTICE_TITLE = "Demonstration privacy notice"
+DEMO_NOTICE_BODY = "\n\n".join(
+    [
+        "This is demonstration text for the staging system, not the notice of the Guyana School of "
+        "Agriculture. GSA's own notice replaces it before any real record is loaded.",
+        "Who holds your data. The Guyana School of Agriculture keeps your staff record in this system to run "
+        "your employment: your appointment, contract, leave and the details your pay needs.",
+        "Who sees it. You see your own record. Human Resources, and the officers your work reports to, see "
+        "what their work needs. Every look at sensitive details, such as identity numbers, is recorded.",
+        "How long it is kept. As long as the law and GSA's records rules require, and then it is deleted.",
+        "Your rights. You can see everything held about you under My record, ask there for anything wrong to "
+        "be corrected, and complain to the Data Protection Commissioner.",
+    ]
+)
+
 TRAINING = [
     # employee, course, starts, ends
     ("E0004", "Artificial insemination techniques: refresher", date(2026, 6, 8), date(2026, 6, 12)),
@@ -212,6 +230,10 @@ class Command(BaseCommand):
         for number, employee in staff.items():
             self._contract(number, employee, leave_types)
         accounts = self._accounts(staff, campuses)
+        if not PrivacyNotice.objects.exists():
+            PrivacyNotice.objects.create(
+                version=1, title=DEMO_NOTICE_TITLE, body=DEMO_NOTICE_BODY, published_at=timezone.now()
+            )
 
         for employee in staff.values():
             for code, days in OPENING_BALANCES:

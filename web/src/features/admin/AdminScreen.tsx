@@ -1,7 +1,18 @@
-import { ACCOUNT_ROLES, ACCOUNT_WRITE_ROLES, AUDIT_ROLES, REVIEW_ROLES, hasAnyRole, type Me } from "../../api/types";
+import {
+  ACCOUNT_ROLES,
+  ACCOUNT_WRITE_ROLES,
+  AUDIT_ROLES,
+  CORRECTION_ROLES,
+  NOTICE_ROLES,
+  REVIEW_ROLES,
+  hasAnyRole,
+  type Me,
+} from "../../api/types";
 import { AccessReviewTab } from "./AccessReviewTab";
 import { AccountsTab } from "./AccountsTab";
 import { AuditTab } from "./AuditTab";
+import { CorrectionsTab } from "./CorrectionsTab";
+import { NoticeTab } from "./NoticeTab";
 import { StaffTab } from "./StaffTab";
 
 interface Props {
@@ -16,9 +27,11 @@ const TABS = [
   { key: "staff", path: "/admin/staff", label: "Staff without an account", roles: ACCOUNT_WRITE_ROLES },
   { key: "review", path: "/admin/review", label: "Access review", roles: REVIEW_ROLES },
   { key: "audit", path: "/admin/audit", label: "Audit log", roles: AUDIT_ROLES },
+  { key: "corrections", path: "/admin/corrections", label: "Correction requests", roles: CORRECTION_ROLES },
+  { key: "notice", path: "/admin/privacy-notice", label: "Privacy notice", roles: NOTICE_ROLES },
 ] as const;
 
-/** Accounts and access: who can sign in, with which roles, the review of who can see what, and the audit log. */
+/** Accounts and access, the audit log, and privacy: who can sign in and see what, what was done, and people's rights. */
 export function AdminScreen({ me, campusId, path, onNavigate }: Props) {
   const tabs = TABS.filter((t) => hasAnyRole(me, t.roles));
   const current = tabs.find((t) => t.path === path) ?? tabs[0];
@@ -50,6 +63,8 @@ export function AdminScreen({ me, campusId, path, onNavigate }: Props) {
             {current.key === "staff" && <StaffTab campusId={campusId} onNavigate={onNavigate} />}
             {current.key === "review" && <AccessReviewTab me={me} campusId={campusId} onNavigate={onNavigate} />}
             {current.key === "audit" && <AuditTab />}
+            {current.key === "corrections" && <CorrectionsTab onNavigate={onNavigate} />}
+            {current.key === "notice" && <NoticeTab me={me} />}
           </div>
         </>
       )}

@@ -8,6 +8,8 @@ export interface Me {
   mfa_required: boolean;
   mfa_verified: boolean;
   employee_id: number | null;
+  /** Version of the privacy notice still to read and acknowledge, if any. */
+  privacy_notice_due?: number | null;
 }
 
 export interface Paginated<T> {
@@ -268,6 +270,9 @@ export const ACCOUNT_WRITE_ROLES = ["administrator", "hr_manager", "hr_officer"]
 export const REVIEW_ROLES = ["administrator", "hr_manager", "auditor"];
 export const REVIEW_SIGN_ROLES = ["administrator", "hr_manager"];
 export const AUDIT_ROLES = ["administrator", "auditor"];
+export const CORRECTION_ROLES = ["hr_officer", "hr_manager", "administrator"];
+export const NOTICE_ROLES = ["administrator", "hr_manager", "auditor"];
+export const NOTICE_WRITE_ROLES = ["administrator", "hr_manager"];
 export const hasAnyRole = (me: Me, roles: readonly string[]) => roles.some((r) => me.roles.includes(r));
 /** Staff with work to do in the system beyond their own leave: they see the full navigation. */
 export const isOfficeUser = (me: Me) => me.roles.some((r) => r !== "employee");
@@ -479,4 +484,48 @@ export interface AuditChainState {
 export interface AuditChoices {
   actions: { code: string; name: string }[];
   records: { code: string; name: string }[];
+}
+
+/** One version of the privacy notice. */
+export interface PrivacyNotice {
+  id: number;
+  version: number;
+  title: string;
+  body: string;
+  created_at: string;
+  published_at: string | null;
+  published_by: string | null;
+}
+
+export interface CurrentNotice {
+  notice: PrivacyNotice | null;
+  acknowledged: boolean;
+}
+
+export interface CorrectionRequest {
+  id: number;
+  employee: number;
+  employee_name: string;
+  employee_no: string;
+  subject: string;
+  subject_name: string;
+  wrong: string;
+  should_be: string;
+  state: "open" | "corrected" | "declined";
+  state_name: string;
+  due_by: string;
+  overdue: boolean;
+  created_at: string;
+  decided_by_name: string | null;
+  decided_at: string | null;
+  decision_note: string;
+  is_mine: boolean;
+}
+
+/** Everything held about the signed-in person, from /privacy/my-record/. */
+export interface OwnRecord {
+  produced_at: string;
+  about: string;
+  account: Record<string, unknown> | null;
+  staff_record: Record<string, unknown> | null;
 }

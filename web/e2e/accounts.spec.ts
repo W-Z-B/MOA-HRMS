@@ -1,4 +1,16 @@
-import { expect, expectAccessible, linkSentTo, mailbox, newStarter, openSection, signIn, signOut, STAFF, test } from "./support";
+import {
+  expect,
+  expectAccessible,
+  linkSentTo,
+  mailbox,
+  newStarter,
+  openSection,
+  passNotice,
+  signIn,
+  signOut,
+  STAFF,
+  test,
+} from "./support";
 
 // The new starter's own passwords: chosen from the invitation, then from a reset link.
 const CHOSEN = "Mangrove-Seawall-Sunrise-2026";
@@ -32,6 +44,8 @@ test.describe.serial("accounts", () => {
     await expect(page.getByLabel("Username")).toHaveValue(starter.username);
     await page.getByLabel("Password", { exact: true }).fill(CHOSEN);
     await page.getByRole("button", { name: "Sign in" }).click();
+    // Their first sign-in: the privacy notice comes first (item 1.31).
+    expect(await passNotice(page)).toBe(true);
     await expect(page.getByRole("heading", { name: "Leave", level: 1 })).toBeVisible();
     await signOut(page);
 
@@ -60,6 +74,7 @@ test.describe.serial("accounts", () => {
     await expect(page.getByRole("status")).toHaveText("Your password is saved. Sign in with it now.");
     await page.getByLabel("Password", { exact: true }).fill(RESET);
     await page.getByRole("button", { name: "Sign in" }).click();
+    await passNotice(page);
     await expect(page.getByRole("heading", { name: "Leave", level: 1 })).toBeVisible();
     await signOut(page);
   });
@@ -95,6 +110,7 @@ test.describe.serial("accounts", () => {
       await device.getByLabel("Username").fill(starter.username);
       await device.getByLabel("Password").fill(RESET);
       await device.getByRole("button", { name: "Sign in" }).click();
+      await passNotice(device);
       await expect(device.getByRole("heading", { name: "Leave", level: 1 })).toBeVisible();
 
       await card.getByRole("button", { name: `Switch off the account of ${starter.name}` }).click();

@@ -1008,6 +1008,35 @@ td.to-check {
   margin-top: 16px;
 }
 
+/* Privacy: the notice at sign-in reads at a comfortable width; corrections and their answers. */
+.card.notice-card {
+  width: min(640px, 100%);
+}
+.chip-correction-open {
+  color: var(--amber-text);
+}
+.chip-correction-corrected {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.chip-correction-declined {
+  color: var(--danger);
+}
+.overdue {
+  color: var(--danger);
+  font-weight: 600;
+}
+.record-section {
+  max-width: 900px;
+}
+@media print {
+  .record-section {
+    border: 0;
+    padding: 0;
+    break-inside: avoid;
+  }
+}
+
 /* Audit log: whether the chain is intact, beside the button that checks it. */
 .chain-state .notice {
   flex: 1 1 320px;

@@ -39,6 +39,9 @@ test("main screens", async ({ page }, testInfo) => {
   await openSection(page, "My account");
   await page.getByRole("region", { name: "Where you are signed in" }).getByRole("listitem").first().waitFor();
   await shot("my-account");
+  await openSection(page, "My record");
+  await page.getByRole("region", { name: "Personal details" }).waitFor();
+  await shot("my-record");
   await signOut(page);
 
   await signIn(page, STAFF.auditor.username);

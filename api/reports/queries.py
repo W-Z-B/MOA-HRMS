@@ -207,9 +207,45 @@ def access_review(campus_ids: set[int] | None = None, today: date | None = None)
     return rows
 
 
+def privacy_acknowledgements(campus_ids: set[int] | None = None) -> list[dict]:
+    """Who has read the privacy notice in force (item 1.31), so HR can follow up those who have not."""
+    from privacy.models import NoticeAcknowledgement
+    from privacy.services import current_notice
+
+    notice = current_notice()
+    if notice is None:
+        return []
+    read = dict(NoticeAcknowledgement.objects.filter(notice=notice).values_list("user_id", "at"))
+    users = (
+        get_user_model()
+        .objects.filter(is_active=True)
+        .select_related("employee__campus")
+        .order_by("last_name", "first_name", "username")
+    )
+    if campus_ids is not None:
+        users = users.filter(employee__campus_id__in=campus_ids)
+    rows = []
+    for user in users:
+        employee = getattr(user, "employee", None)
+        when = read.get(user.pk)
+        rows.append(
+            {
+                "employee_id": employee.id if employee else "",
+                "employee_no": employee.employee_no if employee else "",
+                "name": user.get_full_name() or user.get_username(),
+                "username": user.get_username(),
+                "campus": employee.campus.name if employee else "",
+                "notice": f"Version {notice.version}",
+                "read": f"{timezone.localtime(when):%d/%m/%Y}" if when else "Not yet",
+            }
+        )
+    return rows
+
+
 REPORTS = {
     "establishment-vs-actual": establishment_vs_actual,
     "headcount-by-campus": headcount_by_campus,
     "data-quality": data_quality,
     "access-review": access_review,
+    "privacy-acknowledgements": privacy_acknowledgements,
 }
