@@ -31,6 +31,7 @@ RECORDS = {
     "privacy.disposalrun": "Disposal run",
     "privacy.breach": "Data breach",
     "people.careerevent": "Career change",
+    "people.separation": "Leaving",
     "letters.lettertemplate": "Letter template",
     "letters.letter": "Letter",
 }
@@ -92,6 +93,9 @@ ACTIONS = {
     "career_applied": "Change took effect",
     "career_cancelled": "Change cancelled",
     "career_blocked": "Change held up",
+    "leaving_recorded": "Leaving recorded",
+    "leaving_completed": "Left the School",
+    "leaving_withdrawn": "Leaving withdrawn",
     "template_revised": "Letter template revised",
     "template_retired": "Letter template retired",
     "template_restored": "Letter template back in use",

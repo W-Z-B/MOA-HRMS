@@ -138,6 +138,7 @@ SPECTACULAR_SETTINGS = {
         "PasswordLinkKindEnum": "iam.accounts.LINK_KINDS",
         "CareerChangeKindEnum": "people.models.CareerEvent.Kind",
         "LetterKindEnum": "letters.models.LetterTemplate.Kind",
+        "LeavingReasonEnum": "people.models.Separation.Reason",
     },
 }
 

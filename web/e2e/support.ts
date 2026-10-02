@@ -65,6 +65,13 @@ const CAREER_CHANGES = {
 } as const;
 export const careerChange = (testInfo: TestInfo) => CAREER_CHANGES[testInfo.project.name as keyof typeof CAREER_CHANGES];
 
+/** Staff with ten years' service or more, one for each browser project, whose leaving is recorded and withdrawn. */
+const LEAVERS = {
+  desktop: { name: "Kwame Adams" },
+  phone: { name: "Indira Narine" },
+} as const;
+export const leaver = (testInfo: TestInfo) => LEAVERS[testInfo.project.name as keyof typeof LEAVERS];
+
 /** Where the test stack writes the email it would send (compose.e2e.yml). */
 const MAIL_DIR = process.env.E2E_MAIL_DIR ?? "/files/mail";
 

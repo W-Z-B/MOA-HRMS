@@ -389,3 +389,57 @@ class CareerEvent(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"{self.get_kind_display()} of {self.employee} from {self.effective_date:%d/%m/%Y}"
+
+
+class Separation(TimeStampedModel):
+    """Someone leaving the School (item 1.12): why, when notice was given, the last day, what is owed (1.14).
+
+    Recorded ahead of the last day, it waits as "leaving"; the night after the last day the person is marked
+    as having left, their appointments end, changes still scheduled are cancelled and their account is
+    switched off (item 1.13). The settlement figures are kept as they stood on completion.
+    """
+
+    class Reason(models.TextChoices):
+        RESIGNATION = "resignation", "Resignation"
+        RETIREMENT = "retirement", "Retirement"
+        CONTRACT_END = "contract_end", "End of a fixed-term contract"
+        NOTICE = "notice", "Ended by the School with notice"
+        REDUNDANCY = "redundancy", "Redundancy"
+        DISMISSAL = "dismissal", "Dismissal for good and sufficient cause"
+        MUTUAL = "mutual", "Mutual consent"
+        PROBATION = "probation", "Ended during probation"
+        DEATH = "death", "Death in service"
+
+    class State(models.TextChoices):
+        LEAVING = "leaving", "Leaving"
+        LEFT = "left", "Left"
+        WITHDRAWN = "withdrawn", "Withdrawn"
+
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="separations")
+    reason = models.CharField(max_length=20, choices=Reason.choices)
+    state = models.CharField(max_length=10, choices=State.choices, default=State.LEAVING)
+    notice_given_on = models.DateField(
+        null=True, blank=True, help_text="When notice was given, by either side"
+    )
+    last_day = models.DateField()
+    note = models.CharField(max_length=300, help_text="In words: why, and anything agreed")
+    completed_at = models.DateTimeField(null=True, blank=True)
+    withdrawn_reason = models.CharField(max_length=300, blank=True)
+    settlement = models.JSONField(
+        null=True, blank=True, help_text="The figures as they stood when the person left"
+    )
+
+    class Meta:
+        ordering = ["-last_day", "-id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["employee"], condition=Q(state="leaving"), name="one_leaving_at_a_time"
+            ),
+            models.CheckConstraint(
+                condition=Q(notice_given_on__isnull=True) | Q(notice_given_on__lte=models.F("last_day")),
+                name="notice_before_last_day",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.employee} leaving on {self.last_day:%d/%m/%Y} ({self.get_reason_display()})"
