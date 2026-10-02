@@ -1,0 +1,156 @@
+import { useEffect, useState, type FormEvent } from "react";
+import { errorMessage, getAll, post } from "../../api/client";
+import type { Classification, Employee, Letter, LetterPreview, LetterTemplate } from "../../api/types";
+import { Paper } from "./Paper";
+
+const FILED_AS: Record<Classification, string> = {
+  internal: "Internal",
+  confidential: "Confidential",
+  medical: "Medical",
+};
+
+/** Write a letter to one member of staff from a template: read it, see what it lacks, then issue it (item 1.19). */
+export function WriteLetter({ employee, onIssued }: { employee: Employee; onIssued: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [templates, setTemplates] = useState<LetterTemplate[] | null>(null);
+  const [templateId, setTemplateId] = useState("");
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [preview, setPreview] = useState<LetterPreview | null>(null);
+  const [issued, setIssued] = useState<Letter | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!open || templates !== null) return;
+    getAll<LetterTemplate>("/letters/templates/")
+      .then((all) => setTemplates(all.filter((t) => t.is_active)))
+      .catch((err) => setError(errorMessage(err, "Could not load the letter templates.")));
+  }, [open, templates]);
+
+  const template = templates?.find((t) => String(t.id) === templateId) ?? null;
+  const letter = () => ({ employee: employee.id, template: Number(templateId), answers });
+
+  // Any change means reading the letter again: what is issued is always what was read.
+  function choose(id: string) {
+    setTemplateId(id);
+    setAnswers({});
+    setPreview(null);
+    setError(null);
+  }
+  function answer(key: string, value: string) {
+    setAnswers({ ...answers, [key]: value });
+    setPreview(null);
+  }
+
+  async function read(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    setIssued(null);
+    try {
+      setPreview(await post<LetterPreview>("/letters/preview/", letter()));
+    } catch (err) {
+      setError(errorMessage(err, "Could not set out the letter."));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function issue() {
+    setBusy(true);
+    setError(null);
+    try {
+      setIssued(await post<Letter>("/letters/", letter()));
+      choose("");
+      onIssued();
+    } catch (err) {
+      setError(errorMessage(err, "The letter was not issued."));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!open)
+    return (
+      <div className="actions">
+        <button className="secondary" onClick={() => setOpen(true)}>
+          Write a letter
+        </button>
+      </div>
+    );
+
+  return (
+    <section className="sub-form stack" aria-labelledby="write-letter-heading">
+      <h3 id="write-letter-heading">Write a letter</h3>
+      {issued && (
+        <p role="status" className="notice good">
+          {issued.template_name} {issued.reference} is issued and filed with the documents.{" "}
+          <a href={issued.download_url}>Download it</a>
+        </p>
+      )}
+      <form className="stack" onSubmit={read} aria-label="Write a letter">
+        <label>
+          Letter
+          <select value={templateId} onChange={(e) => choose(e.target.value)} required>
+            <option value="">{templates === null ? "Loading…" : "Choose"}</option>
+            {(templates ?? []).map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        {template?.asks.map((ask) => (
+          <label key={ask.key}>
+            {ask.label}
+            <input
+              type={ask.type === "date" ? "date" : "text"}
+              value={answers[ask.key] ?? ""}
+              onChange={(e) => answer(ask.key, e.target.value)}
+            />
+          </label>
+        ))}
+        {error && (
+          <p role="alert" className="error">
+            {error}
+          </p>
+        )}
+        <div className="actions">
+          <button type="submit" className="secondary" disabled={busy || template === null}>
+            Read the letter
+          </button>
+          <button type="button" className="link" onClick={() => setOpen(false)}>
+            Close
+          </button>
+        </div>
+      </form>
+      {preview && (
+        <>
+          {preview.missing.length > 0 ? (
+            <div className="missing">
+              <p>
+                <strong>Before it can be issued</strong>
+              </p>
+              <ul>
+                {preview.missing.map((m) => (
+                  <li key={m.key}>{m.asked ? `Answer: ${m.label}` : `The staff record has no ${m.label.toLowerCase()}`}</li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="muted small">
+              It is filed as {FILED_AS[preview.classification]} with the documents, and {employee.first_name} can read it
+              under My contract.
+            </p>
+          )}
+          <Paper letter={preview} />
+          <div className="actions">
+            <button onClick={issue} disabled={busy || preview.missing.length > 0}>
+              Issue the letter
+            </button>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}

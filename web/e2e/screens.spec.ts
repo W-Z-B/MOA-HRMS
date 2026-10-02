@@ -20,6 +20,17 @@ test("main screens", async ({ page }, testInfo) => {
     await page.waitForTimeout(300);
     await shot(`employee-${tab.toLowerCase()}`);
   }
+  await page.getByRole("tab", { name: "Documents" }).click();
+  await page.getByRole("button", { name: "Write a letter" }).click();
+  await page.getByRole("combobox", { name: /^Letter/ }).selectOption({ label: "Job letter" });
+  await page.getByLabel("What the letter is for").fill("a loan application at a bank");
+  await page.getByRole("button", { name: "Read the letter" }).click();
+  await page.getByRole("article", { name: "The letter" }).waitFor();
+  await shot("letter-read-before-issue");
+  await openSection(page, "Letters");
+  await page.getByRole("tab", { name: "Templates" }).click();
+  await page.getByRole("list", { name: "Letter templates" }).waitFor();
+  await shot("letter-templates");
   await openSection(page, "Reports");
   await page.getByRole("button", { name: "Staff records to check" }).click();
   await page.getByRole("table").waitFor();

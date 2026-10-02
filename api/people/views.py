@@ -47,6 +47,11 @@ PRIVATE_READ = HR_WRITE + (Role.AUDITOR,)
 DEPENDANT_READ = HR_WRITE + (Role.FINANCE, Role.AUDITOR)
 # Bank details are a financial record (sensitive under the Data Protection Act 2023).
 BANK_READ = HR_WRITE + (Role.FINANCE, Role.AUDITOR)
+# Documents by classification: anyone who reads staff files sees internal ones; confidential ones (contracts,
+# letters that state pay, leave evidence) are for HR, the Principal and the auditor; medical ones for the HR
+# Manager and administrators. Supervisors and Finance read pay and leave through their own screens.
+CONFIDENTIAL_READ = HR_WRITE + (Role.PRINCIPAL, Role.AUDITOR)
+MEDICAL_READ = (Role.HR_MANAGER, Role.ADMINISTRATOR)
 BANK_PROPOSE = HR_WRITE + (Role.FINANCE,)
 BANK_DECIDE = (Role.HR_MANAGER, Role.FINANCE, Role.ADMINISTRATOR)
 
@@ -262,8 +267,10 @@ class DocumentViewSet(InScopeWrites, AuditedModelViewSet):
     def get_queryset(self):
         qs = Document.objects.select_related("employee")
         qs = scope_queryset(self.request.user, qs, campus_field="employee__campus")
-        if not has_role(self.request.user, Role.HR_MANAGER, Role.ADMINISTRATOR):
+        if not has_role(self.request.user, *MEDICAL_READ):
             qs = qs.exclude(classification=Document.Classification.MEDICAL)
+        if not has_role(self.request.user, *CONFIDENTIAL_READ):
+            qs = qs.exclude(classification=Document.Classification.CONFIDENTIAL)
         employee = self.request.query_params.get("employee")
         return qs.filter(employee_id=employee) if employee else qs
 

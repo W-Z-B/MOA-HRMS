@@ -51,6 +51,13 @@ const NEW_STARTERS = {
 } as const;
 export const newStarter = (testInfo: TestInfo) => NEW_STARTERS[testInfo.project.name as keyof typeof NEW_STARTERS];
 
+/** Staff used only by the letters journey, one for each browser project: each is written a letter and reads it. */
+const LETTER_PEOPLE = {
+  desktop: { username: "roxanne.williams", name: "Roxanne Williams" },
+  phone: { username: "indira.narine", name: "Indira Narine" },
+} as const;
+export const letterPerson = (testInfo: TestInfo) => LETTER_PEOPLE[testInfo.project.name as keyof typeof LETTER_PEOPLE];
+
 /** Where the test stack writes the email it would send (compose.e2e.yml). */
 const MAIL_DIR = process.env.E2E_MAIL_DIR ?? "/files/mail";
 

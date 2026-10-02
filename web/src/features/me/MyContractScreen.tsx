@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { get, plainMessage } from "../../api/client";
 import type { MyTerms } from "../../api/types";
 import { dmy, gyd, inDays } from "../../app/format";
+import { MyLetters } from "../letters/MyLetters";
 
 /** The employee's own appointment and contract: what the School holds about the terms they work on. */
 export function MyContractScreen() {
@@ -112,6 +113,8 @@ export function MyContractScreen() {
           </dl>
         )}
       </section>
+
+      <MyLetters />
     </>
   );
 }

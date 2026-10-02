@@ -1,7 +1,7 @@
 # Threat model
 
-**Version 1.8, 1 October 2026.** Method: STRIDE over the data flows in section 3, against the code on
-branch `feature/phase-1-org-chart`. Version 1.1 records the four gaps closed by pull request 16
+**Version 1.9, 1 October 2026.** Method: STRIDE over the data flows in section 3, against the code on
+branch `feature/phase-1-letters`. Version 1.1 records the four gaps closed by pull request 16
 (items 1.28, 1.35, 1.36, 1.37) and one weakness found while closing them (forged addresses). Version 1.2
 records two weaknesses found while building the staff record (pull request 17): writes across campuses,
 and a leave balance disclosed in a refusal. Version 1.3 records accounts and access (pull request 18:
@@ -13,7 +13,8 @@ the log unseen. Version 1.5 records a person's own copy of their record and corr
 20, item 1.31). Version 1.6 records the retention schedule, reviewed disposal and the breach register (pull
 request 21, item 1.32). Version 1.7 records a pay disclosure in the organisation API, fixed in pull request 23, together with post
 holders named on campuses the reader does not work with. Version 1.8 records the organisation chart (pull
-request 24, item 1.10), which names people by the staff directory's rule.
+request 24, item 1.10), which names people by the staff directory's rule. Version 1.9 records letters (pull request 25, item 1.19), and confidential documents that
+supervisors and Finance could read, fixed there.
 Reviewed at every release gate and whenever a data flow, role or integration is added. Gaps
 point to items in the Gold Standard Plan checklist.
 
@@ -76,6 +77,10 @@ flowchart LR
   W -->|SMTP| M[Email]
 ```
 
+Letters (item 1.19) are rendered inside the API by the PDF engine, from escaped text only, and the engine
+is given a fetcher that refuses every address: it reaches nothing outside the process. The PDF is filed
+with the other document files.
+
 ## 4. Threats and controls
 
 ### Spoofing
@@ -96,6 +101,7 @@ flowchart LR
 | Threat | In place | Gap |
 |---|---|---|
 | Changing records without trace | Every write goes through audited views in the same transaction | |
+| A forged or altered letter | Every letter has a reference, and its record keeps the template version, the values that went in and the SHA-256 fingerprint of the PDF as issued; HR confirms a letter by its reference and can compare the fingerprint (pull request 25) | A way for a bank, embassy or employer to check a letter by its reference without signing in (item 1.47) |
 | Destroying records to hide something | Records are destroyed only under the retention schedule, in a run that one person lists and a **second person approves**; anything can be kept back with a reason; a record no longer due when the run is approved is left; each destruction is in the audit log with its rule and what the record was (pull request 21) | |
 | Changing or removing audit entries with the trigger switched off | **Closed in pull request 19 (item 1.26):** every entry carries an HMAC-SHA256 of the entry before it and of its own content, under a key derived from the server's field-encryption key, which is never in the database. Entries are written one at a time under a lock, so the chain follows commit order. A check walks the chain every night, and on request in the audit viewer; a changed or removed entry shows at the first entry that no longer fits, and entries removed from the end show at the next check because each check keeps the newest entry it saw. A broken chain alerts the administrators and the auditor at once, and every result is written to the platform log, outside the database | Someone holding both the database and the server's key could rewrite the chain: keep the key apart from the database and its backups (item 7.09). Entries removed from the end after the last check show only at the next one |
 | Cross-site request forgery | Django CSRF protection on every session write | |
@@ -114,6 +120,8 @@ flowchart LR
 | Threat | In place | Gap |
 |---|---|---|
 | Identifiers in lists, logs or the integration API | Encrypted at rest, masked in responses and audit snapshots, full values only through the audited reveal for HR roles, never in the integration API | Rotating the field key is a manual procedure; keep the key and the backups apart (item 7.09) |
+| Confidential documents seen by supervisors or Finance | **Fixed in pull request 25:** only medical documents were held back, so supervisors and Finance could list and download confidential ones: contract scans that show pay, and leave evidence that the leave screens keep to the employee and HR. Confidential documents, and the register of letters, are now for HR, the Principal and the auditor; a contract or identity document cannot be filed below Confidential, nor a medical paper below Medical | |
+| A letter made to reach a server | Letters are built from escaped text only, so wording and values can add no markup, and the PDF engine is given a fetcher that refuses every address: no image, style sheet or page is fetched (pull request 25) | |
 | Doctor's notes seen by the wrong person | Medical class; the employee and HR only; downloads audited | Authenticator code for HR officers (item 1.34) |
 | Pay seen by the wrong person | **Fixed in pull request 23:** the amounts of the salary scale were readable by anyone signed in, so pay could be worked out from a colleague's post and grade. Amounts now show only to the roles that see pay elsewhere (`Role.SEES_PAY`), and who holds a post or heads a unit only to the roles that read the staff directory, on the campuses the directory shows them; the organisation chart (pull request 24) names people by the same rule and never shows an amount. Pay fields blanked for roles without need; **bank details encrypted, shown by their last four digits, revealed only to those who decide and always audited; a change takes effect only when a second person approves it, and the employee is told** (pull request 17) | |
 | A refusal describing someone on another campus | **Fixed in pull request 17:** asking for leave for an employee on another campus was refused with that employee's leave balance in the message. Fields that name an employee, appointment, contract, document or post now accept only records in the caller's scope, before any other check, so an id on another campus reads as unknown | |
@@ -159,6 +167,7 @@ flowchart LR
 | 1.26 | Chained fingerprints over the audit log, a nightly check and an audit viewer (closed in pull request 19) |
 | 1.41 | A first sign-in for staff with no email address: a one-use set-up code in person or by text message |
 | 1.42 | The sign-in email address changed through an audited step that tells the old address |
+| 1.47 | A way for a bank, embassy or employer to check a letter by its reference, without signing in |
 | 7.17 | Software bill of materials and third-party notices with each release |
 
 ## 6. Next review

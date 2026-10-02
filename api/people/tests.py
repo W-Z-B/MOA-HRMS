@@ -181,6 +181,72 @@ def test_documents_are_stored_under_random_names_and_keep_the_name_chosen(api, e
     assert "Asha Persaud payslip query.pdf" in download["Content-Disposition"]
 
 
+def _signed_in(user):
+    from rest_framework.test import APIClient
+
+    client = APIClient()
+    client.force_login(user)
+    session = client.session
+    session["mfa_verified"] = True
+    session.save()
+    return client
+
+
+@pytest.mark.django_db
+def test_each_classification_is_read_only_by_the_roles_it_is_for(api, employee, make_user, campus):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    def upload(title, doc_type, classification):
+        pdf = SimpleUploadedFile(f"{title}.pdf", b"%PDF-1.7 file", content_type="application/pdf")
+        body = {"employee": employee.id, "title": title, "doc_type": doc_type, "file": pdf}
+        response = api.post(
+            "/api/v1/documents/", {**body, "classification": classification}, format="multipart"
+        )
+        assert response.status_code == 201, response.content
+        return response.json()
+
+    upload("Certificate", "certificate", "internal")
+    contract = upload("Contract", "contract", "confidential")
+    upload("Doctor's note", "medical", "medical")
+    readers = {
+        "supervisor": (make_user("unit.head", "supervisor", campus=campus), {"Certificate"}),
+        "finance": (make_user("finance.officer", "finance"), {"Certificate"}),
+        "principal": (make_user("the.principal", "principal"), {"Certificate", "Contract"}),
+        "auditor": (make_user("audit.reader", "auditor"), {"Certificate", "Contract"}),
+        "hr_manager": (make_user("hr.head", "hr_manager"), {"Certificate", "Contract", "Doctor's note"}),
+    }
+    for role, (user, titles) in readers.items():
+        client = _signed_in(user)
+        listed = client.get("/api/v1/documents/", {"employee": employee.id}).json()["results"]
+        assert {d["title"] for d in listed} == titles, role
+        allowed = "Contract" in titles
+        assert client.get(contract["download_url"]).status_code == (200 if allowed else 404), role
+    seen = {d["title"] for d in api.get("/api/v1/documents/", {"employee": employee.id}).json()["results"]}
+    assert seen == {"Certificate", "Contract"}  # an HR officer: confidential, but not medical
+
+
+@pytest.mark.django_db
+def test_a_document_is_never_filed_below_what_its_type_needs(api, employee):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    def upload(doc_type, **extra):
+        pdf = SimpleUploadedFile("scan.pdf", b"%PDF-1.7 scan", content_type="application/pdf")
+        body = {"employee": employee.id, "title": "Scan", "doc_type": doc_type, "file": pdf, **extra}
+        return api.post("/api/v1/documents/", body, format="multipart")
+
+    lowered = upload("contract", classification="internal")
+    assert lowered.status_code == 400
+    assert lowered.json()["classification"] == ["A contract is filed as Confidential or Medical."]
+    assert upload("medical", classification="confidential").json()["classification"] == [
+        "A medical document is filed as Medical."
+    ]
+    assert upload("id_copy").json()["classification"] == "confidential"  # not chosen: as its type needs
+    certificate = upload("certificate").json()
+    assert certificate["classification"] == "internal"
+    moved = api.patch(f"/api/v1/documents/{certificate['id']}/", {"doc_type": "contract"}, format="multipart")
+    assert moved.status_code == 400
+
+
 @pytest.mark.django_db
 def test_a_page_disguised_as_a_pdf_is_refused(api, employee):
     from django.core.files.uploadedfile import SimpleUploadedFile

@@ -2,6 +2,8 @@
 
 from decimal import Decimal
 
+from django.utils import timezone
+
 from people.models import Contract, Employee
 
 WEEKS_PER_YEAR = Decimal(52)
@@ -37,12 +39,12 @@ def current_contract(employee: Employee) -> Contract | None:
 
 
 def hourly_rate(contract: Contract) -> Decimal | None:
-    """The contract's own rate, or the grade's monthly amount spread over the contracted hours."""
+    """The contract's own rate, or the grade's monthly amount in force today over the contracted hours."""
     if contract.hourly_rate is not None:
         return contract.hourly_rate
     if not contract.hours_per_week:
         return None
-    monthly = contract.assignment.position.grade.amount
+    monthly = contract.assignment.position.grade.amount_on(timezone.localdate())
     return (monthly * 12 / (WEEKS_PER_YEAR * contract.hours_per_week)).quantize(Decimal("0.01"))
 
 

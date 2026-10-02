@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "reports",
     "notifications",
     "privacy",
+    "letters",
     "integration",
     # Release 2 scaffolds
     "attendance",
@@ -217,9 +218,15 @@ PRIVACY_RESPONSE_DAYS = int(env("PRIVACY_RESPONSE_DAYS", "30"))
 PASSWORD_RESETS_PER_ADDRESS = int(env("PASSWORD_RESETS_PER_ADDRESS", "5"))
 PASSWORD_RESETS_PER_ACCOUNT = 3
 
+# Letters (letters/pdf.py): the name at the head of every letter, and the start of every reference.
+LETTER_ORGANISATION = env("LETTER_ORGANISATION", "Guyana School of Agriculture")
+LETTER_REFERENCE_PREFIX = env("LETTER_REFERENCE_PREFIX", "GSA/HR")
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "handlers": {"console": {"class": "logging.StreamHandler"}},
     "root": {"handlers": ["console"], "level": "INFO"},
+    # The PDF engine's font tools report every font they trim at INFO: a letter is not worth twenty lines.
+    "loggers": {"fontTools": {"level": "WARNING"}},
 }
