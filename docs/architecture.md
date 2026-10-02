@@ -60,7 +60,10 @@ Solid lines are Release 1; dotted lines are Release 2.
 
 ## Security
 
-TLS at Caddy; session auth for the web app and short-lived tokens for installed clients; MFA (TOTP) for
-Administrator, HR Manager and Finance roles; role scopes by campus and unit enforced in one permission layer;
-NIS number, TIN and national ID encrypted at the application layer with `FIELD_ENCRYPTION_KEY` held only in
-the server environment; insert-only `audit_log` table; OWASP checks in CI before go-live.
+TLS at Caddy; session cookies for the web app, including when it is installed on a phone; MFA (TOTP) for
+Administrator, HR Manager and Finance roles, enforced in the permission layer and in the Django admin, which
+accepts only a verified web sign-in; role scopes by campus and unit enforced in one permission layer that fails
+closed; NIS number, TIN and national ID encrypted at the application layer with `FIELD_ENCRYPTION_KEY` held only
+in the server environment; insert-only `audit_log` table. Threats, controls and open gaps are in
+[security/threat-model.md](security/threat-model.md); the privacy assessment is
+[privacy/dpia.md](privacy/dpia.md).

@@ -1,6 +1,7 @@
 # ADR 0001: Technology stack and licence policy
 
 **Status:** accepted for Release 1, pending Steering Committee confirmation at Gate 1 (30 October 2026).
+**Amended by:** [ADR 0002](0002-licence-policy.md) (licence policy, 1 October 2026).
 **Date:** 25 September 2026.
 
 ## Context

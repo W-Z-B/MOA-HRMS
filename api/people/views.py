@@ -38,6 +38,9 @@ def _search(qs, text: str):
 
 
 class EmployeeViewSet(AuditedModelViewSet):
+    # Every request is scoped in get_queryset. The empty default fails closed and names the model for
+    # the API schema; the viewsets below follow the same pattern.
+    queryset = Employee.objects.none()
     serializer_class = serializers.EmployeeSerializer
     read_roles = STAFF_READ
     write_roles = HR_WRITE
@@ -71,6 +74,7 @@ class EmployeeViewSet(AuditedModelViewSet):
 
 
 class AssignmentViewSet(AuditedModelViewSet):
+    queryset = Assignment.objects.none()
     serializer_class = serializers.AssignmentSerializer
     read_roles = STAFF_READ
     write_roles = HR_WRITE
@@ -83,6 +87,7 @@ class AssignmentViewSet(AuditedModelViewSet):
 
 
 class ContractViewSet(AuditedModelViewSet):
+    queryset = Contract.objects.none()
     serializer_class = serializers.ContractSerializer
     read_roles = STAFF_READ
     write_roles = HR_WRITE
@@ -106,6 +111,7 @@ class ContractViewSet(AuditedModelViewSet):
 
 
 class DocumentViewSet(AuditedModelViewSet):
+    queryset = Document.objects.none()
     serializer_class = serializers.DocumentSerializer
     parser_classes = (MultiPartParser, FormParser)
     read_roles = STAFF_READ

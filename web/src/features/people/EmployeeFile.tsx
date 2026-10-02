@@ -12,7 +12,7 @@ import {
   type Position,
   type Reveal,
 } from "../../api/types";
-import { inDays } from "../../app/format";
+import { dmy, inDays } from "../../app/format";
 import { ContractTab } from "./ContractTab";
 
 type FileTab = "personal" | "assignments" | "contract" | "documents" | "leave";
@@ -102,7 +102,7 @@ export function EmployeeFile({ employee, me, onEdit }: Props) {
           <dt>Position</dt>
           <dd>{employee.position_title ?? "Unassigned"}</dd>
           <dt>Date of birth</dt>
-          <dd>{employee.date_of_birth}</dd>
+          <dd>{dmy(employee.date_of_birth)}</dd>
           <dt>Email</dt>
           <dd>{employee.email || "not recorded"}</dd>
           <dt>Phone</dt>

@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { get, post } from "../api/client";
 import { isOfficeUser, type Campus, type Me, type Paginated } from "../api/types";
+import { initials } from "./format";
 import { NotificationsBell } from "./NotificationsBell";
 import { navFor } from "./router";
 
@@ -53,7 +54,13 @@ export function Shell({ me, path, onNavigate, onLogout, campusId, onCampusChange
         <span className="spacer" />
         <NotificationsBell onNavigate={onNavigate} />
         <span className="user">
-          {me.name} <small>{me.roles.join(", ") || "no role"}</small>
+          <span className="user-full">
+            {me.name} <small>{me.roles.join(", ") || "no role"}</small>
+          </span>
+          {/* Phones show initials only, so the bar never pushes Sign out off the screen. */}
+          <span className="user-initials" role="img" aria-label={`Signed in as ${me.name}`} title={me.name}>
+            {initials(me.name)}
+          </span>
         </span>
         <button className="link" onClick={logout}>
           Sign out

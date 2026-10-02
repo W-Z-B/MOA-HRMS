@@ -1,16 +1,35 @@
 """GET /api/v1/reports/ lists definitions; GET /api/v1/reports/{key}/ runs one (JSON for now)."""
 
 from django.urls import path
-from rest_framework import status
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
+from rest_framework import serializers, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
+from core.serializers import ErrorSerializer
 from iam.permissions import RolePermission
 from iam.services import has_role
 from reports.models import ReportDefinition
 from reports.queries import REPORTS
 
 
+class ReportSummarySerializer(serializers.Serializer):
+    key = serializers.SlugField()
+    name = serializers.CharField()
+    description = serializers.CharField()
+    ministry_pack = serializers.BooleanField()
+
+
+class ReportResultSerializer(serializers.Serializer):
+    key = serializers.SlugField()
+    name = serializers.CharField()
+    rows = serializers.ListField(
+        child=serializers.DictField(), help_text="One object per row; keys vary by report"
+    )
+
+
+@extend_schema(responses=ReportSummarySerializer(many=True), summary="Reports my roles may run")
 @api_view(["GET"])
 @permission_classes([RolePermission])
 def list_reports(request):
@@ -22,6 +41,17 @@ def list_reports(request):
     return Response(rows)
 
 
+@extend_schema(
+    operation_id="reports_run",
+    parameters=[
+        OpenApiParameter(
+            "output", OpenApiTypes.STR, enum=["json"], description="json (PDF and Excel to come)"
+        ),
+        OpenApiParameter("campus", OpenApiTypes.INT, description="Campus id, where the report allows it"),
+    ],
+    responses={200: ReportResultSerializer, 403: ErrorSerializer, 404: ErrorSerializer, 501: ErrorSerializer},
+    summary="Run one report on live data",
+)
 @api_view(["GET"])
 @permission_classes([RolePermission])
 def run_report(request, key: str):

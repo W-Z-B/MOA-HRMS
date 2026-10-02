@@ -80,7 +80,19 @@ export function DirectoryScreen({ me, campusId, initialId, onNavigate }: Props) 
           )}
         </div>
         <div className="filters">
-          <input id="people-search" placeholder="Search name or employee number" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <label className="sr-only" htmlFor="people-search">
+            Search staff
+          </label>
+          <input
+            id="people-search"
+            type="search"
+            placeholder="Search name or employee number"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          <label className="sr-only" htmlFor="people-status">
+            Status
+          </label>
           <select id="people-status" value={status} onChange={(e) => setStatus(e.target.value)}>
             <option value="">Any status</option>
             {Object.entries(STATUS_LABEL).map(([k, v]) => (
@@ -89,9 +101,15 @@ export function DirectoryScreen({ me, campusId, initialId, onNavigate }: Props) 
               </option>
             ))}
           </select>
-          <span className="muted">{count} staff</span>
+          <span className="muted" aria-live="polite">
+            {count} staff
+          </span>
         </div>
-        {error && <p className="error">{error}</p>}
+        {error && (
+          <p role="alert" className="error">
+            {error}
+          </p>
+        )}
         <table className="cards">
           <thead>
             <tr>
@@ -106,7 +124,20 @@ export function DirectoryScreen({ me, campusId, initialId, onNavigate }: Props) 
             {rows.map((e) => (
               <tr key={e.id} onClick={() => select(e)} className={selected?.id === e.id ? "selected" : ""}>
                 <td data-label="No.">{e.employee_no}</td>
-                <td data-label="Name">{e.full_name}</td>
+                <td data-label="Name">
+                  {/* The row opens on a click anywhere; the link makes it reachable by keyboard and screen reader. */}
+                  <a
+                    href={`#/people/${e.id}`}
+                    aria-current={selected?.id === e.id ? "true" : undefined}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      select(e);
+                    }}
+                  >
+                    {e.full_name}
+                  </a>
+                </td>
                 <td data-label="Position">{e.position_title ?? <span className="muted">Unassigned</span>}</td>
                 <td data-label="Campus">{e.campus_name}</td>
                 <td data-label="Status">{STATUS_LABEL[e.status]}</td>

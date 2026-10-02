@@ -1,8 +1,22 @@
 import pyotp
 import pytest
+from django.contrib.auth.models import AnonymousUser
 from rest_framework.test import APIClient
 
 from iam.models import TotpDevice
+from iam.services import role_codes, scope_queryset
+from integration.auth import ServiceUser
+from integration.models import ServiceClient
+from people.models import Employee
+
+
+@pytest.mark.django_db
+def test_scoping_fails_closed_for_callers_who_are_not_people(employee):
+    """An anonymous caller or a service key never reaches personnel rows through scope_queryset."""
+    client = ServiceClient(name="srms", scopes=["staff:read"])
+    for caller in (AnonymousUser(), ServiceUser(client)):
+        assert role_codes(caller) == set()
+        assert list(scope_queryset(caller, Employee.objects.all())) == []
 
 
 @pytest.mark.django_db
@@ -66,3 +80,20 @@ def test_account_locks_after_repeated_failures(hr_officer, settings):
         ).status_code
         == 401
     )
+
+
+@pytest.mark.django_db
+def test_admin_needs_the_verified_web_sign_in(make_user):
+    """The admin has no password form of its own and refuses a superuser who has not passed MFA."""
+    admin_user = make_user("root.admin", superuser=True)
+    client = APIClient()
+    client.force_login(admin_user)
+    assert client.get("/admin/").status_code == 302  # signed in, but no authenticator code yet
+
+    login_form = client.get("/admin/login/")
+    assert login_form.status_code == 302 and login_form["Location"] == "/"
+
+    session = client.session
+    session["mfa_verified"] = True
+    session.save()
+    assert client.get("/admin/").status_code == 200

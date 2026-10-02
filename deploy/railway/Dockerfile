@@ -27,8 +27,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
+# Runtime packages only, pinned with hashes. Development tools live in requirements-dev.txt.
 COPY api/requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip install --require-hashes -r requirements.txt
 
 COPY api/ .
 RUN python manage.py collectstatic --noinput
