@@ -68,3 +68,7 @@ Staging may hold the fictional dataset described in the main README. Load it in 
 ```bash
 railway ssh --service hrms -- "su app -s /bin/bash -c 'cd /app && python manage.py seed_demo --fictional'"
 ```
+
+The invented staff receive accounts only if the owner sets `DEMO_USER_PASSWORD` on the service before
+running the command. Staging is reachable from the internet: choose a long password, give it only to
+the people who will demonstrate the system, and remove the variable afterwards.

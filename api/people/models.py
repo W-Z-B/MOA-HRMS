@@ -133,6 +133,20 @@ class Contract(TimeStampedModel):
     term_months = models.PositiveSmallIntegerField(null=True, blank=True)
     signed_on = models.DateField(null=True, blank=True)
     document = models.ForeignKey("people.Document", null=True, blank=True, on_delete=models.SET_NULL)
+    # Terms written into the contract. Leave and sick-day entitlements are rows in leave.Entitlement.
+    hours_per_week = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
+    hourly_rate = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="GYD per hour. Leave empty for salaried staff: the rate is then worked out from the grade",
+    )
+    notice_period_days = models.PositiveSmallIntegerField(null=True, blank=True)
+    other_terms = models.TextField(blank=True, help_text="Allowances, duties or conditions particular to it")
+
+    class Meta:
+        ordering = [models.F("signed_on").desc(nulls_last=True), "-id"]
 
     def __str__(self) -> str:
         return f"{self.get_contract_type_display()} for {self.assignment}"

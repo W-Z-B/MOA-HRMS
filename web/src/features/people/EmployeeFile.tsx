@@ -12,8 +12,10 @@ import {
   type Position,
   type Reveal,
 } from "../../api/types";
+import { inDays } from "../../app/format";
+import { ContractTab } from "./ContractTab";
 
-type FileTab = "personal" | "assignments" | "documents" | "leave";
+type FileTab = "personal" | "assignments" | "contract" | "documents" | "leave";
 
 const STATUS_LABEL: Record<Employee["status"], string> = {
   active: "Active",
@@ -28,7 +30,7 @@ interface Props {
   onEdit: () => void;
 }
 
-/** Tabbed employee file: personal (with audited reveal), assignments, documents, leave balances. */
+/** Tabbed employee file: personal (with audited reveal), assignments, contract, documents, leave. */
 export function EmployeeFile({ employee, me, onEdit }: Props) {
   const [tab, setTab] = useState<FileTab>("personal");
   const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -83,7 +85,7 @@ export function EmployeeFile({ employee, me, onEdit }: Props) {
         )}
       </div>
       <div className="tabs" role="tablist">
-        {(["personal", "assignments", "documents", "leave"] as FileTab[]).map((t) => (
+        {(["personal", "assignments", "contract", "documents", "leave"] as FileTab[]).map((t) => (
           <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? "tab active" : "tab"} onClick={() => setTab(t)}>
             {t[0].toUpperCase() + t.slice(1)}
           </button>
@@ -148,6 +150,8 @@ export function EmployeeFile({ employee, me, onEdit }: Props) {
         </>
       )}
 
+      {tab === "contract" && <ContractTab employee={employee} isHr={isHr} />}
+
       {tab === "documents" && (
         <>
           {documents.length === 0 ? (
@@ -176,7 +180,10 @@ export function EmployeeFile({ employee, me, onEdit }: Props) {
             {balances.map((b) => (
               <div key={b.leave_type}>
                 <dt>{b.name}</dt>
-                <dd className="num">{b.balance} days</dd>
+                <dd className="num">
+                  {inDays(b.balance)}
+                  {Number(b.pending) > 0 && ` (${inDays(b.pending)} awaiting a decision)`}
+                </dd>
               </div>
             ))}
           </dl>

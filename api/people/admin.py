@@ -33,7 +33,7 @@ class AssignmentAdmin(admin.ModelAdmin):
 
 @admin.register(Contract)
 class ContractAdmin(admin.ModelAdmin):
-    list_display = ("assignment", "contract_type", "term_months", "signed_on")
+    list_display = ("assignment", "contract_type", "term_months", "signed_on", "hours_per_week")
 
 
 @admin.register(Document)

@@ -45,16 +45,22 @@ def test_leave_transitions_notify_the_next_actor(employee, make_user, campus, se
     client.post(f"/api/v1/leave/requests/{created['id']}/transition/", {"action": "approve"})
     assert Notification.objects.filter(recipient=hr, title__contains="awaits HR approval").exists()
 
+    # The owner is told when the request moves on to HR, and again when it is approved.
+    progress = Notification.objects.get(recipient=owner)
+    assert progress.title == "Your manager approved your leave request"
+
     client.force_login(hr)
     client.post(f"/api/v1/leave/requests/{created['id']}/transition/", {"action": "approve"})
-    owner_note = Notification.objects.get(recipient=owner)
+    owner_note = Notification.objects.exclude(pk=progress.pk).get(recipient=owner)
     assert owner_note.title == "Your leave request was approved"
+    assert "Remaining: Annual leave 8 days" in owner_note.body
 
     # The owner's inbox through the API: unread count, then mark read.
     client.force_login(owner)
     inbox = client.get("/api/v1/notifications/").json()
-    assert inbox["unread"] == 1 and inbox["results"][0]["id"] == owner_note.id
+    assert inbox["unread"] == 2 and inbox["results"][0]["id"] == owner_note.id
     assert client.post(f"/api/v1/notifications/{owner_note.id}/read/").status_code == 200
+    assert client.post(f"/api/v1/notifications/{progress.id}/read/").status_code == 200
     assert client.get("/api/v1/notifications/?unread=1").json()["unread"] == 0
     # Nobody else can read or mark the owner's notification.
     client.force_login(hr)

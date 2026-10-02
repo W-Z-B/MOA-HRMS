@@ -46,11 +46,17 @@ Solid lines are Release 1; dotted lines are Release 2.
 
 ## Request flow: leave request (Release 1)
 
-1. Employee submits from the PWA. Offline submissions are queued and replayed.
-2. `POST /api/v1/leave/requests` validates dates, balance (sum of ledger rows) and overlaps, creates the request in state `submitted`, writes an audit row in the same transaction.
-3. The workflow resolves the approval chain from the employee's position (supervisor, then campus HR Officer) and enqueues a notification job.
-4. The worker sends email. Approvers act through `POST /api/v1/leave/requests/{id}/transition`.
-5. Final approval debits the ledger. Balances are never stored as mutable numbers.
+1. Employee fills the form in the PWA. `POST /api/v1/leave/requests/check` answers as they type: days,
+   balance left, whether evidence is needed, anything that blocks the request. Offline submissions are
+   queued and replayed; one that needs evidence is kept as a draft until the file is attached.
+2. `POST /api/v1/leave/requests` validates dates, balance, overlaps and eligibility and creates a draft;
+   `POST .../{id}/evidence` attaches the doctor's note or other evidence; an audit row is written in the
+   same transaction.
+3. `POST .../{id}/transition` with `submit` checks the rules again, sends the request to the employee's
+   manager (head of their unit, or the nearest head above) and notifies them.
+4. The manager approves; Human Resources gives the final approval. Nobody decides their own request.
+5. Final approval debits the ledger, issues the receipt and notifies the employee with the days left.
+   Balances are never stored as mutable numbers.
 
 ## Security
 

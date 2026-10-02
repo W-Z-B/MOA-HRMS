@@ -2,6 +2,9 @@
  * Offline queue for writes made without a connection (Essequibo campus).
  * Items live in localStorage (per device, per browser) and are replayed in order when the
  * connection returns. Only leave requests are queued in Release 1.
+ *
+ * A file cannot be kept here, so a request that turns out to need a doctor's note is saved on the
+ * server as a draft and waits for the employee to attach the note and submit it.
  */
 
 import { post } from "../api/client";
@@ -12,6 +15,12 @@ export interface QueuedLeaveRequest {
   payload: Record<string, unknown>;
   submit: boolean;
   createdAt: string;
+}
+
+export interface FlushResult {
+  sent: number;
+  drafts: number;
+  rejected: number;
 }
 
 const KEY = "gsa-hrms.offline-queue";
@@ -57,23 +66,27 @@ export function subscribe(fn: () => void): () => void {
 
 let flushing = false;
 
-/** Replay queued items in order. Stops at the first network failure; drops items the server rejects. */
-export async function flush(): Promise<{ sent: number; rejected: number }> {
-  if (flushing || !navigator.onLine) return { sent: 0, rejected: 0 };
+/**
+ * Replay queued items in order. Stops at the first network failure; drops items the server rejects.
+ * An item the server saved but would not submit is counted as a draft.
+ */
+export async function flush(): Promise<FlushResult> {
+  const result: FlushResult = { sent: 0, drafts: 0, rejected: 0 };
+  if (flushing || !navigator.onLine) return result;
   flushing = true;
-  let sent = 0;
-  let rejected = 0;
   try {
     let items = read();
     while (items.length > 0) {
       const item = items[0];
+      let created: { id: number } | null = null;
       try {
-        const created = await post<{ id: number }>("/leave/requests/", item.payload);
+        created = await post<{ id: number }>("/leave/requests/", item.payload);
         if (item.submit) await post(`/leave/requests/${created.id}/transition/`, { action: "submit" });
-        sent += 1;
+        result.sent += 1;
       } catch (err) {
-        if (isNetworkError(err)) break; // still offline; keep the item
-        rejected += 1; // validation or permission error: do not retry forever
+        if (isNetworkError(err) && created === null) break; // still offline; keep the item
+        if (created === null) result.rejected += 1; // validation or permission error: do not retry forever
+        else result.drafts += 1;
       }
       items = items.slice(1);
       write(items);
@@ -81,7 +94,7 @@ export async function flush(): Promise<{ sent: number; rejected: number }> {
   } finally {
     flushing = false;
   }
-  return { sent, rejected };
+  return result;
 }
 
 export function startAutoFlush() {

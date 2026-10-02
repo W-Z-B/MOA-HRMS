@@ -1,36 +1,46 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { ApiError, get, post } from "../../api/client";
-import type { LeaveBalance, LeaveRequest, LeaveType, Me, Paginated } from "../../api/types";
-import { enqueueLeave, flush, isNetworkError, pendingCount, subscribe } from "../../app/offlineQueue";
+import { useCallback, useEffect, useState } from "react";
+import { get, plainMessage, post } from "../../api/client";
+import {
+  HR_ROLES,
+  hasAnyRole,
+  type LeaveBalance,
+  type LeaveRequest,
+  type LeaveType,
+  type Me,
+  type Paginated,
+} from "../../api/types";
+import { inDays, num } from "../../app/format";
+import { flush, pendingCount, subscribe } from "../../app/offlineQueue";
+import { Receipt } from "./Receipt";
+import { RequestCard } from "./RequestCard";
+import { RequestForm } from "./RequestForm";
 
 interface Props {
   me: Me;
   focusId: number | null;
+  onNavigate: (to: string) => void;
 }
 
-type Tab = "mine" | "approvals" | "balances";
+type Tab = "mine" | "decide";
 
-const STATE_LABEL: Record<string, string> = {
-  draft: "Draft",
-  submitted: "Submitted",
-  supervisor_approved: "Supervisor approved",
-  approved: "Approved",
-  rejected: "Rejected",
-  cancelled: "Cancelled",
-};
-
-/** Wireframe 3: my requests with a new-request form, an approvals inbox, and ledger balances. */
-export function LeaveScreen({ me, focusId }: Props) {
-  const [tab, setTab] = useState<Tab>(focusId ? "approvals" : "mine");
+/**
+ * Wireframe 3, laid out for a phone first: what I have left, a request form that checks as I type,
+ * my requests with their progress, and the requests waiting for my decision.
+ */
+export function LeaveScreen({ me, focusId, onNavigate }: Props) {
+  const [tab, setTab] = useState<Tab>("mine");
   const [mine, setMine] = useState<LeaveRequest[]>([]);
   const [queue, setQueue] = useState<LeaveRequest[]>([]);
+  const [elsewhere, setElsewhere] = useState<LeaveRequest[]>([]);
   const [balances, setBalances] = useState<LeaveBalance[]>([]);
   const [types, setTypes] = useState<LeaveType[]>([]);
+  const [focused, setFocused] = useState<LeaveRequest | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [comments, setComments] = useState<Record<number, string>>({});
-  const [pending, setPending] = useState<number>(pendingCount);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [waiting, setWaiting] = useState<number>(pendingCount);
+  const isHr = hasAnyRole(me, HR_ROLES);
 
-  useEffect(() => subscribe(() => setPending(pendingCount())), []);
+  useEffect(() => subscribe(() => setWaiting(pendingCount())), []);
 
   const load = useCallback(() => {
     const own = me.employee_id ? get<Paginated<LeaveRequest>>(`/leave/requests/?employee=${me.employee_id}`) : null;
@@ -41,241 +51,173 @@ export function LeaveScreen({ me, focusId }: Props) {
       me.employee_id ? get<{ balances: LeaveBalance[] }>("/leave/ledger/balances/") : null,
       get<Paginated<LeaveType>>("/leave/types/"),
     ])
-      .then(([ownRes, submitted, supApproved, bal, typesRes]) => {
+      .then(([ownRes, submitted, withHr, bal, typesRes]) => {
         setMine(ownRes?.results ?? []);
-        const pending = [...submitted.results, ...supApproved.results].filter(
-          (r) => r.allowed_actions.includes("approve") || r.allowed_actions.includes("reject"),
+        const open = [...submitted.results, ...withHr.results].filter((r) => !r.is_mine);
+        setQueue(open.filter((r) => r.allowed_actions.includes("approve")));
+        // Not this person's turn, but theirs to stop: HR sees what is still with a manager.
+        setElsewhere(
+          open.filter((r) => !r.allowed_actions.includes("approve") && r.allowed_actions.includes("reject")),
         );
-        setQueue(pending);
         setBalances(bal?.balances ?? []);
         setTypes(typesRes.results);
         setError(null);
       })
-      .catch((err) => setError(err instanceof ApiError ? err.detail : "Could not load leave data."));
+      .catch((err) => setError(plainMessage(err, "Could not load leave data.")));
   }, [me.employee_id]);
 
   useEffect(load, [load]);
 
-  async function transition(id: number, action: string) {
+  // A link from a notification names one request: open its receipt, or the list it belongs in.
+  useEffect(() => {
+    if (!focusId) return; // a request opened earlier is ignored below once the link no longer names it
+    let current = true;
+    get<LeaveRequest>(`/leave/requests/${focusId}/`)
+      .then((r) => {
+        if (!current) return;
+        setFocused(r);
+        setTab(r.is_mine ? "mine" : "decide");
+      })
+      .catch(() => current && setFocused(null));
+    return () => {
+      current = false;
+    };
+  }, [focusId]);
+
+  async function act(request: LeaveRequest, action: string, comment: string) {
+    setNotice(null);
     try {
-      await post(`/leave/requests/${id}/transition/`, { action, comment: comments[id] ?? "" });
+      const moved = await post<LeaveRequest>(`/leave/requests/${request.id}/transition/`, { action, comment });
+      setError(null);
+      if (action === "submit") setNotice(`Sent to ${moved.manager_name ?? "your campus supervisors"} for approval.`);
+      if (action === "approve" && moved.state === "approved")
+        setNotice(`Approved. ${moved.employee_name} has been sent a receipt.`);
+      if (action === "approve" && moved.state !== "approved") setNotice("Approved. It is now with Human Resources.");
       load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.detail : "Action failed.");
+      setError(plainMessage(err, "That did not go through. Try again."));
     }
   }
+
+  async function attach(request: LeaveRequest, file: File) {
+    const body = new FormData();
+    body.set("file", file);
+    try {
+      await post(`/leave/requests/${request.id}/evidence/`, body);
+      setError(null);
+      load();
+    } catch (err) {
+      setError(plainMessage(err, "The file could not be attached."));
+    }
+  }
+
+  if (focused?.receipt && focusId === focused.id)
+    return <Receipt receipt={focused.receipt} onBack={() => onNavigate("/leave")} />;
+
+  const canDecide = queue.length > 0 || hasAnyRole(me, ["supervisor", ...HR_ROLES]);
+  const card = (r: LeaveRequest, view: Tab) => (
+    <RequestCard
+      key={r.id}
+      request={r}
+      view={view}
+      canOpenNote={r.is_mine || isHr}
+      highlighted={r.id === focusId}
+      onAction={act}
+      onAttach={attach}
+      onReceipt={(request) => onNavigate(`/leave/requests/${request.id}`)}
+    />
+  );
 
   return (
     <>
       <h1>Leave</h1>
-      <div className="tabs" role="tablist">
-        {(["mine", "approvals", "balances"] as Tab[]).map((t) => (
-          <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? "tab active" : "tab"} onClick={() => setTab(t)}>
-            {t === "mine" ? "My requests" : t === "approvals" ? `Approvals (${queue.length})` : "Balances"}
+      {balances.length > 0 && (
+        <section className="tiles" aria-label="Days you have left">
+          {balances
+            .filter((b) => b.limited)
+            .map((b) => (
+              <div className="tile" key={b.leave_type}>
+                <span className="num">{parseFloat(Math.max(num(b.available), 0).toFixed(2))}</span>
+                <span>{b.name} left</span>
+                <span className="muted small">
+                  {inDays(b.entitlement)} a year
+                  {num(b.pending) > 0 && ` · ${inDays(b.pending)} awaiting a decision`}
+                </span>
+              </div>
+            ))}
+        </section>
+      )}
+
+      {canDecide && (
+        <div className="tabs" role="tablist">
+          <button role="tab" aria-selected={tab === "mine"} className={tab === "mine" ? "tab active" : "tab"} onClick={() => setTab("mine")}>
+            My leave
           </button>
-        ))}
-      </div>
-      {error && (
-        <p role="alert" className="error">
-          {error}
-        </p>
+          <button role="tab" aria-selected={tab === "decide"} className={tab === "decide" ? "tab active" : "tab"} onClick={() => setTab("decide")}>
+            To decide ({queue.length})
+          </button>
+        </div>
       )}
-
-      {tab === "mine" && (
-        <>
-          {pending > 0 && (
-            <p role="status" className="notice">
-              {pending} request{pending === 1 ? "" : "s"} saved on this device, waiting for a connection.{" "}
-              <button className="link" onClick={() => flush().then(load)}>
-                Try sending now
-              </button>
-            </p>
-          )}
-          {me.employee_id ? (
-            <NewRequestForm employeeId={me.employee_id} types={types} onCreated={load} />
-          ) : (
-            <p className="muted">Your account is not linked to an employee record, so you cannot request leave here.</p>
-          )}
-          <RequestTable rows={mine} onAction={transition} comments={comments} setComments={setComments} focusId={focusId} />
-        </>
-      )}
-      {tab === "approvals" && (
-        <RequestTable rows={queue} onAction={transition} comments={comments} setComments={setComments} focusId={focusId} showEmployee />
-      )}
-      {tab === "balances" && (
-        <table>
-          <thead>
-            <tr>
-              <th>Leave type</th>
-              <th className="num">Balance (days)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {balances.length === 0 ? (
-              <tr>
-                <td colSpan={2} className="muted">
-                  No ledger entries yet.
-                </td>
-              </tr>
-            ) : (
-              balances.map((b) => (
-                <tr key={b.leave_type}>
-                  <td>{b.name}</td>
-                  <td className="num">{b.balance}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      )}
-    </>
-  );
-}
-
-function NewRequestForm({ employeeId, types, onCreated }: { employeeId: number; types: LeaveType[]; onCreated: () => void }) {
-  const [leaveType, setLeaveType] = useState("");
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const [reason, setReason] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  async function submit(e: FormEvent, andSubmit: boolean) {
-    e.preventDefault();
-    setBusy(true);
-    setError(null);
-    setNotice(null);
-    const payload = { employee: employeeId, leave_type: Number(leaveType), from_date: from, to_date: to, reason };
-    try {
-      const created = await post<LeaveRequest>("/leave/requests/", payload);
-      if (andSubmit) await post(`/leave/requests/${created.id}/transition/`, { action: "submit" });
-      setFrom("");
-      setTo("");
-      setReason("");
-      onCreated();
-    } catch (err) {
-      if (err instanceof ApiError) {
-        const fieldMsg = err.fields ? Object.values(err.fields).flat()[0] : undefined;
-        setError(fieldMsg ?? err.detail);
-      } else if (isNetworkError(err)) {
-        enqueueLeave(payload, andSubmit);
-        setFrom("");
-        setTo("");
-        setReason("");
-        setNotice("No connection. The request is saved on this device and will be sent when the network returns.");
-      } else setError("Could not save the request.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <form className="card form-row" onSubmit={(e) => submit(e, true)}>
-      <label>
-        Leave type
-        <select id="leave-type" value={leaveType} onChange={(e) => setLeaveType(e.target.value)} required>
-          <option value="">Choose</option>
-          {types.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label>
-        From
-        <input id="leave-from" type="date" value={from} onChange={(e) => setFrom(e.target.value)} required />
-      </label>
-      <label>
-        To
-        <input id="leave-to" type="date" value={to} onChange={(e) => setTo(e.target.value)} required />
-      </label>
-      <label className="grow">
-        Reason
-        <input id="leave-reason" value={reason} onChange={(e) => setReason(e.target.value)} maxLength={300} />
-      </label>
       {error && (
         <p role="alert" className="error">
           {error}
         </p>
       )}
       {notice && (
-        <p role="status" className="notice">
+        <p role="status" className="notice good">
           {notice}
         </p>
       )}
-      <div className="actions">
-        <button type="button" className="secondary" disabled={busy} onClick={(e) => submit(e, false)}>
-          Save draft
-        </button>
-        <button type="submit" disabled={busy}>
-          Submit request
-        </button>
-      </div>
-    </form>
-  );
-}
 
-function RequestTable({
-  rows,
-  onAction,
-  comments,
-  setComments,
-  focusId,
-  showEmployee = false,
-}: {
-  rows: LeaveRequest[];
-  onAction: (id: number, action: string) => void;
-  comments: Record<number, string>;
-  setComments: (c: Record<number, string>) => void;
-  focusId: number | null;
-  showEmployee?: boolean;
-}) {
-  if (rows.length === 0) return <p className="muted">No requests.</p>;
-  return (
-    <table>
-      <thead>
-        <tr>
-          {showEmployee && <th>Employee</th>}
-          <th>Type</th>
-          <th>From</th>
-          <th>To</th>
-          <th className="num">Days</th>
-          <th>Status</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r) => (
-          <tr key={r.id} className={r.id === focusId ? "selected" : ""}>
-            {showEmployee && <td>{r.employee_name}</td>}
-            <td>{r.leave_type_code}</td>
-            <td>{r.from_date}</td>
-            <td>{r.to_date}</td>
-            <td className="num">{r.days}</td>
-            <td>
-              {STATE_LABEL[r.state] ?? r.state}
-              {r.decision_comment && <span className="muted small"> {r.decision_comment}</span>}
-            </td>
-            <td className="actions">
-              {r.allowed_actions.includes("reject") && (
-                <input
-                  aria-label="Rejection comment"
-                  placeholder="Comment (required to reject)"
-                  value={comments[r.id] ?? ""}
-                  onChange={(e) => setComments({ ...comments, [r.id]: e.target.value })}
-                />
-              )}
-              {r.allowed_actions.map((a) => (
-                <button key={a} className={a === "reject" || a === "cancel" ? "secondary" : ""} onClick={() => onAction(r.id, a)}>
-                  {a}
-                </button>
-              ))}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+      {(tab === "mine" || !canDecide) && (
+        <>
+          {waiting > 0 && (
+            <p role="status" className="notice">
+              {waiting} request{waiting === 1 ? "" : "s"} saved on this phone, waiting for a connection.{" "}
+              <button
+                className="link accent"
+                onClick={() =>
+                  flush().then((sent) => {
+                    if (sent.drafts > 0) setNotice("Saved as a draft: attach the note it needs, then send it.");
+                    load();
+                  })
+                }
+              >
+                Try sending now
+              </button>
+            </p>
+          )}
+          {me.employee_id ? (
+            <RequestForm
+              employeeId={me.employee_id}
+              types={types}
+              onSaved={(message) => {
+                setNotice(message);
+                load();
+              }}
+            />
+          ) : (
+            <p className="muted">Your account is not linked to an employee record, so you cannot request leave here.</p>
+          )}
+          <h2>My requests</h2>
+          {mine.length === 0 ? <p className="muted">You have made no requests.</p> : mine.map((r) => card(r, "mine"))}
+        </>
+      )}
+      {tab === "decide" && canDecide && (
+        <>
+          {queue.length === 0 ? (
+            <p className="muted">Nothing is waiting for your decision.</p>
+          ) : (
+            queue.map((r) => card(r, "decide"))
+          )}
+          {elsewhere.length > 0 && (
+            <>
+              <h2>Still with a manager</h2>
+              {elsewhere.map((r) => card(r, "decide"))}
+            </>
+          )}
+        </>
+      )}
+    </>
   );
 }
