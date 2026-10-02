@@ -37,10 +37,14 @@ def _audit(request, action: str, detail: dict) -> None:
     )
 
 
-def _staff_row(employee: Employee) -> dict:
+def _staff_row(employee: Employee, held: set[str] | None = None) -> dict:
+    """One member of staff for the sibling systems, without the parts of the record that are restricted
+    (item 1.46): the employee number and name always go, so the other systems know who is who."""
+    from privacy.restrictions import FEED_FIELDS
+
     current = employee.current_assignment
     unit = current.position.org_unit if current else None
-    return {
+    row = {
         "employee_no": employee.employee_no,
         "first_name": employee.first_name,
         "last_name": employee.last_name,
@@ -54,7 +58,12 @@ def _staff_row(employee: Employee) -> dict:
         "unit_code": unit.code if unit else None,
         "unit_name": unit.name if unit else None,
         "updated_at": employee.updated_at.isoformat(),
+        "restricted": sorted(held or ()),
     }
+    for part in held or ():
+        for field in FEED_FIELDS.get(part, ()):
+            row[field] = None
+    return row
 
 
 class StaffRowSerializer(serializers.Serializer):
@@ -63,9 +72,9 @@ class StaffRowSerializer(serializers.Serializer):
     employee_no = serializers.CharField()
     first_name = serializers.CharField()
     last_name = serializers.CharField()
-    other_names = serializers.CharField()
+    other_names = serializers.CharField(allow_null=True)
     full_name = serializers.CharField()
-    email = serializers.EmailField()
+    email = serializers.EmailField(allow_null=True)
     campus_code = serializers.CharField()
     status = serializers.CharField()
     position_title = serializers.CharField(allow_null=True)
@@ -73,6 +82,10 @@ class StaffRowSerializer(serializers.Serializer):
     unit_code = serializers.CharField(allow_null=True)
     unit_name = serializers.CharField(allow_null=True)
     updated_at = serializers.DateTimeField()
+    restricted = serializers.ListField(
+        child=serializers.CharField(),
+        help_text="Parts of the record restricted at the person's request; their fields are sent empty",
+    )
 
 
 class StaffPageSerializer(serializers.Serializer):
@@ -144,7 +157,12 @@ def staff(request):
     pager = Pager()
     page = pager.paginate_queryset(qs, request)
     _audit(request, "staff.read", {"count": len(page)})
-    return pager.get_paginated_response([_staff_row(e) for e in page])
+    from privacy.restrictions import in_force
+
+    held: dict[int, set[str]] = {}
+    for employee_id, part in in_force().filter(employee__in=page).values_list("employee_id", "part"):
+        held.setdefault(employee_id, set()).add(part)
+    return pager.get_paginated_response([_staff_row(e, held.get(e.pk)) for e in page])
 
 
 @extend_schema(responses=OrgSerializer, summary="Campus and unit codes (scope org:read)")

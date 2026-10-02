@@ -43,6 +43,9 @@ class EmployeeSerializer(TimeStampedSerializer):
         max_length=300,
         help_text="Why the record is changed; required on update",
     )
+    restricted = serializers.SerializerMethodField(
+        help_text="Parts of the record held back from use at the person's request (item 1.46), in words"
+    )
 
     class Meta(TimeStampedSerializer.Meta):
         model = Employee
@@ -70,6 +73,7 @@ class EmployeeSerializer(TimeStampedSerializer):
             "status",
             "position_title",
             "change_reason",
+            "restricted",
             "created_at",
             "updated_at",
         )
@@ -93,6 +97,12 @@ class EmployeeSerializer(TimeStampedSerializer):
     def get_position_title(self, obj) -> str | None:
         current = obj.current_assignment
         return current.position.title if current else None
+
+    def get_restricted(self, obj) -> list[str]:
+        held = getattr(obj, "held_back", None)
+        if held is None:
+            held = obj.restrictions.filter(lifted_at__isnull=True)
+        return sorted({f"{r.get_part_display()}: {r.get_ground_display().lower()}" for r in held})
 
 
 class EmployeeRevealSerializer(serializers.ModelSerializer):

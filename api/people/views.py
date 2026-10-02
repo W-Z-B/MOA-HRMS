@@ -5,7 +5,7 @@ from datetime import datetime, time
 
 from django.contrib.postgres.search import SearchQuery, SearchVector
 from django.db import IntegrityError, connection, transaction
-from django.db.models import Q
+from django.db.models import Prefetch, Q
 from django.http import FileResponse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
@@ -121,7 +121,12 @@ class EmployeeViewSet(AuditedModelViewSet):
     reason_required_for = ("update", "partial_update")
 
     def get_queryset(self):
-        qs = Employee.objects.select_related("campus").prefetch_related("assignments__position")
+        from privacy.models import Restriction
+
+        held = Prefetch(
+            "restrictions", queryset=Restriction.objects.filter(lifted_at__isnull=True), to_attr="held_back"
+        )
+        qs = Employee.objects.select_related("campus").prefetch_related("assignments__position", held)
         qs = scope_queryset(self.request.user, qs)
         params = self.request.query_params
         if params.get("q"):

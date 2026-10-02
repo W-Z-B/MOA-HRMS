@@ -184,7 +184,75 @@ describe("my record", () => {
       subject: "contact",
       wrong: "My phone number is old",
       should_be: "592-600-1234",
+      restrict: false,
     });
+  });
+
+  it("holds a contested part back until it is answered, and sends an objection to the officer", async () => {
+    const objection = {
+      id: 3,
+      employee: 1,
+      employee_name: "Asha Persaud",
+      employee_no: "E0001",
+      part: "bank",
+      part_name: "Bank details",
+      grounds: "Not needed until pay starts",
+      state: "open",
+      state_name: "With the data protection officer",
+      due_by: "2026-11-01",
+      overdue: false,
+      created_at: "2026-10-02T09:00:00-04:00",
+      decided_by_name: null,
+      decided_at: null,
+      reasons: "",
+      is_mine: true,
+    };
+    const held = {
+      id: 9,
+      employee: 1,
+      employee_name: "Asha Persaud",
+      employee_no: "E0001",
+      part: "bank",
+      part_name: "Bank details",
+      ground: "objection",
+      ground_name: "The person has objected",
+      note: "",
+      correction: null,
+      objection: 3,
+      created_at: "2026-10-02T09:00:00-04:00",
+      placed_by_name: "Asha Persaud",
+      in_force: true,
+      lifted_at: null,
+      lifted_by_name: null,
+      lifted_reason: "",
+    };
+    const server = routes({
+      "POST /privacy/corrections/": { status: 201, body: { ...answered, id: 8, state: "open", state_name: "With Human Resources", restricted: true } },
+      "GET /privacy/objections/": [page([]), page([objection])],
+      "GET /privacy/restrictions/": [page([]), page([held])],
+      "POST /privacy/objections/": [{ status: 400, body: { grounds: ["Say why you object."] } }, { status: 201, body: objection }],
+    });
+    render(<MyRecordScreen />);
+    const user = userEvent.setup();
+    const correction = await screen.findByRole("form", { name: "Ask for a correction" });
+    await user.type(within(correction).getByLabelText("What is wrong"), "My post");
+    await user.type(within(correction).getByLabelText("What it should say"), "Senior instructor");
+    await user.click(within(correction).getByRole("checkbox", { name: /Hold that part of my record back/ }));
+    await user.click(within(correction).getByRole("button", { name: "Send to Human Resources" }));
+    expect(await within(correction).findByRole("status")).toHaveTextContent("Until then that part of your record is held back from use.");
+    expect(server.calls.find((c) => c.path === "/privacy/corrections/" && c.method === "POST")?.body).toMatchObject({ restrict: true });
+
+    const object = screen.getByRole("form", { name: "Object to how your record is used" });
+    await user.selectOptions(within(object).getByLabelText("Which part"), "bank");
+    await user.type(within(object).getByLabelText("Why you object"), " ");
+    await user.click(within(object).getByRole("button", { name: "Send my objection" }));
+    expect(await within(object).findByRole("alert")).toHaveTextContent("Say why you object.");
+    await user.clear(within(object).getByLabelText("Why you object"));
+    await user.type(within(object).getByLabelText("Why you object"), "Not needed until pay starts");
+    await user.click(within(object).getByRole("button", { name: "Send my objection" }));
+    expect(await within(object).findByRole("status")).toHaveTextContent("who decides by 01/11/2026");
+    expect(await screen.findByRole("list", { name: "Your objections" })).toHaveTextContent("With the data protection officer");
+    expect(await screen.findByRole("list", { name: "Parts of your record held back" })).toHaveTextContent("Bank details: the person has objected");
   });
 
   it("holds only the account for someone not on the staff, and says when the record cannot be loaded", async () => {

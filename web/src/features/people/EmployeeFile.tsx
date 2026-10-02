@@ -125,6 +125,12 @@ export function EmployeeFile({ employee, me, onEdit }: Props) {
           </button>
         )}
       </div>
+      {employee.restricted && employee.restricted.length > 0 && (
+        <div className="notice restricted" role="note" aria-label="Held back from use">
+          <strong>Held back from use at the person&apos;s request:</strong> {employee.restricted.join("; ")}. It is kept and
+          may be corrected, but letters, changes to the appointment and the other systems wait until it is lifted.
+        </div>
+      )}
       <div className="tabs" role="tablist">
         {tabs.map((t) => (
           <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? "tab active" : "tab"} onClick={() => setTab(t)}>

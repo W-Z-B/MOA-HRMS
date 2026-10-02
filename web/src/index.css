@@ -1335,3 +1335,9 @@ ol.case-steps > li {
 .card .letter-paper {
   max-width: none;
 }
+
+/* A record with parts held back from use (item 1.46). */
+.notice.restricted {
+  border-left: 4px solid var(--amber);
+  background: #fff8e6;
+}

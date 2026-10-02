@@ -33,6 +33,8 @@ export const STAFF = {
   lecturer: { username: "shanta.ramdeen", name: "Shanta Ramdeen" },
   // Not on the staff: reads the audit log and the access review, changes nothing.
   auditor: { username: "audit.reviewer", name: "Audit Reviewer" },
+  // Not on the staff: decides objections (item 1.46).
+  dpo: { username: "privacy.officer", name: "Privacy Officer" },
 } as const;
 
 /** Staff used only by the privacy journey, one for each browser project, each signing in first there. */

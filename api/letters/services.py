@@ -98,10 +98,14 @@ def missing_in_words(missing: list[dict]) -> str:
 def issue(request, template: LetterTemplate, employee, given: dict, *, career_event=None, ask=None) -> Letter:
     """Issue the letter: a reference, the PDF in the staff file, its fingerprint, and word to the person."""
     from letters import checking
+    from privacy import restrictions
     from signing import services as signing
 
     if not template.is_active:
         raise Refused("retired", "That template is no longer in use.")
+    held = restrictions.refusal(employee, restrictions.LETTER_PARTS)
+    if held:  # a letter sends the record out: not while the person contests or objects (item 1.46)
+        raise Refused("restricted", held)
     if ask and signing.signer_of(employee) is None:
         raise Refused(
             "no_account",

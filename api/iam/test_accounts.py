@@ -380,6 +380,7 @@ def test_the_roles_i_may_give(api, hr_manager, administrator):
         "principal",
         "auditor",
         "ministry_liaison",
+        "data_protection_officer",
     }
 
 

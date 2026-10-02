@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { errorMessage, get, plainMessage, post } from "../../api/client";
-import type { CorrectionRequest, CurrentNotice, OwnRecord, Paginated } from "../../api/types";
+import type { CorrectionRequest, CurrentNotice, Objection, OwnRecord, Paginated, RecordRestriction } from "../../api/types";
 import { dmy, dmyTime } from "../../app/format";
 import { NoticeText } from "./PrivacyNoticeScreen";
 
@@ -215,6 +215,7 @@ export function MyRecordScreen() {
         />
       )}
       {staff && <CorrectionsPart requests={requests} onSent={loadRequests} />}
+      {staff && <ObjectionsPart />}
     </>
   );
 }
@@ -223,6 +224,7 @@ function CorrectionsPart({ requests, onSent }: { requests: CorrectionRequest[]; 
   const [subject, setSubject] = useState("contact");
   const [wrong, setWrong] = useState("");
   const [shouldBe, setShouldBe] = useState("");
+  const [restrict, setRestrict] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState<string | null>(null);
@@ -233,10 +235,14 @@ function CorrectionsPart({ requests, onSent }: { requests: CorrectionRequest[]; 
     setError(null);
     setSent(null);
     try {
-      const made = await post<CorrectionRequest>("/privacy/corrections/", { subject, wrong, should_be: shouldBe });
-      setSent(`Sent to Human Resources. They answer by ${dmy(made.due_by)}, and you will be told.`);
+      const made = await post<CorrectionRequest>("/privacy/corrections/", { subject, wrong, should_be: shouldBe, restrict });
+      setSent(
+        `Sent to Human Resources. They answer by ${dmy(made.due_by)}, and you will be told.` +
+          (made.restricted ? " Until then that part of your record is held back from use." : ""),
+      );
       setWrong("");
       setShouldBe("");
+      setRestrict(false);
       onSent();
     } catch (err) {
       setError(plainMessage(err, "Your request was not sent. Try again."));
@@ -269,6 +275,10 @@ function CorrectionsPart({ requests, onSent }: { requests: CorrectionRequest[]; 
         <label>
           What it should say
           <textarea value={shouldBe} onChange={(e) => setShouldBe(e.target.value)} rows={2} maxLength={1000} required />
+        </label>
+        <label className="inline">
+          <input type="checkbox" checked={restrict} onChange={(e) => setRestrict(e.target.checked)} /> Hold that part of my
+          record back from use until Human Resources answers
         </label>
         {error && (
           <p role="alert" className="error">
@@ -304,7 +314,116 @@ function CorrectionsPart({ requests, onSent }: { requests: CorrectionRequest[]; 
                   {r.state === "open"
                     ? ` · answer due by ${dmy(r.due_by)}`
                     : ` · answered by ${r.decided_by_name ?? "Human Resources"}${r.decision_note ? `: ${r.decision_note}` : ""}`}
+                  {r.restricted ? " · held back from use until answered" : ""}
                 </p>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </section>
+  );
+}
+
+/**
+ * Objecting in writing to how part of the record is used, and what is held back (item 1.46). The part objected
+ * to is held back at once, until the data protection officer decides.
+ */
+function ObjectionsPart() {
+  const [objections, setObjections] = useState<Objection[]>([]);
+  const [held, setHeld] = useState<RecordRestriction[]>([]);
+  const [part, setPart] = useState("contact");
+  const [grounds, setGrounds] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [sent, setSent] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    get<Paginated<Objection>>("/privacy/objections/")
+      .then((page) => setObjections(page.results))
+      .catch(() => setObjections([]));
+    get<Paginated<RecordRestriction>>("/privacy/restrictions/?in_force=1")
+      .then((page) => setHeld(page.results))
+      .catch(() => setHeld([]));
+  }, []);
+  useEffect(load, [load]);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setSent(null);
+    try {
+      const made = await post<Objection>("/privacy/objections/", { part, grounds });
+      setSent(`Sent to the data protection officer, who decides by ${dmy(made.due_by)}. Until then that part is held back from use.`);
+      setGrounds("");
+      load();
+    } catch (err) {
+      setError(plainMessage(err, "Your objection was not sent. Try again."));
+    }
+  }
+
+  return (
+    <section className="card-block no-print" aria-labelledby="objections-heading">
+      <h2 id="objections-heading">Object to how your record is used</h2>
+      <p className="muted small">
+        You may object, at any time, to part of your record being used. That part is held back until the data
+        protection officer decides; your objection stands unless GSA has compelling legitimate grounds, or needs it
+        for a legal claim.
+      </p>
+      <form className="stack" onSubmit={submit} aria-label="Object to how your record is used">
+        <label>
+          Which part
+          <select value={part} onChange={(e) => setPart(e.target.value)}>
+            {SUBJECTS.map(([code, name]) => (
+              <option key={code} value={code}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Why you object
+          <textarea value={grounds} onChange={(e) => setGrounds(e.target.value)} rows={2} maxLength={2000} required />
+        </label>
+        {error && (
+          <p role="alert" className="error">
+            {error}
+          </p>
+        )}
+        {sent && (
+          <p role="status" className="notice good">
+            {sent}
+          </p>
+        )}
+        <div className="actions">
+          <button type="submit">Send my objection</button>
+        </div>
+      </form>
+      {objections.length > 0 && (
+        <>
+          <h3>Your objections</h3>
+          <ul className="plain history" aria-label="Your objections">
+            {objections.map((o) => (
+              <li key={o.id}>
+                <p>
+                  <strong>{o.part_name}</strong> <span className="chip">{o.state_name}</span>
+                </p>
+                <p className="small">{o.grounds}</p>
+                <p className="muted small">
+                  Made {dmyTime(o.created_at)}
+                  {o.state === "open" ? ` · decision due by ${dmy(o.due_by)}` : ` · ${o.reasons}`}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {held.length > 0 && (
+        <>
+          <h3>Held back from use</h3>
+          <ul className="plain" aria-label="Parts of your record held back">
+            {held.map((r) => (
+              <li key={r.id}>
+                {r.part_name}: {r.ground_name.toLowerCase()} <span className="muted small">since {dmy(r.created_at)}</span>
               </li>
             ))}
           </ul>
