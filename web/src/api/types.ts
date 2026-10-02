@@ -984,8 +984,16 @@ export interface Account {
   } | null;
   roles: Grant[];
   sessions: number;
-  /** Only when the account has just been opened: whether the invitation went out. */
+  /** Only when the account has just been opened, or its email changed: whether the email went out. */
   emailed?: boolean;
+  /** A new sign-in email address waiting for the link sent to it to be followed (item 1.42). */
+  pending_email: string | null;
+}
+
+/** Where links to choose a password go, and any change to it waiting for its confirmation (item 1.42). */
+export interface SignInEmail {
+  email: string;
+  pending: { new_email: string; expires_at: string } | null;
 }
 
 export interface RoleChoice {

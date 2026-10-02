@@ -146,7 +146,7 @@ export function AccountsTab({ me, campusId }: Props) {
   );
 }
 
-type Opened = "" | "role" | "off" | "on" | "authenticator";
+type Opened = "" | "role" | "email" | "off" | "on" | "authenticator";
 
 interface CardProps {
   account: Account;
@@ -159,6 +159,7 @@ interface CardProps {
 function AccountCard({ account, me, roles, campuses, onChanged }: CardProps) {
   const [opened, setOpened] = useState<Opened>("");
   const [reason, setReason] = useState("");
+  const [newEmail, setNewEmail] = useState("");
   const [role, setRole] = useState("");
   const [campus, setCampus] = useState("");
   const [busy, setBusy] = useState(false);
@@ -185,6 +186,7 @@ function AccountCard({ account, me, roles, campuses, onChanged }: CardProps) {
       setReason("");
       setRole("");
       setCampus("");
+      setNewEmail("");
     } catch (err) {
       setError(plainMessage(err, "That did not go through. Try again."));
     } finally {
@@ -211,6 +213,17 @@ function AccountCard({ account, me, roles, campuses, onChanged }: CardProps) {
       const body = { role, campus: campus ? Number(campus) : null };
       onChanged(await post<Account>(`/accounts/${account.id}/roles/`, body));
       return `${chosen?.name ?? "Role"} given. ${who} is signed out, so it applies from their next sign-in.`;
+    });
+  }
+
+  function changeEmail(e: FormEvent) {
+    e.preventDefault();
+    void run(async () => {
+      const changed = await post<Account>(`/accounts/${account.id}/email/`, { email: newEmail, reason });
+      onChanged(changed);
+      return changed.emailed
+        ? `A link to confirm it was sent to ${newEmail}. The address changes when ${who} follows it; the old one is told.`
+        : `The link could not be sent to ${newEmail}. Check the address, then try again.`;
     });
   }
 
@@ -245,6 +258,7 @@ function AccountCard({ account, me, roles, campuses, onChanged }: CardProps) {
         <br />
         <span className="muted small">
           {account.username} · {account.email || "no email address"}
+          {account.pending_email ? ` · changing to ${account.pending_email} once confirmed` : ""}
           {account.employee ? ` · ${account.employee.employee_no}, ${account.employee.campus_name}` : " · not on the staff"}
         </span>
         <br />
@@ -278,6 +292,16 @@ function AccountCard({ account, me, roles, campuses, onChanged }: CardProps) {
           {account.is_active && (
             <button className="secondary" disabled={busy} onClick={sendLink} aria-label={`${sendLabel} to ${who}`}>
               {sendLabel}
+            </button>
+          )}
+          {account.is_active && (
+            <button
+              className="secondary"
+              disabled={busy}
+              onClick={() => setOpened("email")}
+              aria-label={`Change the sign-in email of ${who}`}
+            >
+              Change sign-in email
             </button>
           )}
           {account.is_active && giveable.length > 0 && (
@@ -338,6 +362,31 @@ function AccountCard({ account, me, roles, campuses, onChanged }: CardProps) {
             </button>
             <button type="submit" disabled={busy}>
               Give the role
+            </button>
+          </div>
+        </form>
+      )}
+      {opened === "email" && (
+        <form className="sub-form stack" onSubmit={changeEmail} aria-label={`Change the sign-in email of ${who}`}>
+          <div className="grid2">
+            <label>
+              New email address
+              <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} required />
+            </label>
+            <label>
+              Why
+              <input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={300} required />
+            </label>
+          </div>
+          <p className="muted small">
+            A link goes to the new address, and the address changes only when {who} follows it. The old address is told.
+          </p>
+          <div className="actions">
+            <button type="button" className="secondary" onClick={() => setOpened("")}>
+              Cancel
+            </button>
+            <button type="submit" disabled={busy || !reason.trim()}>
+              Send the link
             </button>
           </div>
         </form>

@@ -44,6 +44,7 @@ export default defineConfig({
         "src/features/incidents/**",
         "src/app/ActionForm.tsx",
         "src/features/me/AccountScreen.tsx",
+        "src/features/me/EmailSection.tsx",
         "src/features/leave/Receipt.tsx",
         "src/features/leave/RequestForm.tsx",
         "src/features/people/RecordList.tsx",

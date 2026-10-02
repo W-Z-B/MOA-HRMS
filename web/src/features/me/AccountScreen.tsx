@@ -3,6 +3,7 @@ import { ApiError, get, plainMessage, post, remove } from "../../api/client";
 import type { SignedInSession } from "../../api/types";
 import { dmyTime } from "../../app/format";
 import { PASSWORD_RULES } from "../auth/SetPasswordScreen";
+import { EmailSection } from "./EmailSection";
 
 /** Where the person is signed in, with a way to end any session they do not recognise, and their password. */
 export function AccountScreen() {
@@ -106,6 +107,7 @@ export function AccountScreen() {
         )}
       </section>
       <PasswordSection onChanged={load} />
+      <EmailSection />
     </>
   );
 }

@@ -39,6 +39,7 @@ const kemal: Account = {
   employee: { id: 10, employee_no: "E0010", full_name: "Kemal Bacchus", campus: 1, campus_name: "Mon Repos Campus", status: "active" },
   roles: [employeeGrant],
   sessions: 0,
+  pending_email: null,
 };
 const manager: Account = {
   ...kemal,
@@ -99,6 +100,32 @@ describe("accounts", () => {
     render(<AccountsTab me={officer} campusId={null} />);
     await userEvent.setup().click(await screen.findByRole("button", { name: "Send the invitation again to Kemal Bacchus" }));
     expect(await screen.findByRole("status")).toHaveTextContent("The invitation was sent to kemal.bacchus@gsa.example.");
+  });
+
+  it("changes a sign-in email with a reason, once the new address confirms it", async () => {
+    const calls = server({
+      "POST /accounts/14/email/": [
+        { status: 409, body: { code: "taken", detail: "Another account uses that address." } },
+        { body: { ...kemal, emailed: true, pending_email: "kemal.new@gsa.example" } },
+      ],
+    });
+    render(<AccountsTab me={officer} campusId={null} />);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "Change the sign-in email of Kemal Bacchus" }));
+    const form = screen.getByRole("form", { name: "Change the sign-in email of Kemal Bacchus" });
+    await user.type(within(form).getByLabelText("New email address"), "kemal.new@gsa.example");
+    await user.type(within(form).getByLabelText("Why"), "His old mailbox was closed");
+    await user.click(within(form).getByRole("button", { name: "Send the link" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Another account uses that address.");
+    await user.click(within(form).getByRole("button", { name: "Send the link" }));
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "A link to confirm it was sent to kemal.new@gsa.example. The address changes when Kemal Bacchus follows it",
+    );
+    expect(calls.calls.filter((c) => c.path === "/accounts/14/email/").at(-1)?.body).toEqual({
+      email: "kemal.new@gsa.example",
+      reason: "His old mailbox was closed",
+    });
+    expect(screen.getByText(/changing to kemal.new@gsa.example once confirmed/)).toBeInTheDocument();
   });
 
   it("gives a role on a campus, and says the person is signed out", async () => {
