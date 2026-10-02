@@ -95,6 +95,57 @@ export interface OrgUnit {
   head_name: string | null;
 }
 
+/** Counts for a unit and everything under it. Frozen counts frozen posts nobody holds. */
+export interface ChartTotals {
+  posts: number;
+  filled: number;
+  vacant: number;
+  frozen: number;
+}
+
+export interface ChartPost {
+  id: number;
+  number: string;
+  title: string;
+  grade_name: string;
+  status: "approved" | "frozen";
+  status_name: string;
+  fte: string;
+  filled: boolean;
+  vacant: boolean;
+  /** Names show to the roles that read the staff directory, on its campuses; otherwise null. */
+  holder: string | null;
+  acting: string | null;
+  has_acting: boolean;
+}
+
+export interface ChartUnit {
+  id: number;
+  code: string;
+  name: string;
+  unit_type: OrgUnit["unit_type"];
+  unit_type_name: string;
+  head: string | null;
+  totals: ChartTotals;
+  posts: ChartPost[];
+  units: ChartUnit[];
+}
+
+export interface ChartCampus {
+  id: number;
+  code: string;
+  name: string;
+  /** Whether this reader sees who holds posts on this campus. */
+  names: boolean;
+  totals: ChartTotals;
+  units: ChartUnit[];
+}
+
+export interface OrgChart {
+  as_at: string;
+  campuses: ChartCampus[];
+}
+
 export interface SalaryScale {
   id: number;
   code: string;

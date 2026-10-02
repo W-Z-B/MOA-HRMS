@@ -24,3 +24,27 @@ test("HR reads the establishment: posts and who holds them, units, salary scales
   await expectAccessible(page, testInfo, "campuses");
   await signOut(page);
 });
+
+test("the organisation chart draws units as they nest, finds a person, and prints without its controls", async ({ page }, testInfo) => {
+  await signIn(page, STAFF.hr.username);
+  await openSection(page, "Organisation");
+  await page.getByRole("tab", { name: "Chart" }).click();
+  await expect(page.getByRole("list", { name: "Units under Department of Agriculture", exact: true })).toContainText("Livestock Unit");
+  await expect(page.getByRole("list", { name: "Posts in Department of Agriculture", exact: true })).toContainText(STAFF.employee.name);
+  await expect(page.getByRole("list", { name: "Posts in Administration" })).toContainText("Frozen");
+  await expectAccessible(page, testInfo, "chart");
+
+  const search = page.getByRole("searchbox", { name: "Find a person, post or unit" });
+  await search.fill("Ramdeen");
+  await expect(page.getByText("1 match.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("list", { name: "Posts in Department of Agriculture", exact: true })).toContainText("Lecturer, Soil Science");
+  await expect(page.getByText("Livestock Unit")).toHaveCount(0);
+  await search.fill("");
+
+  await page.emulateMedia({ media: "print" });
+  await expect(search).toBeHidden();
+  await expect(page.getByRole("tab", { name: "Chart" })).toBeHidden();
+  await expect(page.getByRole("list", { name: "Units on Mon Repos Campus" })).toBeVisible();
+  await page.emulateMedia({ media: "screen" });
+  await signOut(page);
+});
