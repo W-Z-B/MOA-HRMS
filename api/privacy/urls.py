@@ -1,11 +1,14 @@
 from django.urls import path
 from rest_framework.routers import SimpleRouter
 
-from privacy import views
+from privacy import retention_views, views
 
 router = SimpleRouter()
 router.register("notices", views.NoticeViewSet, basename="privacy-notice")
 router.register("corrections", views.CorrectionViewSet, basename="correction")
+router.register("retention-rules", retention_views.RuleViewSet, basename="retention-rule")
+router.register("disposal-runs", retention_views.RunViewSet, basename="disposal-run")
+router.register("breaches", retention_views.BreachViewSet, basename="breach")
 
 urlpatterns = [
     path("notice/", views.current_notice_view, name="privacy-notice-current"),

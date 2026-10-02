@@ -65,6 +65,10 @@ notice tab). A starting draft for GSA to complete is `docs/privacy/privacy-notic
 and acknowledges it at their next sign-in, once for each version. `seed_demo --fictional` publishes a
 demonstration notice, so on staging everyone sees it once.
 
+The retention schedule (Admin screen, Retention tab) starts with the impact assessment's proposed periods,
+marked "Not yet" agreed. Before go-live, GSA confirms or changes each one. Logs are removed every night at
+04:00; records are destroyed only through a run that a second person approves.
+
 ## 3b. Import sample or migration data
 
 ```bash

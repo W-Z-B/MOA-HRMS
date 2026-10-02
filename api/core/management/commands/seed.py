@@ -12,6 +12,8 @@ from core.models import PublicHoliday
 from iam.models import Role
 from leave.models import LeaveType
 from org.models import Campus
+from privacy.models import RetentionRule
+from privacy.retention import RULES as RETENTION_RULES
 from reports.models import ReportDefinition
 
 CAMPUSES = [
@@ -106,6 +108,25 @@ class Command(BaseCommand):
             ReportDefinition.objects.update_or_create(
                 key=key, defaults={"name": name, "roles": roles, "is_ministry_pack": pack}
             )
+        # The retention schedule starts from the impact assessment's proposals. A period GSA has changed or
+        # confirmed is kept: only the wording the code owns is refreshed.
+        for code, name, months, counted_from, automatic, note in RETENTION_RULES:
+            rule, created = RetentionRule.objects.get_or_create(
+                code=code,
+                defaults={
+                    "name": name,
+                    "keep_months": months,
+                    "counted_from": counted_from,
+                    "automatic": automatic,
+                    "note": note,
+                },
+            )
+            if not created:
+                RetentionRule.objects.filter(pk=rule.pk).update(
+                    name=name, counted_from=counted_from, automatic=automatic
+                )
         self.stdout.write(
-            self.style.SUCCESS("Seed data applied: campuses, roles, leave types, holidays, reports.")
+            self.style.SUCCESS(
+                "Seed data applied: campuses, roles, leave types, holidays, reports, retention schedule."
+            )
         )

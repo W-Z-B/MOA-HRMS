@@ -1,7 +1,7 @@
 # Threat model
 
-**Version 1.5, 1 October 2026.** Method: STRIDE over the data flows in section 3, against the code on
-branch `feature/phase-1-privacy`. Version 1.1 records the four gaps closed by pull request 16
+**Version 1.6, 1 October 2026.** Method: STRIDE over the data flows in section 3, against the code on
+branch `feature/phase-1-retention`. Version 1.1 records the four gaps closed by pull request 16
 (items 1.28, 1.35, 1.36, 1.37) and one weakness found while closing them (forged addresses). Version 1.2
 records two weaknesses found while building the staff record (pull request 17): writes across campuses,
 and a leave balance disclosed in a refusal. Version 1.3 records accounts and access (pull request 18:
@@ -10,7 +10,8 @@ building them: a new role that skipped its authenticator code, accounts linked t
 employee form, and a report that named staff on every campus. Version 1.4 records the audit log's chained
 fingerprints and viewer (pull request 19, item 1.26), which close the gap of a database superuser changing
 the log unseen. Version 1.5 records a person's own copy of their record and correction requests (pull request
-20, item 1.31). Reviewed at every release gate and whenever a data flow, role or integration is added. Gaps
+20, item 1.31). Version 1.6 records the retention schedule, reviewed disposal and the breach register (pull
+request 21, item 1.32). Reviewed at every release gate and whenever a data flow, role or integration is added. Gaps
 point to items in the Gold Standard Plan checklist.
 
 ## 1. What is protected
@@ -92,6 +93,7 @@ flowchart LR
 | Threat | In place | Gap |
 |---|---|---|
 | Changing records without trace | Every write goes through audited views in the same transaction | |
+| Destroying records to hide something | Records are destroyed only under the retention schedule, in a run that one person lists and a **second person approves**; anything can be kept back with a reason; a record no longer due when the run is approved is left; each destruction is in the audit log with its rule and what the record was (pull request 21) | |
 | Changing or removing audit entries with the trigger switched off | **Closed in pull request 19 (item 1.26):** every entry carries an HMAC-SHA256 of the entry before it and of its own content, under a key derived from the server's field-encryption key, which is never in the database. Entries are written one at a time under a lock, so the chain follows commit order. A check walks the chain every night, and on request in the audit viewer; a changed or removed entry shows at the first entry that no longer fits, and entries removed from the end show at the next check because each check keeps the newest entry it saw. A broken chain alerts the administrators and the auditor at once, and every result is written to the platform log, outside the database | Someone holding both the database and the server's key could rewrite the chain: keep the key apart from the database and its backups (item 7.09). Entries removed from the end after the last check show only at the next one |
 | Cross-site request forgery | Django CSRF protection on every session write | |
 | Harmful uploads | **Every upload is checked by its contents, not its name** (PDF, photographs, and Word or Excel without macros), with limits of 10 MB for evidence and 20 MB for documents; **Caddy refuses any request over 25 MB**; **files are stored under random names** and downloaded under the name chosen; every download is an attachment with `nosniff`, never a public URL (pull request 16) | |
@@ -115,7 +117,8 @@ flowchart LR
 | A report naming staff on every campus | **Fixed in pull request 17 (found while building pull request 18):** a campus HR officer could run the staff-records-to-check report for every campus, because the report took its campus from the address and, given none, ran over all of them. Reports whose rows name people now run only over the campuses the person works with, and asking for another is refused | |
 | Script injection stealing data | React escapes output; no user HTML is rendered; `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`; **a Content-Security-Policy that allows only the app's own scripts, styles and data, checked on every screen of every browser journey**; **the API documentation is for signed-in people only outside development** (pull request 16) | The development server runs without the policy (hot reload needs inline scripts) |
 | Real data on staging abroad | Staging holds fictional data only; `seed_demo` refuses to run without `--fictional` and marks every record | Production hosting in Guyana (item 7.04) |
-| Data in backups | | Encrypted backups with an off-site copy (item 7.09) |
+| Data in backups | | Encrypted backups with an off-site copy (item 7.09); destroyed records stay in backups until those expire, so the backup period belongs in the schedule too |
+| A breach going unrecorded or unanswered | **A breach register: what, whose data, how many people, the risk, when contained, when the Commissioner and the people were told; recording one alerts the administrators** (pull request 21) | Write the breach response procedure into the runbook (item 7.11) |
 | Error details | Debug is off in production; `check --deploy` must pass in CI | |
 | Personal details in email | | Email notices should carry a link, not names and dates, in case GSA's mail service is outside Guyana (item 2.26) |
 | A person's own record leaking once downloaded | **The file a person downloads under My record leaves out full bank account numbers (the last four digits identify the account); every viewing, and every copy HR produces for a paper request, is recorded** (pull request 20). The person's own identity numbers are in it, as the right of access requires | Tell staff, in the privacy notice, to keep the file safe |
