@@ -46,6 +46,7 @@ personal data.
 | Staff | Leave requests, balances, decisions, receipts | The employee, managers, HR | Leave under the Leave with Pay Act and GSA rules | Contract; legal obligation (register of holidays) |
 | Staff | Doctor's notes | The employee | Sick leave beyond the allotment | Contract; legal obligation; health data handled under the Act's conditions |
 | Staff | Hourly rate, grade amount; later pay, deductions, bank details | HR, Finance | Pay and statutory returns | Contract; legal obligation |
+| Staff | Letters issued to them (appointment, confirmation, transfer, job letters, certificates of service), the values each drew from the record, and a fingerprint of each PDF | HR | Employment administration; proof of employment at the employee's request | Contract; functions of a public body |
 | Next of kin, dependants | Name, phone | The employee | Emergencies; tax deductions for children (Release 2) | Contract; vital interests |
 | Applicants (Release 3) | Application, assessments | The applicant | Recruitment | Steps towards a contract at the applicant's request |
 | Staff | Training records | HR, the LMS | Development, certificates | Contract |
@@ -124,7 +125,7 @@ Likelihood and severity before the planned measures; residual risk once they are
 |---|---|---|---|---|
 | Identity fraud after identifiers leak | Possible | Severe | Encryption, masking, audited reveal, authenticator code for all who can reveal (1.34) | Low |
 | Health information seen by the wrong person | Possible | Severe | Medical class, access by the employee and HR only, audited downloads, 1.34 | Low |
-| Pay or bank details disclosed | Possible | Significant | Pay fields restricted, bank details encrypted with second approval (1.07), separation of duties in pay (4.15) | Low |
+| Pay or bank details disclosed | Possible | Significant | Pay fields restricted, bank details encrypted with second approval (1.07), confidential documents and letters for HR, the Principal and the auditor only (pull request 25), separation of duties in pay (4.15) | Low |
 | Wrong records leading to wrong leave or pay | Possible | Significant | Validation, ledger-based balances, receipts, self-service view, rectification (2.18), parallel pay runs (4.26) | Low |
 | Records kept too long | Likely until built | Moderate | Retention schedule and disposal run (1.32) | Low once built |
 | Misuse by someone with access | Possible | Significant | Campus scoping, least privilege, access reviews (1.27), audit viewer with tamper evidence (1.26) | Low once built |
