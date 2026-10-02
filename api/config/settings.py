@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "signing",
     "approvals",
     "cases",
+    "incidents",
     "integration",
     # Release 2 scaffolds
     "attendance",
@@ -147,6 +148,12 @@ SPECTACULAR_SETTINGS = {
         "CaseOutcomeEnum": "cases.models.Case.Outcome",
         "CaseAppealOutcomeEnum": "cases.models.Case.AppealOutcome",
         "CaseStepEnum": "cases.models.CaseEntry.Kind",
+        "IncidentKindEnum": "incidents.models.Incident.Kind",
+        "IncidentStateEnum": "incidents.models.Incident.State",
+        "IncidentPersonWhoEnum": "incidents.models.Person.Who",
+        "InjuryTreatmentEnum": "incidents.models.Person.Treatment",
+        "SafetyNoticeDutyEnum": "incidents.models.Notice.Duty",
+        "SafetyNoticeRecipientEnum": "incidents.models.Notice.Recipient",
     },
 }
 
@@ -233,6 +240,11 @@ PASSWORD_RESETS_PER_ACCOUNT = 3
 # step, and it goes on up the line (or to the HR Manager) when it has waited this many more.
 DECISION_DAYS = int(env("DECISION_DAYS", "3"))
 ESCALATE_AFTER_DAYS = int(env("ESCALATE_AFTER_DAYS", "2"))
+
+# Accidents and incidents (item 1.16): whether GSA has a safety and health committee, representative or trade
+# union to be told alongside the Occupational Safety and Health Authority. The Act says "if any": set "no" if
+# there is none.
+SAFETY_TELL_WORKERS = env("SAFETY_TELL_WORKERS", "yes").strip().lower() != "no"
 
 # Letters (letters/pdf.py): the name at the head of every letter, and the start of every reference.
 LETTER_ORGANISATION = env("LETTER_ORGANISATION", "Guyana School of Agriculture")
