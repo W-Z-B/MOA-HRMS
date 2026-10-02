@@ -4,6 +4,7 @@ import {
   AUDIT_ROLES,
   CORRECTION_ROLES,
   NOTICE_ROLES,
+  OBJECTION_ROLES,
   RETENTION_ROLES,
   REVIEW_ROLES,
   SETUP_ROLES,
@@ -18,6 +19,7 @@ import { CorrectionsTab } from "./CorrectionsTab";
 import { HolidaysTab } from "./HolidaysTab";
 import { LeaveTypesTab } from "./LeaveTypesTab";
 import { NoticeTab } from "./NoticeTab";
+import { ObjectionsTab } from "./ObjectionsTab";
 import { RetentionTab } from "./RetentionTab";
 import { StaffTab } from "./StaffTab";
 
@@ -34,6 +36,7 @@ const TABS = [
   { key: "review", path: "/admin/review", label: "Access review", roles: REVIEW_ROLES },
   { key: "audit", path: "/admin/audit", label: "Audit log", roles: AUDIT_ROLES },
   { key: "corrections", path: "/admin/corrections", label: "Correction requests", roles: CORRECTION_ROLES },
+  { key: "objections", path: "/admin/objections", label: "Objections", roles: OBJECTION_ROLES },
   { key: "notice", path: "/admin/privacy-notice", label: "Privacy notice", roles: NOTICE_ROLES },
   { key: "retention", path: "/admin/retention", label: "Retention", roles: RETENTION_ROLES },
   { key: "breaches", path: "/admin/breaches", label: "Breaches", roles: RETENTION_ROLES },
@@ -74,6 +77,7 @@ export function AdminScreen({ me, campusId, path, onNavigate }: Props) {
             {current.key === "review" && <AccessReviewTab me={me} campusId={campusId} onNavigate={onNavigate} />}
             {current.key === "audit" && <AuditTab />}
             {current.key === "corrections" && <CorrectionsTab onNavigate={onNavigate} />}
+            {current.key === "objections" && <ObjectionsTab me={me} />}
             {current.key === "notice" && <NoticeTab me={me} />}
             {current.key === "retention" && <RetentionTab me={me} />}
             {current.key === "breaches" && <BreachesTab me={me} />}

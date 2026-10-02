@@ -1,7 +1,7 @@
 /** Hash-based routing with no dependency. A router library is approved in principle (ADR 0009) and is added when a feature needs it. */
 
 import { useEffect, useState } from "react";
-import { ACCOUNT_ROLES, CASE_ROLES, LETTER_ROLES, hasAnyRole, isOfficeUser, type Me } from "../api/types";
+import { ADMIN_ROLES, CASE_ROLES, LETTER_ROLES, hasAnyRole, isOfficeUser, type Me } from "../api/types";
 
 const read = () => window.location.hash.replace(/^#/, "") || "/";
 
@@ -32,7 +32,7 @@ export const NAV = [
   { path: "/appraisals", label: "Appraisals", office: true },
   { path: "/payroll", label: "Payroll", office: true },
   { path: "/reports", label: "Reports", office: true },
-  { path: "/admin", label: "Admin", office: true, roles: ACCOUNT_ROLES },
+  { path: "/admin", label: "Admin", office: true, roles: ADMIN_ROLES },
 ] as const;
 
 /** An employee with no other role sees their own leave and contract, and nothing they cannot open. */

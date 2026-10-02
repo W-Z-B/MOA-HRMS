@@ -38,6 +38,8 @@ export interface Employee {
   campus_name: string;
   status: "active" | "on_leave" | "suspended" | "separated";
   position_title: string | null;
+  /** Parts held back from use at the person's request, in words (item 1.46); absent on older answers. */
+  restricted?: string[];
   nis_no_masked: string | null;
   tin_masked: string | null;
   national_id_masked: string | null;
@@ -826,6 +828,12 @@ export const REVIEW_ROLES = ["administrator", "hr_manager", "auditor"];
 export const REVIEW_SIGN_ROLES = ["administrator", "hr_manager"];
 export const AUDIT_ROLES = ["administrator", "auditor"];
 export const CORRECTION_ROLES = ["hr_officer", "hr_manager", "administrator"];
+/** Objections and restrictions (item 1.46): the officer decides objections; HR and the officer restrict. */
+export const OBJECTION_ROLES = ["data_protection_officer", "hr_manager", "administrator"];
+export const OFFICER_ROLES = ["data_protection_officer"];
+export const RESTRICTION_WRITE_ROLES = ["hr_officer", "hr_manager", "administrator", "data_protection_officer"];
+/** Who sees the Admin section at all: those with a tab in it. */
+export const ADMIN_ROLES = ["administrator", "hr_manager", "hr_officer", "auditor", "data_protection_officer"];
 export const NOTICE_ROLES = ["administrator", "hr_manager", "auditor"];
 export const NOTICE_WRITE_ROLES = ["administrator", "hr_manager"];
 export const RETENTION_ROLES = ["administrator", "hr_manager", "auditor"];
@@ -1122,6 +1130,49 @@ export interface CorrectionRequest {
   decided_by_name: string | null;
   decided_at: string | null;
   decision_note: string;
+  is_mine: boolean;
+  /** That part is held back from use until the request is answered (item 1.46). */
+  restricted?: boolean;
+}
+
+/** Part of a record held back from use: while contested, on objection, or for a legal reason (item 1.46). */
+export interface RecordRestriction {
+  id: number;
+  employee: number;
+  employee_name: string;
+  employee_no: string;
+  part: string;
+  part_name: string;
+  ground: "contested" | "unlawful" | "legal_claim" | "objection";
+  ground_name: string;
+  note: string;
+  correction: number | null;
+  objection: number | null;
+  created_at: string;
+  placed_by_name: string | null;
+  in_force: boolean;
+  lifted_at: string | null;
+  lifted_by_name: string | null;
+  lifted_reason: string;
+}
+
+/** An objection in writing to how part of a record is used, decided by the data protection officer. */
+export interface Objection {
+  id: number;
+  employee: number;
+  employee_name: string;
+  employee_no: string;
+  part: string;
+  part_name: string;
+  grounds: string;
+  state: "open" | "upheld" | "not_upheld";
+  state_name: string;
+  due_by: string;
+  overdue: boolean;
+  created_at: string;
+  decided_by_name: string | null;
+  decided_at: string | null;
+  reasons: string;
   is_mine: boolean;
 }
 
