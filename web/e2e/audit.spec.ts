@@ -23,7 +23,8 @@ test("the auditor checks the audit log, finds what happened to a file, and downl
   // The auditor also reads the retention schedule and the breach register, and changes neither.
   await page.getByRole("tab", { name: "Retention" }).click();
   const schedule = page.getByRole("table", { name: "The retention schedule" });
-  await expect(schedule.locator("tbody").getByRole("row")).toHaveCount(5); // the heading row is hidden on phones
+  await expect(schedule.locator("tbody").getByRole("row")).toHaveCount(6); // the heading row is hidden on phones
+  await expect(schedule).toContainText("Checks of letters on the public checking page");
   await expect(schedule.getByRole("button")).toHaveCount(0);
   await expectAccessible(page, testInfo, "retention schedule");
   await page.getByRole("tab", { name: "Breaches" }).click();
