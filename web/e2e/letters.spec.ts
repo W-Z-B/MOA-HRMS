@@ -1,4 +1,4 @@
-import { expect, expectAccessible, letterPerson, openSection, signIn, signOut, STAFF, test } from "./support";
+import { expect, expectAccessible, letterPerson, openSection, password, signIn, signOut, STAFF, test } from "./support";
 
 test("HR writes a job letter from a person's file, and the person reads it under My contract", async ({ page }, testInfo) => {
   const person = letterPerson(testInfo);
@@ -19,6 +19,7 @@ test("HR writes a job letter from a person's file, and the person reads it under
   await expect(letter).toContainText(`This is to confirm that ${person.name}`);
   await expect(letter).toContainText("for a loan application at a bank.");
   await expectAccessible(page, testInfo, "letter read before it is issued");
+  await page.getByRole("combobox", { name: /^Once it is issued, ask/ }).selectOption("acknowledge");
   await page.getByRole("button", { name: "Issue the letter" }).click();
 
   const issued = page.getByRole("status").filter({ hasText: "is issued" });
@@ -42,5 +43,16 @@ test("HR writes a job letter from a person's file, and the person reads it under
   await signIn(page, person.username);
   await openSection(page, "My contract");
   await expect(page.getByRole("list", { name: "My letters" })).toContainText(reference);
+
+  // Asked to acknowledge it: they read it, tick the sentence and confirm with their password (item 1.20).
+  const waiting = page.getByRole("list", { name: "Waiting for your signature" });
+  await expect(waiting).toContainText(reference);
+  const sign = page.getByRole("form", { name: `Sign Job letter, ${reference}` });
+  await sign.getByLabel("I have received this document and read it.").check();
+  await sign.getByLabel(/Your password/).fill(password());
+  await expectAccessible(page, testInfo, "waiting for a signature");
+  await sign.getByRole("button", { name: "Sign" }).click();
+  await expect(page.getByRole("status").filter({ hasText: `Signed: Job letter, ${reference}.` })).toBeVisible();
+  await expect(page.getByRole("list", { name: "Signed or declined" })).toContainText(reference);
   await signOut(page);
 });

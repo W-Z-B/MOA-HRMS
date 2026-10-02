@@ -395,6 +395,44 @@ export interface ExitInterview {
   change: string;
 }
 
+/** The evidence of one signature (item 1.20), kept once and never changed. */
+export interface SignatureEvidence {
+  signer_name: string;
+  signed_at: string;
+  statement: string;
+  document_title: string;
+  document_version: number;
+  sha256: string;
+  method: string;
+  source_ip: string | null;
+  device: string;
+  /** Whether the document's file still has the fingerprint it had when signed. */
+  file_unchanged: boolean;
+}
+
+export type SignatureKind = "acknowledge" | "accept";
+
+export interface SignatureRequest {
+  id: number;
+  document: number;
+  document_title: string;
+  employee: number;
+  employee_name: string;
+  kind: SignatureKind;
+  kind_name: string;
+  statement: string;
+  message: string;
+  due_by: string | null;
+  state: "waiting" | "signed" | "declined" | "withdrawn";
+  state_name: string;
+  created_at: string;
+  decided_at: string | null;
+  decline_reason: string;
+  requested_by: string | null;
+  evidence: SignatureEvidence | null;
+  download_url: string;
+}
+
 export interface EmployeeDocument {
   id: number;
   doc_type: string;

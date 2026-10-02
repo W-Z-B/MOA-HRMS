@@ -3,6 +3,7 @@ import { get, plainMessage } from "../../api/client";
 import type { MyTerms } from "../../api/types";
 import { dmy, gyd, inDays } from "../../app/format";
 import { MyLetters } from "../letters/MyLetters";
+import { MySignatures } from "../signing/MySignatures";
 
 /** The employee's own appointment and contract: what the School holds about the terms they work on. */
 export function MyContractScreen() {
@@ -30,6 +31,7 @@ export function MyContractScreen() {
   return (
     <>
       <h1>My contract</h1>
+      <MySignatures />
       <section className="card-block">
         <h2>{terms.name}</h2>
         <p className="muted">

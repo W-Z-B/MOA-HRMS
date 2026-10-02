@@ -38,6 +38,7 @@ export default defineConfig({
         "src/features/privacy/**",
         "src/features/organisation/**",
         "src/features/letters/**",
+        "src/features/signing/**",
         "src/features/me/AccountScreen.tsx",
         "src/features/leave/Receipt.tsx",
         "src/features/leave/RequestForm.tsx",
