@@ -1,5 +1,7 @@
 """F02 Employee records, F03 Contracts and appointments, F04 Documents."""
 
+from pathlib import PurePath
+
 from django.conf import settings
 from django.contrib.postgres.constraints import ExclusionConstraint
 from django.contrib.postgres.fields import DateRangeField, RangeBoundary, RangeOperators
@@ -8,6 +10,7 @@ from django.db.models import Func, Q
 
 from core.fields import EncryptedTextField
 from core.models import TimeStampedModel
+from core.uploads import stored_name
 
 
 class Employee(TimeStampedModel):
@@ -161,7 +164,9 @@ class Document(TimeStampedModel):
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="documents")
     doc_type = models.CharField(max_length=40)  # contract, certificate, letter, id_copy, medical, other
     title = models.CharField(max_length=160)
-    file = models.FileField(upload_to="employees/%Y/%m/")
+    # Stored under a random name (core.uploads.stored_name); the name the person chose is kept below.
+    file = models.FileField(upload_to=stored_name)
+    original_name = models.CharField(max_length=255, blank=True, help_text="File name as uploaded")
     version = models.PositiveSmallIntegerField(default=1)
     classification = models.CharField(
         max_length=20, choices=Classification.choices, default=Classification.INTERNAL
@@ -173,3 +178,12 @@ class Document(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"{self.title} v{self.version}"
+
+    def save(self, *args, **kwargs):
+        if self.file and not getattr(self.file, "_committed", True) and not self.original_name:
+            self.original_name = PurePath(self.file.name).name[:255]
+        super().save(*args, **kwargs)
+
+    @property
+    def download_name(self) -> str:
+        return self.original_name or (self.file.name.rsplit("/", 1)[-1] if self.file else "")

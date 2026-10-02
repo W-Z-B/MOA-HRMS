@@ -18,6 +18,12 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Fired on window when the server says the person is no longer signed in: an idle or expired session,
+ * or one ended from another device. The detail is the server's sentence for an expiry, else empty.
+ */
+export const SIGNED_OUT_EVENT = "hrms:signed-out";
+
 function csrfToken(): string | undefined {
   return document.cookie
     .split("; ")
@@ -39,7 +45,15 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
     const fields = typeof body === "object" && !("detail" in body) ? body : undefined;
-    throw new ApiError(response.status, body.code ?? "error", body.detail ?? "Request failed", fields);
+    const code = body.code ?? "error";
+    const ended =
+      (response.status === 401 && code === "session_expired") ||
+      (response.status === 403 && code === "not_authenticated");
+    if (ended && !path.startsWith("/auth/login")) {
+      const reason = code === "session_expired" ? body.detail : "";
+      window.dispatchEvent(new CustomEvent(SIGNED_OUT_EVENT, { detail: reason }));
+    }
+    throw new ApiError(response.status, code, body.detail ?? "Request failed", fields);
   }
   return body as T;
 }

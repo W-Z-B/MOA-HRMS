@@ -63,6 +63,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "iam.middleware.SessionActivityMiddleware",  # idle and absolute time-outs; the session list
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -118,7 +119,11 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 50,
     "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.UserRateThrottle"],
     "DEFAULT_THROTTLE_RATES": {"user": "600/minute"},
+    "EXCEPTION_HANDLER": "core.exceptions.api_exception_handler",
 }
+
+# The OpenAPI schema and Swagger UI: public in development, signed-in people only elsewhere.
+API_DOCS_PUBLIC = env_bool("API_DOCS_PUBLIC", DEBUG)
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "GSA HRMS API",
@@ -165,7 +170,8 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = "DENY"
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_AGE = 8 * 60 * 60  # working day
+SESSION_COOKIE_AGE = 8 * 60 * 60  # working day: the absolute limit, enforced by iam.middleware
+SESSION_IDLE_MINUTES = int(env("SESSION_IDLE_MINUTES", "30"))
 
 # `manage.py check --deploy` runs in CI and must pass with no warnings. These three are deliberate:
 SILENCED_SYSTEM_CHECKS = [
@@ -178,9 +184,16 @@ SILENCED_SYSTEM_CHECKS = [
     "security.W021",
 ]
 
+# Upload limits in megabytes, checked with the file's type in core.uploads. Caddy refuses any request body
+# over 25 MB before it reaches the application.
+UPLOAD_LIMIT_EVIDENCE_MB = int(env("UPLOAD_LIMIT_EVIDENCE_MB", "10"))
+UPLOAD_LIMIT_DOCUMENT_MB = int(env("UPLOAD_LIMIT_DOCUMENT_MB", "20"))
+
 # Account lockout: this many consecutive failed logins inside the window locks the account for the window.
 LOGIN_MAX_FAILURES = int(env("LOGIN_MAX_FAILURES", "5"))
 LOGIN_LOCKOUT_MINUTES = int(env("LOGIN_LOCKOUT_MINUTES", "15"))
+# Failed sign-ins from one network address, across all accounts, before that address waits out the window.
+LOGIN_MAX_FAILURES_PER_ADDRESS = int(env("LOGIN_MAX_FAILURES_PER_ADDRESS", "20"))
 
 LOGGING = {
     "version": 1,

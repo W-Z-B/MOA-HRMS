@@ -156,3 +156,41 @@ def test_document_download_is_authenticated_scoped_and_audited(api, employee, hr
     client = APIClient()
     client.force_login(other)
     assert client.get(created["download_url"]).status_code == 404
+
+
+@pytest.mark.django_db
+def test_documents_are_stored_under_random_names_and_keep_the_name_chosen(api, employee):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    from people.models import Document
+
+    upload = SimpleUploadedFile(
+        "Asha Persaud payslip query.pdf", b"%PDF-1.7 query", content_type="application/pdf"
+    )
+    created = api.post(
+        "/api/v1/documents/",
+        {"employee": employee.id, "title": "Query", "doc_type": "letter", "file": upload},
+        format="multipart",
+    ).json()
+    stored = Document.objects.get(pk=created["id"])
+    assert "Asha" not in stored.file.name and stored.file.name.endswith(".pdf")
+    assert stored.original_name == "Asha Persaud payslip query.pdf"
+    assert created["filename"] == "Asha Persaud payslip query.pdf"
+    download = api.get(created["download_url"])
+    assert "Asha Persaud payslip query.pdf" in download["Content-Disposition"]
+
+
+@pytest.mark.django_db
+def test_a_page_disguised_as_a_pdf_is_refused(api, employee):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    upload = SimpleUploadedFile(
+        "offer.pdf", b"<html><script>steal()</script></html>", content_type="application/pdf"
+    )
+    response = api.post(
+        "/api/v1/documents/",
+        {"employee": employee.id, "title": "Offer", "doc_type": "letter", "file": upload},
+        format="multipart",
+    )
+    assert response.status_code == 400
+    assert "do not match its name" in response.json()["file"][0]

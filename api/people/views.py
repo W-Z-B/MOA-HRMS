@@ -130,5 +130,4 @@ class DocumentViewSet(AuditedModelViewSet):
         """Stream the file to an authorised user. Files are never served from a public media URL."""
         document = self.get_object()  # applies campus scoping and the medical restriction
         record(request, "download", document, after={"title": document.title, "version": document.version})
-        filename = document.file.name.rsplit("/", 1)[-1]
-        return FileResponse(document.file.open("rb"), as_attachment=True, filename=filename)
+        return FileResponse(document.file.open("rb"), as_attachment=True, filename=document.download_name)

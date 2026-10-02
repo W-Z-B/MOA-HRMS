@@ -86,4 +86,9 @@ describe("sign-in", () => {
     await user.click(screen.getByRole("button", { name: "Verify" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("The code is not valid.");
   });
+
+  it("says why the person is signing in again", () => {
+    render(<LoginScreen onSignedIn={vi.fn()} notice="You were signed out after 30 minutes without activity." />);
+    expect(screen.getByRole("status")).toHaveTextContent("You were signed out after 30 minutes without activity.");
+  });
 });

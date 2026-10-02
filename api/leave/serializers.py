@@ -1,10 +1,9 @@
-from pathlib import PurePath
-
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from core.serializers import TimeStampedSerializer
+from core.uploads import EVIDENCE, validate_upload
 from iam.models import Role
 from iam.services import has_role
 from leave.models import Entitlement, LeaveDecision, LeaveLedger, LeaveRequest, LeaveType
@@ -14,9 +13,6 @@ from leave.workflow import LEAVE_REQUEST
 
 HR = (Role.HR_OFFICER, Role.HR_MANAGER, Role.ADMINISTRATOR)
 DECIDED = (LeaveRequest.State.APPROVED, LeaveRequest.State.REJECTED, LeaveRequest.State.CANCELLED)
-# A photograph from a phone or a scanned page. Nothing that can carry a macro or run.
-EVIDENCE_TYPES = {".pdf", ".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"}
-EVIDENCE_MAX_BYTES = 10 * 1024 * 1024
 
 
 class LeaveTypeSerializer(TimeStampedSerializer):
@@ -208,12 +204,8 @@ class EvidenceSerializer(serializers.Serializer):
     file = serializers.FileField()
 
     def validate_file(self, value):
-        suffix = PurePath(value.name).suffix.lower()
-        if suffix not in EVIDENCE_TYPES:
-            raise serializers.ValidationError("Send a photograph (JPG, PNG, HEIC) or a PDF.")
-        if value.size > EVIDENCE_MAX_BYTES:
-            raise serializers.ValidationError("The file is larger than 10 MB.")
-        return value
+        # A photograph from a phone or a scanned page, checked by its contents: core.uploads.EVIDENCE.
+        return validate_upload(value, EVIDENCE)
 
 
 class TransitionSerializer(serializers.Serializer):

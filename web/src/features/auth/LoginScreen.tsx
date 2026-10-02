@@ -4,10 +4,12 @@ import type { Me } from "../../api/types";
 
 interface Props {
   onSignedIn: (me: Me) => void;
+  /** Why the person is seeing this page again, for example after an idle time-out. */
+  notice?: string | null;
 }
 
 /** Login, then TOTP verification for privileged roles (with first-time enrolment). */
-export function LoginScreen({ onSignedIn }: Props) {
+export function LoginScreen({ onSignedIn, notice }: Props) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
@@ -58,6 +60,11 @@ export function LoginScreen({ onSignedIn }: Props) {
       <form className="card" onSubmit={stage === "credentials" ? submitCredentials : submitCode}>
         <h1>GSA HRMS</h1>
         <p className="muted">Guyana School of Agriculture, Human Resource Management System</p>
+        {notice && (
+          <p role="status" className="notice">
+            {notice}
+          </p>
+        )}
         {stage === "credentials" ? (
           <>
             <label>

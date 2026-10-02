@@ -1,5 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
-import { expectAccessible, leaveDates, openSection, signIn, signOut, STAFF } from "./support";
+import type { Page } from "@playwright/test";
+import { expect, expectAccessible, leaveDates, openSection, signIn, signOut, STAFF, test } from "./support";
 
 /**
  * The leave brief of 29 September 2026, end to end: the employee asks on a phone, their own manager

@@ -243,6 +243,16 @@ export interface MyTerms {
   entitlements: { code: string; name: string; annual_days: number; from_contract: boolean }[];
 }
 
+/** One place the person is signed in, from /auth/sessions/. */
+export interface SignedInSession {
+  id: number;
+  device: string;
+  ip: string | null;
+  created_at: string;
+  last_seen_at: string;
+  current: boolean;
+}
+
 export interface Notification {
   id: number;
   kind: "info" | "approval" | "alert";

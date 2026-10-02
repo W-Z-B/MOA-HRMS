@@ -202,8 +202,7 @@ class LeaveRequestViewSet(AuditedModelViewSet):
         if document is None:
             return _refuse("not_found", "No evidence is attached.", status.HTTP_404_NOT_FOUND)
         record(request, "download", document, after={"title": document.title, "leave_request": instance.id})
-        filename = document.file.name.rsplit("/", 1)[-1]
-        return FileResponse(document.file.open("rb"), as_attachment=True, filename=filename)
+        return FileResponse(document.file.open("rb"), as_attachment=True, filename=document.download_name)
 
     @action(detail=True, methods=["get"])
     def receipt(self, request, pk=None):

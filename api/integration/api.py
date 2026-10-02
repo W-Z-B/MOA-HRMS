@@ -13,6 +13,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
 from audit.models import AuditLog
+from core.net import client_ip
 from core.serializers import ErrorSerializer
 from integration.auth import ServiceKeyAuthentication, scope
 from org.models import Campus, OrgUnit
@@ -32,7 +33,7 @@ def _audit(request, action: str, detail: dict) -> None:
         entity="integration.serviceclient",
         entity_id=request.auth.pk,
         after={"client": request.auth.name, **detail},
-        source_ip=request.META.get("REMOTE_ADDR") or None,
+        source_ip=client_ip(request),
     )
 
 

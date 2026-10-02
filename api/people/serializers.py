@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from core.crypto import mask
 from core.serializers import TimeStampedSerializer
+from core.uploads import DOCUMENT, validate_upload
 from iam.models import Role
 from iam.services import has_role
 from people.models import Assignment, Contract, Document, Employee
@@ -183,7 +184,10 @@ class DocumentSerializer(TimeStampedSerializer):
         )
 
     def get_filename(self, obj) -> str | None:
-        return obj.file.name.rsplit("/", 1)[-1] if obj.file else None
+        return obj.download_name or None
+
+    def validate_file(self, value):
+        return validate_upload(value, DOCUMENT)
 
     def get_download_url(self, obj) -> str:
         return f"/api/v1/documents/{obj.id}/download/"

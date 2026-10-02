@@ -11,6 +11,7 @@ class SelfServicePermission(BasePermission):
     """Checks authentication and MFA only. The view must limit the data to the caller's own record."""
 
     message = "Sign in to continue."
+    code = "not_authenticated"
 
     def has_permission(self, request, view) -> bool:
         user = request.user
@@ -18,6 +19,7 @@ class SelfServicePermission(BasePermission):
             return False
         if requires_mfa(user) and not request.session.get(MFA_SESSION_KEY, False):
             self.message = "Multi-factor verification is required for your role."
+            self.code = "mfa_required"
             return False
         return True
 
@@ -31,9 +33,21 @@ class RolePermission(SelfServicePermission):
     message = "You do not hold a role that permits this action."
 
     def has_permission(self, request, view) -> bool:
+        self.code = "permission_denied"
         if not super().has_permission(request, view):
             return False
         roles = getattr(view, "read_roles" if request.method in SAFE_METHODS else "write_roles", None)
         if roles is None:
             return True
         return has_role(request.user, *roles)
+
+
+class DocsPermission(BasePermission):
+    """The API documentation: open to anyone when API_DOCS_PUBLIC is on, otherwise signed-in people only."""
+
+    message = "Sign in to the web app first, then open the API documentation."
+
+    def has_permission(self, request, view) -> bool:
+        from django.conf import settings
+
+        return settings.API_DOCS_PUBLIC or bool(request.user and request.user.is_authenticated)

@@ -3,6 +3,7 @@ import pytest
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.test import APIClient
 
+from audit.models import AuditLog
 from iam.models import TotpDevice
 from iam.services import role_codes, scope_queryset
 from integration.auth import ServiceUser
@@ -97,3 +98,37 @@ def test_admin_needs_the_verified_web_sign_in(make_user):
     session["mfa_verified"] = True
     session.save()
     assert client.get("/admin/").status_code == 200
+
+
+@pytest.mark.django_db
+def test_one_address_failing_across_many_accounts_is_held_back(hr_officer, settings):
+    """Password spraying: few failures per account, many from one address (item 1.37)."""
+    settings.LOGIN_MAX_FAILURES_PER_ADDRESS = 3
+    sprayer = APIClient(HTTP_X_REAL_IP="203.0.113.7")
+    for name in ("someone.one", "someone.two", "someone.three"):
+        failed = sprayer.post(
+            "/api/v1/auth/login/", {"username": name, "password": "Summer2026!"}, format="json"
+        )
+        assert failed.status_code == 401
+    held = sprayer.post(
+        "/api/v1/auth/login/", {"username": "hr.officer", "password": "Str0ng-Passw0rd-123"}, format="json"
+    )
+    assert held.status_code == 429 and held.json()["code"] == "too_many_attempts"
+
+    elsewhere = APIClient(HTTP_X_REAL_IP="190.80.1.2")
+    ok = elsewhere.post(
+        "/api/v1/auth/login/", {"username": "hr.officer", "password": "Str0ng-Passw0rd-123"}, format="json"
+    )
+    assert ok.status_code == 200
+
+
+@pytest.mark.django_db
+def test_a_forged_forwarded_for_header_does_not_reach_the_records(hr_officer):
+    from iam.models import LoginAttempt
+
+    client = APIClient(HTTP_X_FORWARDED_FOR="6.6.6.6", HTTP_X_REAL_IP="190.80.1.2")
+    client.post(
+        "/api/v1/auth/login/", {"username": "hr.officer", "password": "Str0ng-Passw0rd-123"}, format="json"
+    )
+    assert LoginAttempt.objects.get().source_ip == "190.80.1.2"
+    assert AuditLog.objects.filter(action="login").latest("at").source_ip == "190.80.1.2"
