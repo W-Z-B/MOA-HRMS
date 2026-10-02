@@ -46,6 +46,7 @@ personal data.
 | Staff | Leave requests, balances, decisions, receipts | The employee, managers, HR | Leave under the Leave with Pay Act and GSA rules | Contract; legal obligation (register of holidays) |
 | Staff | Doctor's notes | The employee | Sick leave beyond the allotment | Contract; legal obligation; health data handled under the Act's conditions |
 | Staff | Hourly rate, grade amount; later pay, deductions, bank details | HR, Finance | Pay and statutory returns | Contract; legal obligation |
+| Staff | Career history: transfers, promotions, increments, acting appointments and confirmations, each with its reason and dates | HR | Employment administration; pay on the right grade and step | Contract; functions of a public body |
 | Staff | Letters issued to them (appointment, confirmation, transfer, job letters, certificates of service), the values each drew from the record, and a fingerprint of each PDF | HR | Employment administration; proof of employment at the employee's request | Contract; functions of a public body |
 | Next of kin, dependants | Name, phone | The employee | Emergencies; tax deductions for children (Release 2) | Contract; vital interests |
 | Applicants (Release 3) | Application, assessments | The applicant | Recruitment | Steps towards a contract at the applicant's request |
