@@ -136,6 +136,8 @@ SPECTACULAR_SETTINGS = {
     "ENUM_NAME_OVERRIDES": {
         "EmployeeStatusEnum": "people.models.Employee.Status",
         "PasswordLinkKindEnum": "iam.accounts.LINK_KINDS",
+        "CareerChangeKindEnum": "people.models.CareerEvent.Kind",
+        "LetterKindEnum": "letters.models.LetterTemplate.Kind",
     },
 }
 

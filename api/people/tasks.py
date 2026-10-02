@@ -7,6 +7,7 @@ from procrastinate.contrib.django import app
 
 from iam.models import Role
 from notifications.services import notify, users_with_role
+from people.careers import apply_due
 from people.models import Assignment
 
 log = logging.getLogger(__name__)
@@ -79,3 +80,12 @@ def probation_due_alerts(timestamp: int | None = None) -> int:
     sent = alert_probation_due(date.today())
     log.info("people.probation_due_alerts sent %s notifications", sent)
     return sent
+
+
+@app.periodic(cron="30 0 * * *")  # 00:30, so the day's changes are in place before anyone signs in
+@app.task(name="people.apply_career_events", queue="people")
+def apply_career_events(timestamp: int | None = None) -> dict:
+    """Scheduled changes whose day has come, and acting appointments that have ended."""
+    counts = apply_due(date.today())
+    log.info("people.apply_career_events %s", counts)
+    return counts

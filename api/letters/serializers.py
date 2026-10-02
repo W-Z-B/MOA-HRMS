@@ -6,7 +6,7 @@ from core.serializers import InScope, TimeStampedSerializer
 from letters import markup
 from letters.fields import ASK_TYPES, PAY_FIELDS, RECORD_FIELDS
 from letters.models import Letter, LetterTemplate
-from people.models import Document, Employee
+from people.models import CareerEvent, Document, Employee
 
 
 class AskSerializer(serializers.Serializer):
@@ -143,6 +143,7 @@ class LetterSerializer(serializers.ModelSerializer):
             "issued_by",
             "sha256",
             "document",
+            "career_event",
             "download_url",
         )
         read_only_fields = fields
@@ -163,6 +164,19 @@ class WriteLetterSerializer(serializers.Serializer):
     answers = serializers.DictField(
         child=serializers.CharField(allow_blank=True), required=False, help_text="What the template asks"
     )
+    career_event = InScope(
+        CareerEvent,
+        campus_field="employee__campus",
+        required=False,
+        allow_null=True,
+        help_text="The career change the letter is for",
+    )
+
+    def validate(self, attrs):
+        event = attrs.get("career_event")
+        if event is not None and event.employee_id != attrs["employee"].pk:
+            raise serializers.ValidationError({"career_event": ["That change is for someone else."]})
+        return attrs
 
 
 class MissingSerializer(serializers.Serializer):

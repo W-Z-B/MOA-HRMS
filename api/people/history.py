@@ -30,6 +30,7 @@ RECORDS = {
     "privacy.retentionrule": "Retention rule",
     "privacy.disposalrun": "Disposal run",
     "privacy.breach": "Data breach",
+    "people.careerevent": "Career change",
     "letters.lettertemplate": "Letter template",
     "letters.letter": "Letter",
 }
@@ -87,6 +88,10 @@ ACTIONS = {
     "purged": "Old logs removed",
     "breach_closed": "Breach closed",
     "letter_issued": "Letter issued",
+    "career_recorded": "Change recorded",
+    "career_applied": "Change took effect",
+    "career_cancelled": "Change cancelled",
+    "career_blocked": "Change held up",
     "template_revised": "Letter template revised",
     "template_retired": "Letter template retired",
     "template_restored": "Letter template back in use",

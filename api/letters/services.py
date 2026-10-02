@@ -95,7 +95,7 @@ def missing_in_words(missing: list[dict]) -> str:
     return f"The letter cannot be issued yet: {'; '.join(parts)}."
 
 
-def issue(request, template: LetterTemplate, employee, given: dict) -> Letter:
+def issue(request, template: LetterTemplate, employee, given: dict, *, career_event=None) -> Letter:
     """Issue the letter: a reference, the PDF in the staff file, its fingerprint, and word to the person."""
     if not template.is_active:
         raise Refused("retired", "That template is no longer in use.")
@@ -137,6 +137,7 @@ def issue(request, template: LetterTemplate, employee, given: dict) -> Letter:
             issued_on=today,
             values=letter["values"],
             sha256=hashlib.sha256(content).hexdigest(),
+            career_event=career_event,
             created_by=request.user,
             updated_by=request.user,
         )

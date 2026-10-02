@@ -44,7 +44,7 @@ def hourly_rate(contract: Contract) -> Decimal | None:
         return contract.hourly_rate
     if not contract.hours_per_week:
         return None
-    monthly = contract.assignment.position.grade.amount_on(timezone.localdate())
+    monthly = contract.assignment.pay_grade.amount_on(timezone.localdate())
     return (monthly * 12 / (WEEKS_PER_YEAR * contract.hours_per_week)).quantize(Decimal("0.01"))
 
 
