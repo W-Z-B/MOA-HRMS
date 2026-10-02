@@ -20,6 +20,10 @@ test("main screens", async ({ page }, testInfo) => {
     await page.waitForTimeout(300);
     await shot(`employee-${tab.toLowerCase()}`);
   }
+  await page.getByRole("tab", { name: "Appointments" }).click();
+  await page.getByRole("button", { name: "Record a change" }).click();
+  await page.getByRole("form", { name: "Record a change" }).waitFor();
+  await shot("employee-career-change");
   await page.getByRole("tab", { name: "Documents" }).click();
   await page.getByRole("button", { name: "Write a letter" }).click();
   await page.getByRole("combobox", { name: /^Letter/ }).selectOption({ label: "Job letter" });

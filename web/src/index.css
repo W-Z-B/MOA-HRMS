@@ -1204,6 +1204,27 @@ mark {
   }
 }
 
+/* Career changes (item 1.11): scheduled in amber, held up in red, cancelled in grey. */
+.accounts > li.career-scheduled {
+  border-left-color: var(--amber);
+}
+.accounts > li.career-blocked {
+  border-left-color: var(--danger);
+}
+.accounts > li.career-cancelled {
+  border-left-color: var(--muted);
+}
+.chip-career-applied {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.chip-career-scheduled {
+  color: var(--amber-text);
+}
+.chip-career-blocked {
+  color: var(--danger);
+}
+
 /* Audit log: whether the chain is intact, beside the button that checks it. */
 .chain-state .notice {
   flex: 1 1 320px;

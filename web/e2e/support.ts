@@ -58,6 +58,13 @@ const LETTER_PEOPLE = {
 } as const;
 export const letterPerson = (testInfo: TestInfo) => LETTER_PEOPLE[testInfo.project.name as keyof typeof LETTER_PEOPLE];
 
+/** The acting appointment each browser project records: the letters journey's person, and a post of their campus. */
+const CAREER_CHANGES = {
+  desktop: { name: "Roxanne Williams", post: "AGR-004 Laboratory Technician" },
+  phone: { name: "Indira Narine", post: "ESQ-AGR-002 Field Instructor" },
+} as const;
+export const careerChange = (testInfo: TestInfo) => CAREER_CHANGES[testInfo.project.name as keyof typeof CAREER_CHANGES];
+
 /** Where the test stack writes the email it would send (compose.e2e.yml). */
 const MAIL_DIR = process.env.E2E_MAIL_DIR ?? "/files/mail";
 
