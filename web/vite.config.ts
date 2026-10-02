@@ -41,6 +41,7 @@ export default defineConfig({
         "src/features/leave/Receipt.tsx",
         "src/features/leave/RequestForm.tsx",
         "src/features/people/RecordList.tsx",
+        "src/features/people/DocumentUpload.tsx",
         "src/features/people/ContactsTab.tsx",
         "src/features/people/BankTab.tsx",
         "src/features/people/HistoryTab.tsx",

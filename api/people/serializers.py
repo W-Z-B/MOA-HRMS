@@ -181,6 +181,16 @@ class ContractSerializer(TimeStampedSerializer):
         return data
 
 
+# What a document's type needs at the least: a contract shows pay, an identity document the national ID
+# number, a medical paper someone's health. Filed lower, it would show to roles that may not read it.
+LEAST_CLASSIFICATION = {
+    "contract": ("A contract", Document.Classification.CONFIDENTIAL),
+    "id_copy": ("A copy of an identity document", Document.Classification.CONFIDENTIAL),
+    "medical": ("A medical document", Document.Classification.MEDICAL),
+}
+_RESTRICTION = [c.value for c in Document.Classification]  # internal, confidential, medical: each narrower
+
+
 class DocumentSerializer(TimeStampedSerializer):
     """The file is write-only; reads get an authenticated download URL instead of a storage path."""
 
@@ -211,6 +221,19 @@ class DocumentSerializer(TimeStampedSerializer):
 
     def validate_file(self, value):
         return validate_upload(value, DOCUMENT)
+
+    def validate(self, attrs):
+        doc_type = attrs.get("doc_type", getattr(self.instance, "doc_type", ""))
+        if doc_type not in LEAST_CLASSIFICATION:
+            return attrs
+        what, least = LEAST_CLASSIFICATION[doc_type]
+        if "classification" not in attrs and self.instance is None:
+            attrs["classification"] = least  # not chosen: filed as its type needs
+        given = attrs.get("classification", getattr(self.instance, "classification", least))
+        if _RESTRICTION.index(given) < _RESTRICTION.index(least):
+            needed = "Medical" if least == Document.Classification.MEDICAL else "Confidential or Medical"
+            raise serializers.ValidationError({"classification": [f"{what} is filed as {needed}."]})
+        return attrs
 
     def get_download_url(self, obj) -> str:
         return f"/api/v1/documents/{obj.id}/download/"
