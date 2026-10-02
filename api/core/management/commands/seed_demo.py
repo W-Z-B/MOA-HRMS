@@ -140,7 +140,7 @@ ISSUED = [
 
 # Accidents and incidents (item 1.16), both closed so that nothing waits on anyone: reference, kind, when,
 # unit, where, what happened, what was done at once, the cause found, closed on, who was hurt (employee,
-# injury, treatment) and the action taken (owner, what, due, done).
+# injury, treatment) and the action taken (owner, what, due, done, what was done).
 INCIDENTS = [
     (
         "IN-2026-001",
@@ -158,6 +158,7 @@ INCIDENTS = [
             "Replace the latches on every pen gate and add them to the monthly check.",
             date(2026, 3, 31),
             date(2026, 3, 27),
+            "New latches fitted; the gates are on the monthly checklist.",
         ),
     ),
     (
@@ -176,6 +177,7 @@ INCIDENTS = [
             "Check the glassware each term and throw away anything chipped.",
             date(2026, 6, 30),
             date(2026, 6, 12),
+            "Glassware checked; nine chipped pieces thrown away.",
         ),
     ),
 ]
@@ -376,14 +378,14 @@ class Command(BaseCommand):
                     injury=injury,
                     treatment=treatment,
                 )
-            owner, task, due_on, done_on = action
+            owner, task, due_on, done_on, done_note = action
             Action.objects.create(
                 incident=incident,
                 what=task,
                 owner=staff[owner],
                 due_on=due_on,
                 done_on=done_on,
-                done_note=FICTIONAL,
+                done_note=done_note,
             )
 
     def _grades(self) -> dict[str, Grade]:
