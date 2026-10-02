@@ -1,6 +1,6 @@
 from rest_framework.routers import DefaultRouter
 
-from people import career_views, leaving_views, views
+from people import career_views, item_views, leaving_views, views
 
 router = DefaultRouter()
 router.register("employees", views.EmployeeViewSet, basename="employee")
@@ -14,5 +14,6 @@ router.register("emergency-contacts", views.EmergencyContactViewSet, basename="e
 router.register("bank-accounts", views.BankAccountViewSet, basename="bank-account")
 router.register("career-events", career_views.CareerEventViewSet, basename="career-event")
 router.register("separations", leaving_views.SeparationViewSet, basename="separation")
+router.register("issued-items", item_views.IssuedItemViewSet, basename="issued-item")
 
 urlpatterns = router.urls

@@ -15,8 +15,12 @@ from iam.models import Role
 from iam.permissions import RolePermission
 from iam.services import campus_in_scope, has_role, scope_queryset
 from people import leaving
-from people.models import Employee, Separation
+from people.item_views import IssuedItemSerializer
+from people.models import ClearanceStep, Employee, ExitInterview, Separation
 from people.views import CONFIDENTIAL_READ, HR_WRITE
+
+# An exit interview holds someone's views of their managers: for HR and the Principal only.
+EXIT_READ = HR_WRITE + (Role.PRINCIPAL,)
 
 
 class LeavingNoticeSerializer(serializers.Serializer):
@@ -55,6 +59,12 @@ def _may(serializer, *roles) -> bool:
     return request is not None and has_role(request.user, *roles)
 
 
+class ClearanceSummarySerializer(serializers.Serializer):
+    done = serializers.IntegerField()
+    total = serializers.IntegerField()
+    open = serializers.ListField(child=serializers.CharField(), help_text="The steps still to do")
+
+
 class SeparationSerializer(serializers.ModelSerializer):
     employee_name = serializers.CharField(source="employee.full_name", read_only=True)
     reason_name = serializers.CharField(source="get_reason_display", read_only=True)
@@ -66,6 +76,7 @@ class SeparationSerializer(serializers.ModelSerializer):
         help_text="The template of the certificate of service"
     )
     letter_answers = serializers.SerializerMethodField(help_text="For HR, who write the letters")
+    clearance = serializers.SerializerMethodField()
 
     class Meta:
         model = Separation
@@ -88,8 +99,18 @@ class SeparationSerializer(serializers.ModelSerializer):
             "created_at",
             "letter_template",
             "letter_answers",
+            "clearance",
         )
         read_only_fields = fields
+
+    @extend_schema_field(ClearanceSummarySerializer)
+    def get_clearance(self, separation) -> dict:
+        steps = list(separation.clearance.all())
+        return {
+            "done": sum(step.state != ClearanceStep.State.OPEN for step in steps),
+            "total": len(steps),
+            "open": [step.label for step in steps if step.state == ClearanceStep.State.OPEN],
+        }
 
     @extend_schema_field(LeavingNoticeSerializer)
     def get_notice(self, separation) -> dict:
@@ -126,6 +147,76 @@ class RecordLeavingSerializer(serializers.Serializer):
     )
 
 
+class ClearanceStepSerializer(serializers.ModelSerializer):
+    state_name = serializers.CharField(source="get_state_display", read_only=True)
+    cleared_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ClearanceStep
+        fields = (
+            "id",
+            "code",
+            "label",
+            "who",
+            "state",
+            "state_name",
+            "note",
+            "cleared_at",
+            "cleared_by_name",
+        )
+        read_only_fields = fields
+
+    def get_cleared_by_name(self, step) -> str | None:
+        user = step.cleared_by
+        return (user.get_full_name() or user.get_username()) if user else None
+
+
+class ClearanceSerializer(serializers.Serializer):
+    steps = ClearanceStepSerializer(many=True)
+    outstanding_items = IssuedItemSerializer(many=True, help_text="Everything issued and not yet given back")
+
+
+class ClearStepSerializer(serializers.Serializer):
+    done = serializers.BooleanField(default=True, help_text="False when the step is not needed")
+    note = serializers.CharField(max_length=300, required=False, allow_blank=True)
+
+
+class ExitInterviewSerializer(serializers.ModelSerializer):
+    main_reason_name = serializers.CharField(source="get_main_reason_display", read_only=True)
+    would_recommend_name = serializers.CharField(source="get_would_recommend_display", read_only=True)
+
+    class Meta:
+        model = ExitInterview
+        fields = (
+            "held_on",
+            "declined",
+            "main_reason",
+            "main_reason_name",
+            "would_recommend",
+            "would_recommend_name",
+            "rating_pay",
+            "rating_supervision",
+            "rating_training",
+            "rating_workload",
+            "rating_conditions",
+            "keep",
+            "change",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = ("created_at", "updated_at")
+        extra_kwargs = {
+            name: {"min_value": 1, "max_value": 5}
+            for name in (
+                "rating_pay",
+                "rating_supervision",
+                "rating_training",
+                "rating_workload",
+                "rating_conditions",
+            )
+        }
+
+
 class WithdrawSerializer(serializers.Serializer):
     reason = serializers.CharField(
         max_length=300, error_messages={"required": "Say why.", "blank": "Say why."}
@@ -156,7 +247,9 @@ class SeparationViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewse
     write_roles = HR_WRITE
 
     def get_queryset(self):
-        qs = Separation.objects.select_related("employee", "employee__campus", "created_by")
+        qs = Separation.objects.select_related("employee", "employee__campus", "created_by").prefetch_related(
+            "clearance"
+        )
         qs = scope_queryset(self.request.user, qs, campus_field="employee__campus")
         params = self.request.query_params
         if params.get("employee"):
@@ -224,3 +317,82 @@ class SeparationViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewse
         except leaving.Refused as exc:
             return _refused(exc)
         return Response(self.get_serializer(separation).data)
+
+    def _clearance(self, separation) -> dict:
+        return ClearanceSerializer(
+            {
+                # Read afresh: the separation's prefetched steps would show them as they were before a change.
+                "steps": ClearanceStep.objects.filter(separation=separation).select_related("cleared_by"),
+                "outstanding_items": leaving.outstanding_items(separation.employee),
+            },
+            context=self.get_serializer_context(),
+        ).data
+
+    @extend_schema(
+        responses={200: ClearanceSerializer}, summary="The clearance: each step, and what is still out"
+    )
+    @action(detail=True, methods=["get"])
+    def clearance(self, request, pk=None):
+        return Response(self._clearance(self.get_object()))
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("code", str, OpenApiParameter.PATH, description="The step, such as handover")
+        ],
+        request=ClearStepSerializer,
+        responses={200: ClearanceSerializer, 400: ErrorSerializer, 409: ErrorSerializer},
+        summary="Close one step of the clearance: done, or not needed",
+    )
+    @action(detail=True, methods=["post"], url_path=r"clearance/(?P<code>[a-z_]+)")
+    def clear(self, request, pk=None, code=None):
+        separation = self.get_object()
+        if not campus_in_scope(request.user, separation.employee.campus_id):
+            self.permission_denied(request, message="That employee is not on a campus you work with.")
+        step = separation.clearance.filter(code=code).first()
+        if step is None:
+            return Response(
+                {"code": "not_found", "detail": "No such step."}, status=status.HTTP_404_NOT_FOUND
+            )
+        data = ClearStepSerializer(data=request.data)
+        data.is_valid(raise_exception=True)
+        try:
+            leaving.clear_step(
+                request, step, done=data.validated_data["done"], note=data.validated_data.get("note", "")
+            )
+        except leaving.Refused as exc:
+            return _refused(exc)
+        return Response(self._clearance(separation))
+
+    @extend_schema(
+        methods=["GET"],
+        responses={200: ExitInterviewSerializer, 403: ErrorSerializer, 404: ErrorSerializer},
+        summary="The exit interview, for HR and the Principal",
+    )
+    @extend_schema(
+        methods=["POST"],
+        request=ExitInterviewSerializer,
+        responses={200: ExitInterviewSerializer, 400: ErrorSerializer},
+        summary="Record the exit interview, or that it was offered and declined",
+    )
+    @action(detail=True, methods=["get", "post"], url_path="exit-interview")
+    def exit_interview(self, request, pk=None):
+        separation = self.get_object()
+        if not has_role(request.user, *EXIT_READ):
+            self.permission_denied(request, message="Exit interviews are for HR and the Principal.")
+        interview = ExitInterview.objects.filter(separation=separation).first()
+        if request.method == "GET":
+            if interview is None:
+                return Response(
+                    {"code": "not_found", "detail": "No exit interview is recorded."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            return Response(ExitInterviewSerializer(interview).data)
+        if not campus_in_scope(request.user, separation.employee.campus_id):
+            self.permission_denied(request, message="That employee is not on a campus you work with.")
+        data = ExitInterviewSerializer(interview, data=request.data)
+        data.is_valid(raise_exception=True)
+        try:
+            saved = leaving.record_interview(request, separation, data.validated_data)
+        except leaving.Refused as exc:
+            return _refused(exc)
+        return Response(ExitInterviewSerializer(saved).data)

@@ -1,7 +1,7 @@
 # Threat model
 
-**Version 1.11, 1 October 2026.** Method: STRIDE over the data flows in section 3, against the code on
-branch `feature/phase-1-leaving`. Version 1.1 records the four gaps closed by pull request 16
+**Version 1.12, 1 October 2026.** Method: STRIDE over the data flows in section 3, against the code on
+branch `feature/phase-1-clearance`. Version 1.1 records the four gaps closed by pull request 16
 (items 1.28, 1.35, 1.36, 1.37) and one weakness found while closing them (forged addresses). Version 1.2
 records two weaknesses found while building the staff record (pull request 17): writes across campuses,
 and a leave balance disclosed in a refusal. Version 1.3 records accounts and access (pull request 18:
@@ -15,7 +15,8 @@ request 21, item 1.32). Version 1.7 records a pay disclosure in the organisation
 holders named on campuses the reader does not work with. Version 1.8 records the organisation chart (pull
 request 24, item 1.10), which names people by the staff directory's rule. Version 1.9 records letters (pull request 25, item 1.19), and confidential documents that
 supervisors and Finance could read, fixed there. Version 1.10 records career changes (pull request 26, item
-1.11). Version 1.11 records leaving and the figures owed (pull request 27, items 1.12 to 1.14).
+1.11). Version 1.11 records leaving and the figures owed (pull request 27, items 1.12 to 1.14). Version 1.12
+records the clearance, the exit interview and the register of items issued (pull request 28, items 1.13, 1.17).
 Reviewed at every release gate and whenever a data flow, role or integration is added. Gaps
 point to items in the Gold Standard Plan checklist.
 
@@ -124,6 +125,7 @@ with the other document files.
 | Identifiers in lists, logs or the integration API | Encrypted at rest, masked in responses and audit snapshots, full values only through the audited reveal for HR roles, never in the integration API | Rotating the field key is a manual procedure; keep the key and the backups apart (item 7.09) |
 | Confidential documents seen by supervisors or Finance | **Fixed in pull request 25:** only medical documents were held back, so supervisors and Finance could list and download confidential ones: contract scans that show pay, and leave evidence that the leave screens keep to the employee and HR. Confidential documents, and the register of letters, are now for HR, the Principal and the auditor; a contract or identity document cannot be filed below Confidential, nor a medical paper below Medical | |
 | A letter made to reach a server | Letters are built from escaped text only, so wording and values can add no markup, and the PDF engine is given a fetcher that refuses every address: no image, style sheet or page is fetched (pull request 25) | |
+| What someone said of their managers on leaving | The exit interview is for HR and the Principal only; the auditor sees that it was offered, not what was said (pull request 28) | |
 | Why someone left, and what they were paid to leave | Leaving, its reason (a dismissal, a death) and the figures owed are for HR, the Principal and the auditor, on their campuses; the figures only for the roles that see pay; supervisors do not see leaving at all (pull request 27) | |
 | Doctor's notes seen by the wrong person | Medical class; the employee and HR only; downloads audited | Authenticator code for HR officers (item 1.34) |
 | Pay seen by the wrong person | **Fixed in pull request 23:** the amounts of the salary scale were readable by anyone signed in, so pay could be worked out from a colleague's post and grade. Amounts now show only to the roles that see pay elsewhere (`Role.SEES_PAY`), and who holds a post or heads a unit only to the roles that read the staff directory, on the campuses the directory shows them; the organisation chart (pull request 24) names people by the same rule and never shows an amount. Pay fields blanked for roles without need; **bank details encrypted, shown by their last four digits, revealed only to those who decide and always audited; a change takes effect only when a second person approves it, and the employee is told** (pull request 17) | |
@@ -158,7 +160,8 @@ with the other document files.
 | A new role used without its second factor | **Fixed in pull request 18:** a session was marked verified at sign-in when its roles needed no authenticator code. A role that needs one, given later (in the admin site, for example), then worked in that session without a code. A session now counts as verified only after a code, and giving or taking a role through the accounts screen signs the person out everywhere | |
 | Acting as someone else in self-service | **Fixed in pull request 18:** the employee form accepted an account id, so any HR officer could link an account (their own, for example) to a member of staff, then ask for leave or decide it as that person. The link is now read-only, set only when HR opens an account for that person | |
 | Giving oneself, or others, more access | Who gives which role is fixed: HR officers give the employee and supervisor roles on their own campus, the HR Manager HR officers too, an administrator everything. Only someone who could give every role an account holds may change that account, and nobody changes their own, so an administrator always remains. **The access review lists every role of every account, with who gave it and when, accounts unused for 90 days and missing authenticators; HR signs it off every three months and is reminded when it is due** (pull request 18) | |
-| A leaver keeping access | Switching an account off ends every session at once and is audited with its reason (pull request 18). **The night after a leaver's last day their account is switched off and every session ended, by itself, and it cannot be switched on again while they have left** (pull request 27) | Items issued to staff, such as keys and devices, are not yet checked back at the last day (items 1.13 and 1.17) |
+| A leaver keeping access | Switching an account off ends every session at once and is audited with its reason (pull request 18). **The night after a leaver's last day their account is switched off and every session ended, by itself, and it cannot be switched on again while they have left** (pull request 27) | |
+| Keys, devices and cards kept after leaving | **A register of what the School hands to staff, and a clearance whose first step stays open while anything is still out** (pull request 28): keys, devices, access cards and the rest are checked back, or recorded as lost, before the clearance can say they are | The clearance does not stop the last day from coming: Finance should pay the settlement only when it is complete (a rule for GSA's procedures) |
 
 ## 5. Gaps added to the checklist by this review
 

@@ -22,6 +22,7 @@ import { ContractTab } from "./ContractTab";
 import { DocumentUpload } from "./DocumentUpload";
 import { LeavingSection } from "./LeavingSection";
 import { HistoryTab } from "./HistoryTab";
+import { ItemsTab } from "./ItemsTab";
 
 type FileTab =
   | "personal"
@@ -31,6 +32,7 @@ type FileTab =
   | "contacts"
   | "bank"
   | "documents"
+  | "items"
   | "leave"
   | "history";
 
@@ -42,6 +44,7 @@ const TAB_LABEL: Record<FileTab, string> = {
   contacts: "Contacts",
   bank: "Bank",
   documents: "Documents",
+  items: "Items issued",
   leave: "Leave",
   history: "History",
 };
@@ -220,6 +223,8 @@ export function EmployeeFile({ employee, me, onEdit }: Props) {
           {isHr && <DocumentUpload employee={employee} onSaved={() => setVersion((v) => v + 1)} />}
         </>
       )}
+
+      {tab === "items" && <ItemsTab employee={employee} me={me} />}
 
       {tab === "leave" &&
         (balances.length === 0 ? (

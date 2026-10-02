@@ -26,7 +26,15 @@ from audit.services import record, snapshot
 from iam.models import Role
 from notifications.services import notify, users_with_role
 from org.serializers import grade_name
-from people.models import Assignment, CareerEvent, Employee, Separation
+from people.models import (
+    Assignment,
+    CareerEvent,
+    ClearanceStep,
+    Employee,
+    ExitInterview,
+    IssuedItem,
+    Separation,
+)
 
 Reason = Separation.Reason
 State = Separation.State
@@ -36,7 +44,25 @@ CENT = Decimal("0.01")
 GIVEN_BY_EMPLOYEE = (Reason.RESIGNATION,)
 GIVEN_BY_SCHOOL = (Reason.NOTICE, Reason.REDUNDANCY)
 SEVERANCE_REASONS = (Reason.NOTICE, Reason.REDUNDANCY)
-CONFLICTS = frozenset({"already_leaving", "left"})
+CONFLICTS = frozenset({"already_leaving", "left", "items_out", "not_open"})
+# The clearance, in order (item 1.13): what is checked, and who confirms it.
+CLEARANCE = [
+    (
+        "items",
+        "Everything issued given back: keys, tools, devices, uniforms, cards",
+        "HR, from the register of items",
+    ),
+    (
+        "handover",
+        "Work handed over: files, duties, and the passwords of shared systems",
+        "The head of the unit",
+    ),
+    ("money", "Money owed to the School settled: advances and loans", "Finance"),
+    ("library", "Library books returned", "The librarian"),
+    ("interview", "Exit interview offered", "HR"),
+    ("account", "Sign-in account switched off", "The system, the night after the last day"),
+]
+STEP = ClearanceStep.State
 
 
 class Refused(Exception):
@@ -247,9 +273,85 @@ def record_leaving(
     with transaction.atomic():
         separation.save()
         record(request, "leaving_recorded", separation, after=snapshot(separation), reason=separation.note)
+        ClearanceStep.objects.bulk_create(
+            ClearanceStep(
+                separation=separation,
+                code=code,
+                label=label,
+                who=who,
+                position=index,
+                created_by=request.user,
+                updated_by=request.user,
+            )
+            for index, (code, label, who) in enumerate(CLEARANCE)
+        )
         if last_day < timezone.localdate():
             complete(request, separation)
     return separation
+
+
+def outstanding_items(employee: Employee):
+    return IssuedItem.objects.filter(employee=employee, returned_on__isnull=True).order_by("issued_on", "id")
+
+
+def _close_step(request, step: ClearanceStep, state: str, note: str) -> None:
+    before = snapshot(step)
+    step.state = state
+    step.note = note.strip()[:300]
+    step.cleared_at = timezone.now()
+    step.cleared_by = getattr(request, "user", None) if request is not None else None
+    step.updated_by = step.cleared_by
+    step.save(update_fields=["state", "note", "cleared_at", "cleared_by", "updated_by", "updated_at"])
+    record(request, "clearance_step", step, before=before, after=snapshot(step), reason=step.note)
+
+
+def clear_step(request, step: ClearanceStep, *, done: bool, note: str) -> ClearanceStep:
+    """Close one step, done or not needed. Every item must be back first; the system closes the account."""
+    if step.state != STEP.OPEN:
+        raise Refused("not_open", "That step is already closed.")
+    if step.separation.state == State.WITHDRAWN:
+        raise Refused("withdrawn", "The leaving was withdrawn.")
+    if step.code == "account":
+        raise Refused("system_step", "The account is switched off by itself the night after the last day.")
+    if step.code == "interview":
+        raise Refused("interview_step", "This step closes when the exit interview is recorded, or declined.")
+    if step.code == "items":
+        out = list(outstanding_items(step.separation.employee))
+        if out:
+            names = ", ".join(item.description for item in out[:3]) + (" and more" if len(out) > 3 else "")
+            raise Refused(
+                "items_out",
+                f"{len(out)} {'item is' if len(out) == 1 else 'items are'} still out: {names}. "
+                "Record each as given back, or as lost, first.",
+            )
+    with transaction.atomic():
+        _close_step(request, step, STEP.DONE if done else STEP.NOT_NEEDED, note)
+    return step
+
+
+def record_interview(request, separation: Separation, data: dict) -> ExitInterview:
+    """Record the exit interview, or that it was offered and declined; the clearance step follows."""
+    if separation.state == State.WITHDRAWN:
+        raise Refused("withdrawn", "The leaving was withdrawn.")
+    with transaction.atomic():
+        interview = ExitInterview.objects.filter(separation=separation).first()
+        before = snapshot(interview) if interview else None
+        interview = interview or ExitInterview(separation=separation, created_by=request.user)
+        for field, value in data.items():
+            setattr(interview, field, value)
+        interview.updated_by = request.user
+        interview.save()
+        record(
+            request,
+            "create" if before is None else "update",
+            interview,
+            before=before,
+            after=snapshot(interview),
+        )
+        step = separation.clearance.filter(code="interview", state=STEP.OPEN).first()
+        if step is not None:
+            _close_step(request, step, STEP.DONE, "Offered, and declined" if interview.declined else "Held")
+    return interview
 
 
 def withdraw(request, separation: Separation, reason: str) -> Separation:
@@ -301,6 +403,15 @@ def complete(request, separation: Separation) -> None:
         user.save(update_fields=["is_active"])
         ended = close_sessions(user)
         record(request, "account_deactivated", user, after={"sessions_ended": ended}, reason=why)
+    account = separation.clearance.filter(code="account", state=STEP.OPEN).first()
+    if account is not None:
+        closed = user is not None
+        _close_step(
+            request,
+            account,
+            STEP.DONE if closed else STEP.NOT_NEEDED,
+            f"Switched off after the last day, {_day(last)}" if closed else "No sign-in account",
+        )
     separation.state = State.LEFT
     separation.completed_at = timezone.now()
     separation.settlement = figures

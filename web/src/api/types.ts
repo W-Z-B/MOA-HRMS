@@ -339,6 +339,60 @@ export interface Separation {
   created_at: string;
   letter_template: string;
   letter_answers: Record<string, string> | null;
+  clearance: { done: number; total: number; open: string[] };
+}
+
+export type ItemCondition = "good" | "worn" | "damaged" | "lost";
+
+/** Something the School handed to a member of staff, to be given back when they leave (item 1.17). */
+export interface IssuedItem {
+  id: number;
+  employee: number;
+  kind: string;
+  kind_name: string;
+  description: string;
+  tag: string;
+  issued_on: string;
+  returned_on: string | null;
+  condition: ItemCondition | "";
+  condition_name: string;
+  note: string;
+  issued_by: string | null;
+}
+
+export interface ClearanceStep {
+  id: number;
+  code: string;
+  label: string;
+  who: string;
+  state: "open" | "done" | "not_needed";
+  state_name: string;
+  note: string;
+  cleared_at: string | null;
+  cleared_by_name: string | null;
+}
+
+/** The clearance of someone leaving (item 1.13): each step, and everything issued still out. */
+export interface Clearance {
+  steps: ClearanceStep[];
+  outstanding_items: IssuedItem[];
+}
+
+/** What someone leaving said (item 1.13): for HR and the Principal only. */
+export interface ExitInterview {
+  held_on: string;
+  declined: boolean;
+  main_reason: string;
+  main_reason_name: string;
+  would_recommend: string;
+  would_recommend_name: string;
+  rating_pay: number | null;
+  rating_supervision: number | null;
+  rating_training: number | null;
+  rating_workload: number | null;
+  rating_conditions: number | null;
+  keep: string;
+  change: string;
 }
 
 export interface EmployeeDocument {

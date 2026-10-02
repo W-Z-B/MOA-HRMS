@@ -29,6 +29,23 @@ test("HR checks what a redundancy owes, records the leaving, then withdraws it",
   await expect(page.getByRole("status").filter({ hasText: "Recorded: leaving on" })).toBeVisible();
   await expect(page.getByText(/^Leaving on \d{2}\/\d{2}\/\d{4}$/)).toBeVisible();
 
+  // The clearance opens with the leaving; the keys the demonstration gave them hold its first step.
+  const clearance = page.getByRole("list", { name: "Clearance steps" });
+  await expect(page.getByText(/^Clearance: 0 of 6 steps closed$/)).toBeVisible();
+  await expect(clearance.getByRole("list", { name: "Still out" })).toContainText("Key to");
+  await clearance.getByRole("button", { name: /^Close the step: Work handed over/ }).click();
+  await page.getByLabel(/Note \(who confirmed it/).fill("Confirmed by the head of the unit");
+  await page.getByRole("button", { name: "Done", exact: true }).click();
+  await expect(page.getByText(/^Clearance: 1 of 6 steps closed$/)).toBeVisible();
+  await page.getByRole("button", { name: "Record the exit interview" }).click();
+  const interview = page.getByRole("form", { name: "Exit interview" });
+  await interview.getByLabel("Held, or offered, on").fill(iso(noticeGiven));
+  await interview.getByLabel("Offered, and declined").check();
+  await interview.getByRole("button", { name: "Save the exit interview" }).click();
+  await expect(page.getByText(/Exit interview offered on .*, and declined\./)).toBeVisible();
+  await expect(page.getByText(/^Clearance: 2 of 6 steps closed$/)).toBeVisible();
+  await expectAccessible(page, testInfo, "clearance");
+
   await page.getByRole("button", { name: "Withdraw the leaving" }).click();
   const withdraw = page.getByRole("form", { name: "Withdraw the leaving" });
   await withdraw.getByLabel("Why withdraw it").fill("The unit stays open");

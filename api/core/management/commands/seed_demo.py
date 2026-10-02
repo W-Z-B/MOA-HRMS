@@ -23,7 +23,7 @@ from iam.models import Role, RoleScope
 from leave.models import Entitlement, LeaveLedger, LeaveRequest, LeaveType
 from leave.services import debit_for_request, working_days
 from org.models import Campus, Grade, OrgUnit, Position, SalaryScale
-from people.models import Assignment, Contract, Employee
+from people.models import Assignment, Contract, Employee, IssuedItem
 from people.services import manager_of
 from privacy.models import PrivacyNotice
 from training.models import TrainingRecord
@@ -128,6 +128,14 @@ HOURS_PER_WEEK = Decimal("40")
 NOTICE_DAYS = 30
 HOURLY_RATES = {"E0005": Decimal("750.00")}  # paid by the hour; the others by their grade
 ENTITLEMENTS = {"E0009": {"ANN": Decimal("14"), "SIC": Decimal("10")}}
+
+# Things handed out to staff (item 1.17): employee, kind, description, tag, issued on.
+ISSUED = [
+    ("E0004", "key", "Key to the livestock pens", "", date(2014, 3, 3)),
+    ("E0004", "protective", "Rubber boots and overalls", "", date(2026, 1, 12)),
+    ("E0003", "device", "Laptop", "GSA-IT-0042", date(2023, 9, 4)),
+    ("E0008", "key", "Key to the Essequibo seed store", "", date(2013, 9, 2)),
+]
 
 # Every invented employee signs in as first.last. Heads of unit are supervisors as well.
 HR_OFFICER = "E0006"
@@ -267,6 +275,13 @@ class Command(BaseCommand):
                     "ends": ends,
                     "certification": "Certificate of attendance",
                 },
+            )
+
+        for number, kind, description, tag, issued_on in ISSUED:
+            IssuedItem.objects.get_or_create(
+                employee=staff[number],
+                description=description,
+                defaults={"kind": kind, "tag": tag, "issued_on": issued_on, "note": FICTIONAL},
             )
 
         vacant = sum(1 for p in Position.objects.filter(number__in=positions) if p.is_vacant)

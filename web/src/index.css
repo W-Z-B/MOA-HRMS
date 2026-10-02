@@ -1250,6 +1250,22 @@ ul.notes {
   padding-left: 18px;
 }
 
+/* Clearance (item 1.13): each step with its state. */
+ul.steps-list {
+  gap: 6px;
+}
+ul.steps-list > li {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--stripe);
+}
+.chip-step-done {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.chip-step-open {
+  color: var(--amber-text);
+}
+
 /* Audit log: whether the chain is intact, beside the button that checks it. */
 .chain-state .notice {
   flex: 1 1 320px;

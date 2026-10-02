@@ -32,6 +32,9 @@ RECORDS = {
     "privacy.breach": "Data breach",
     "people.careerevent": "Career change",
     "people.separation": "Leaving",
+    "people.issueditem": "Item issued",
+    "people.clearancestep": "Clearance step",
+    "people.exitinterview": "Exit interview",
     "letters.lettertemplate": "Letter template",
     "letters.letter": "Letter",
 }
@@ -96,6 +99,8 @@ ACTIONS = {
     "leaving_recorded": "Leaving recorded",
     "leaving_completed": "Left the School",
     "leaving_withdrawn": "Leaving withdrawn",
+    "item_returned": "Given back",
+    "clearance_step": "Clearance step closed",
     "template_revised": "Letter template revised",
     "template_retired": "Letter template retired",
     "template_restored": "Letter template back in use",

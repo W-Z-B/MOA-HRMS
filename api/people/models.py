@@ -443,3 +443,130 @@ class Separation(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"{self.employee} leaving on {self.last_day:%d/%m/%Y} ({self.get_reason_display()})"
+
+
+class IssuedItem(TimeStampedModel):
+    """Something the School has handed to a member of staff, to be given back when they leave (item 1.17)."""
+
+    class Kind(models.TextChoices):
+        KEY = "key", "Key"
+        TOOL = "tool", "Tool or equipment"
+        DEVICE = "device", "Computer, phone or other device"
+        UNIFORM = "uniform", "Uniform"
+        PROTECTIVE = "protective", "Protective clothing or gear"
+        CARD = "card", "Identity or access card"
+        VEHICLE = "vehicle", "Vehicle"
+        BOOK = "book", "Book or manual"
+        OTHER = "other", "Other"
+
+    class Condition(models.TextChoices):
+        GOOD = "good", "In good order"
+        WORN = "worn", "Worn with use"
+        DAMAGED = "damaged", "Damaged"
+        LOST = "lost", "Lost"
+
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="issued_items")
+    kind = models.CharField(max_length=20, choices=Kind.choices)
+    description = models.CharField(max_length=160)
+    tag = models.CharField(max_length=60, blank=True, help_text="Serial number or asset tag")
+    issued_on = models.DateField()
+    returned_on = models.DateField(null=True, blank=True)
+    condition = models.CharField(max_length=10, choices=Condition.choices, blank=True)
+    note = models.CharField(max_length=300, blank=True)
+
+    class Meta:
+        ordering = [models.F("returned_on").asc(nulls_first=True), "-issued_on", "-id"]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(returned_on__isnull=True) | Q(returned_on__gte=models.F("issued_on")),
+                name="item_returned_after_issue",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.description} issued to {self.employee} on {self.issued_on:%d/%m/%Y}"
+
+
+class ClearanceStep(TimeStampedModel):
+    """One step in clearing someone who is leaving (item 1.13): done, not needed, or still open."""
+
+    class State(models.TextChoices):
+        OPEN = "open", "To do"
+        DONE = "done", "Done"
+        NOT_NEEDED = "not_needed", "Not needed"
+
+    separation = models.ForeignKey(Separation, on_delete=models.CASCADE, related_name="clearance")
+    code = models.SlugField(max_length=30)
+    label = models.CharField(max_length=160)
+    who = models.CharField(max_length=120, help_text="Who confirms it")
+    state = models.CharField(max_length=12, choices=State.choices, default=State.OPEN)
+    note = models.CharField(max_length=300, blank=True)
+    cleared_at = models.DateTimeField(null=True, blank=True)
+    cleared_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    position = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["separation", "position"]
+        constraints = [models.UniqueConstraint(fields=["separation", "code"], name="one_step_of_each_kind")]
+
+    def __str__(self) -> str:
+        return f"{self.label} ({self.get_state_display()})"
+
+
+class ExitInterview(TimeStampedModel):
+    """What someone leaving said about their time at the School (item 1.13). Held to HR and the Principal."""
+
+    class MainReason(models.TextChoices):
+        PAY = "pay", "Pay and benefits"
+        GROWTH = "growth", "Training and promotion"
+        WORKLOAD = "workload", "Workload"
+        MANAGEMENT = "management", "Supervision and management"
+        CONDITIONS = "conditions", "Working conditions"
+        MOVING = "moving", "Moving away"
+        FAMILY = "family", "Personal or family reasons"
+        RETIREMENT = "retirement", "Retirement"
+        OTHER = "other", "Something else"
+
+    class Recommend(models.TextChoices):
+        YES = "yes", "Yes"
+        NO = "no", "No"
+        UNSURE = "unsure", "Not sure"
+
+    separation = models.OneToOneField(Separation, on_delete=models.CASCADE, related_name="exit_interview")
+    held_on = models.DateField()
+    declined = models.BooleanField(default=False, help_text="Offered, and declined")
+    main_reason = models.CharField(max_length=20, choices=MainReason.choices, blank=True)
+    would_recommend = models.CharField(max_length=10, choices=Recommend.choices, blank=True)
+    # Ratings from 1 (poor) to 5 (very good); empty when not answered.
+    rating_pay = models.PositiveSmallIntegerField(null=True, blank=True)
+    rating_supervision = models.PositiveSmallIntegerField(null=True, blank=True)
+    rating_training = models.PositiveSmallIntegerField(null=True, blank=True)
+    rating_workload = models.PositiveSmallIntegerField(null=True, blank=True)
+    rating_conditions = models.PositiveSmallIntegerField(null=True, blank=True)
+    keep = models.TextField(blank=True, help_text="What the School should keep")
+    change = models.TextField(blank=True, help_text="What the School should change")
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    (Q(rating_pay__isnull=True) | Q(rating_pay__gte=1, rating_pay__lte=5))
+                    & (
+                        Q(rating_supervision__isnull=True)
+                        | Q(rating_supervision__gte=1, rating_supervision__lte=5)
+                    )
+                    & (Q(rating_training__isnull=True) | Q(rating_training__gte=1, rating_training__lte=5))
+                    & (Q(rating_workload__isnull=True) | Q(rating_workload__gte=1, rating_workload__lte=5))
+                    & (
+                        Q(rating_conditions__isnull=True)
+                        | Q(rating_conditions__gte=1, rating_conditions__lte=5)
+                    )
+                ),
+                name="exit_ratings_one_to_five",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"Exit interview with {self.separation.employee} on {self.held_on:%d/%m/%Y}"

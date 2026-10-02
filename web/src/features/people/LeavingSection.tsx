@@ -13,6 +13,7 @@ import {
 } from "../../api/types";
 import { dmy, gyd } from "../../app/format";
 import { WriteLetter, type LetterPreset } from "../letters/WriteLetter";
+import { ClearancePanel } from "./ClearancePanel";
 
 const REASONS: [LeavingReason, string][] = [
   ["resignation", "Resignation"],
@@ -305,6 +306,7 @@ export function LeavingSection({ employee, me, onChanged }: { employee: Employee
               </button>
             </div>
           )}
+          <ClearancePanel separation={current} me={me} onChanged={load} />
           {withdrawing && (
             <WithdrawForm
               separation={current}
