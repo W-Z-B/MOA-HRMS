@@ -31,8 +31,12 @@ test("main screens", async ({ page }, testInfo) => {
   await page.getByRole("list", { name: "Waiting for you" }).waitFor();
   await shot("to-do");
   await openSection(page, "People");
+  await page.getByRole("table", { name: "Staff" }).getByRole("row").nth(5).waitFor();
+  await shot("people");
   await page.getByLabel("Search staff").fill("Persaud");
   await page.getByRole("row").filter({ hasText: STAFF.employee.name }).getByRole("link", { name: STAFF.employee.name }).click();
+  await page.getByRole("heading", { name: STAFF.employee.name, level: 1 }).waitFor();
+  await page.locator(".facts").getByText("Annual leave left").waitFor();
   await shot("employee-file");
   for (const tab of ["Background", "Contacts", "Bank", "History"]) {
     await page.getByRole("tab", { name: tab }).click();

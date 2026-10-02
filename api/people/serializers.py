@@ -19,9 +19,25 @@ from people.models import (
     PreviousEmployment,
     Qualification,
 )
-from people.services import hourly_rate
+from people.services import current_contract, hourly_rate, manager_of
 
 IDENTIFIERS = ("national_id", "nis_no", "tin")
+
+
+def _held(employee):
+    """The person's own post today. A list reads it from the appointments fetched with the page, so a page
+    of fifty staff costs no query per person; a single record falls back to asking."""
+    if not hasattr(employee, "_held"):
+        if "assignments" in getattr(employee, "_prefetched_objects_cache", {}):
+            own = [
+                a
+                for a in employee.assignments.all()
+                if a.status == Assignment.Status.ACTIVE and not a.is_acting
+            ]
+            employee._held = max(own, key=lambda a: a.start_date, default=None)
+        else:
+            employee._held = employee.current_assignment
+    return employee._held
 
 
 class EmployeeSerializer(TimeStampedSerializer):
@@ -37,6 +53,11 @@ class EmployeeSerializer(TimeStampedSerializer):
     campus = InScope(Campus, campus_field="id")
     campus_name = serializers.CharField(source="campus.name", read_only=True)
     position_title = serializers.SerializerMethodField()
+    unit_name = serializers.SerializerMethodField(help_text="The unit of the person's own post")
+    appointment_type = serializers.SerializerMethodField(
+        help_text="Permanent, contract, temporary and so on, in words, for the person's own post"
+    )
+    started = serializers.SerializerMethodField(help_text="When the person started in their own post")
     change_reason = serializers.CharField(
         write_only=True,
         required=False,
@@ -72,6 +93,9 @@ class EmployeeSerializer(TimeStampedSerializer):
             "campus_name",
             "status",
             "position_title",
+            "unit_name",
+            "appointment_type",
+            "started",
             "change_reason",
             "restricted",
             "created_at",
@@ -95,14 +119,58 @@ class EmployeeSerializer(TimeStampedSerializer):
         return mask(obj.tin)
 
     def get_position_title(self, obj) -> str | None:
-        current = obj.current_assignment
-        return current.position.title if current else None
+        held = _held(obj)
+        return held.position.title if held else None
+
+    def get_unit_name(self, obj) -> str | None:
+        held = _held(obj)
+        return held.position.org_unit.name if held else None
+
+    def get_appointment_type(self, obj) -> str | None:
+        held = _held(obj)
+        return held.get_appointment_type_display() if held else None
+
+    def get_started(self, obj) -> date | None:
+        held = _held(obj)
+        return held.start_date if held else None
 
     def get_restricted(self, obj) -> list[str]:
         held = getattr(obj, "held_back", None)
         if held is None:
             held = obj.restrictions.filter(lifted_at__isnull=True)
         return sorted({f"{r.get_part_display()}: {r.get_ground_display().lower()}" for r in held})
+
+
+class EmployeeFileSerializer(EmployeeSerializer):
+    """One staff file (item 2.30): the facts shown above its tabs, which a list does not need."""
+
+    manager_name = serializers.SerializerMethodField(help_text="Who decides the person's leave first")
+    contract_type = serializers.SerializerMethodField(
+        help_text="Fixed term, open ended or sessional, in words"
+    )
+    ends = serializers.SerializerMethodField(
+        help_text="When the person's own post ends; empty when open ended"
+    )
+    probation_end = serializers.SerializerMethodField(help_text="Empty once confirmed in the post")
+
+    class Meta(EmployeeSerializer.Meta):
+        fields = (*EmployeeSerializer.Meta.fields, "manager_name", "contract_type", "ends", "probation_end")
+
+    def get_manager_name(self, obj) -> str | None:
+        manager = manager_of(obj)
+        return manager.full_name if manager else None
+
+    def get_contract_type(self, obj) -> str | None:
+        contract = current_contract(obj)
+        return contract.get_contract_type_display() if contract else None
+
+    def get_ends(self, obj) -> date | None:
+        held = _held(obj)
+        return held.end_date if held else None
+
+    def get_probation_end(self, obj) -> date | None:
+        held = _held(obj)
+        return held.probation_end if held and not held.confirmed_on else None
 
 
 class EmployeeRevealSerializer(serializers.ModelSerializer):

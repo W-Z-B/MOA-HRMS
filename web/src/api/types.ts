@@ -45,6 +45,15 @@ export interface Employee {
   campus_name: string;
   status: "active" | "on_leave" | "suspended" | "separated";
   position_title: string | null;
+  /** The unit of the person's own post, the kind of appointment in words, and when they started in it (item 2.30). */
+  unit_name?: string | null;
+  appointment_type?: string | null;
+  started?: string | null;
+  /** On one file only (item 2.30): who decides their leave first, the contract in words, and its dates. */
+  manager_name?: string | null;
+  contract_type?: string | null;
+  ends?: string | null;
+  probation_end?: string | null;
   /** Parts held back from use at the person's request, in words (item 1.46); absent on older answers. */
   restricted?: string[];
   nis_no_masked: string | null;
