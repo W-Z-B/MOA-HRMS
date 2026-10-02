@@ -1,11 +1,11 @@
 # Data protection impact assessment
 
-**Draft 0.5, 2 October 2026,** prepared by the development team for GSA's data protection officer.
+**Draft 0.6, 2 October 2026,** prepared by the development team for GSA's data protection officer.
 Draft 0.2 records the privacy rights built in pull request 20: the notice and its acknowledgement, a
 person's own record, and correction requests. Draft 0.3 records the retention schedule, reviewed disposal
 and the breach register built in pull request 21. Draft 0.4 adds the accident and incident register (pull
 request 32), which holds injuries: health data. Draft 0.5 adds the public page that checks a letter (pull
-request 33): what it shows, and the log of checks.
+request 33): what it shows, and the log of checks. Draft 0.6 adds changes of sign-in email (pull request 34).
 GSA is the data controller and owns this assessment; the development team keeps it current as the
 system changes. It is signed in section 9 before any real staff record is loaded (checklist item 7.03).
 
@@ -63,6 +63,7 @@ personal data.
 | Applicants (Release 3) | Application, assessments | The applicant | Recruitment | Steps towards a contract at the applicant's request |
 | Staff | Training records | HR, the LMS | Development, certificates | Contract |
 | Everyone with an account | Username, email address, roles and who gave them, sign-ins, devices signed in, network addresses of sign-ins and of requests for a password link (what was typed is not kept) | The system, HR | Keeping the system secure; showing who can see what in the access review | Functions of a public body; the Act's security duty |
+| Everyone with an account | Changes of their sign-in email address: the old and new address, who asked and why, when it was confirmed | The person, HR | Keeping the account in its holder's hands | Functions of a public body; the Act's security duty |
 | Everyone with an account | Which version of the privacy notice they read and when; their correction requests, HR's answers and reasons | The person, HR | Showing that people were told, and that their requests were answered | The Act's duties to inform and to correct |
 
 **Recipients:** GSA HR, the employee's own manager, Finance, the Principal and auditors (each limited by
@@ -90,7 +91,7 @@ as a leaver's file, wait for the leaving process (item 1.12).
 | Accident and incident register | No period proposed yet: the Act requires a register (section 69(7)) and its regulations may set how long it is kept; the legal adviser to advise, as an injury can lead to a claim years later |
 | Audit log | Seven years (Planning Pack requirement) |
 | Access review sign-offs | Seven years, with the audit log |
-| Sign-in records, devices, requests for a password link | Twelve months; a device record ends with its session |
+| Sign-in records, devices, requests for a password link, changes of sign-in email | Twelve months; a device record ends with its session; the audit log keeps each change made |
 | Checks of letters on the public page | Twelve months (in the schedule; removed every night once due; GSA to confirm) |
 | Privacy notice acknowledgements, correction requests | As long as the staff record, then with it |
 | Unsuccessful applicants | Six months after the post is filled |

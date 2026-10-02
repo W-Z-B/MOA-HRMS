@@ -1,7 +1,7 @@
 # Threat model
 
-**Version 1.17, 2 October 2026.** Method: STRIDE over the data flows in section 3, against the code on
-branch `feature/phase-1-letter-check`. Version 1.1 records the four gaps closed by pull request 16
+**Version 1.18, 2 October 2026.** Method: STRIDE over the data flows in section 3, against the code on
+branch `feature/phase-1-email-change`. Version 1.1 records the four gaps closed by pull request 16
 (items 1.28, 1.35, 1.36, 1.37) and one weakness found while closing them (forged addresses). Version 1.2
 records two weaknesses found while building the staff record (pull request 17): writes across campuses,
 and a leave balance disclosed in a refusal. Version 1.3 records accounts and access (pull request 18:
@@ -21,7 +21,8 @@ Version 1.13 records electronic signatures and their evidence (pull request 29, 
 records the approvals engine, stand-ins and time limits (pull request 30, item 1.33). Version 1.15 records the
 discipline and grievance register (pull request 31, item 1.15). Version 1.16 records the accident and
 incident register (pull request 32, item 1.16). Version 1.17 records the public page that checks a letter
-(pull request 33, item 1.47), the first part of the system open to people with no account.
+(pull request 33, item 1.47), the first part of the system open to people with no account. Version 1.18
+records the audited change of a sign-in email address (pull request 34, item 1.42).
 Reviewed at every release gate and whenever a data flow, role or integration is added. Gaps
 point to items in the Gold Standard Plan checklist.
 
@@ -102,7 +103,7 @@ with the other document files.
 | Shared phone or kiosk | Sign-out on every screen; initials of the signed-in person shown on phones; 30-minute idle time-out | |
 | HR choosing or knowing someone's password | **Nobody sets another person's password** (pull request 18): an account opens with no usable password, and its holder chooses one from an emailed invitation that works once, for 7 days. The username is in the email; the password never is | Staff with no email address cannot receive an invitation: a one-use set-up code given in person, or sent by text message (item 1.41) |
 | Taking over an account through "forgot password" | The answer is the same whether or not an account exists; the link goes only to the address on the account, works once and for 60 minutes; one network address may ask 5 times and one account is sent 3 links in 15 minutes; choosing a password ends every session the account had (pull request 18) | Sending the email takes a moment, so the response time hints whether one went out; acceptable within these limits, and gone once mail is sent by the job worker |
-| Redirecting the links | An account's email follows the staff record only until its invitation is used, so a mistyped address can be mended; after that it changes only in the database | An audited change of the sign-in address, with a notice to the old address (item 1.42) |
+| Redirecting the links | An account's email follows the staff record only until its invitation is used, so a mistyped address can be mended. **After that it changes only through an audited step (pull request 34):** the person asks with their password, and a wrong one counts towards the sign-in lockout; or HR asks with a reason. Either way the address changes only when the one-use link sent to the new address is followed within 48 hours, so nobody can point the links at an address they cannot read. A newer request cancels an older one. The old address is told when the change is asked for and again when it is made, with the new address shown only in part. Only a fingerprint of the link's token is kept | Someone who holds both the person's password and the new mailbox can still make the change; the notice to the old address is how the person finds out |
 
 ### Tampering
 
@@ -188,7 +189,7 @@ with the other document files.
 | 1.37 | Sign-in limit by source address (closed in pull request 16) |
 | 1.26 | Chained fingerprints over the audit log, a nightly check and an audit viewer (closed in pull request 19) |
 | 1.41 | A first sign-in for staff with no email address: a one-use set-up code in person or by text message |
-| 1.42 | The sign-in email address changed through an audited step that tells the old address |
+| 1.42 | The sign-in email address changed through an audited step that tells the old address (closed in pull request 34) |
 | 1.47 | A way for a bank, embassy or employer to check a letter by its reference, without signing in (closed in pull request 33) |
 | 7.17 | Software bill of materials and third-party notices with each release |
 
