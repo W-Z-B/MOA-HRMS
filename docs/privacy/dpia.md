@@ -1,13 +1,14 @@
 # Data protection impact assessment
 
-**Draft 0.7, 2 October 2026,** prepared by the development team for GSA's data protection officer.
+**Draft 0.8, 2 October 2026,** prepared by the development team for GSA's data protection officer.
 Draft 0.2 records the privacy rights built in pull request 20: the notice and its acknowledgement, a
 person's own record, and correction requests. Draft 0.3 records the retention schedule, reviewed disposal
 and the breach register built in pull request 21. Draft 0.4 adds the accident and incident register (pull
 request 32), which holds injuries: health data. Draft 0.5 adds the public page that checks a letter (pull
 request 33): what it shows, and the log of checks. Draft 0.6 adds changes of sign-in email (pull request 34). Draft 0.7 adds scanned papers
 filed in bulk (pull request 35): they become documents in each person's file, under the same rules as any
-document, and each batch keeps a list of where its files went.
+document, and each batch keeps a list of where its files went. Draft 0.8 adds restriction and objection
+(pull request 36), and a Data Protection Officer role for whoever GSA names.
 GSA is the data controller and owns this assessment; the development team keeps it current as the
 system changes. It is signed in section 9 before any real staff record is loaded (checklist item 7.03).
 
@@ -58,6 +59,7 @@ personal data.
 | Staff, students, contractors and visitors hurt or made ill at work | Name; what the injury or illness was and the part of the body; treatment; the days off work; a death; when the NIS notice of accident was given | The person reporting, HR | Keeping the register and sending the notices the Occupational Safety and Health Act 1997 requires (sections 69, 70 and 74); a claim to NIS injury benefit; preventing it happening again | Legal obligation; health data handled under the Act's conditions for employment and social security; the injury is read only by HR and the person hurt |
 | Anyone who reports an incident | Their name, and what they saw | The person | Finding out what happened | Legal obligation; functions of a public body |
 | People who check a letter on the public page (banks, embassies, employers) | The reference they asked about, whether the code matched, the network address it came from, and when | The person checking | Confirming a letter is genuine; stopping guessing; telling the member of staff their letter was checked | Legitimate interests of the person checking and of the member of staff; functions of a public body |
+| Staff who restrict or object | Which part of their record is held back and why; the grounds of an objection, the decision and its reasons | The person, HR, the data protection officer | Honouring the rights to restriction and to object (Data Protection Act 2023) | Legal obligation |
 | Staff who decide requests | Who stands in for them, when and why; reminders and escalations of requests waiting for them | The person, HR, the system | Making sure requests are decided in time | Functions of a public body; contract |
 | Staff | Their signatures on documents: when, from which address and device, the sentence agreed to, and the fingerprint of the document | The person, the system | Showing that a document was received or accepted (Electronic Communications and Transactions Act 2023) | Contract; legal obligation |
 | Staff | Letters issued to them (appointment, confirmation, transfer, job letters, certificates of service), the values each drew from the record, and a fingerprint of each PDF | HR | Employment administration; proof of employment at the employee's request | Contract; functions of a public body |
@@ -125,8 +127,8 @@ Choices already made to collect and show less:
 | To be told whether data is processed, and to receive its purposes, categories, recipients and retention | **Built (pull request 20):** My record shows everything held about the person, to read, print or download as a file, with the history of changes and who made them; HR can produce the same for a request made on paper. Every viewing is recorded. The file leaves out full bank account numbers | Item 1.31 |
 | Rectification | **Built (pull request 20):** a correction request names what is wrong and what it should say; HR on the person's campus answers within `PRIVACY_RESPONSE_DAYS` (30 by default, GSA's own standard until regulations set one), corrected or not changed with the reason, and the person is told. Nobody answers a request about themselves. Changing details directly from self-service, with HR's approval, comes later | Items 1.31 and 2.18 |
 | Erasure without undue delay | **Built (pull request 21):** disposal runs under the retention schedule, approved by a second person, each destruction recorded; logs removed nightly. Leavers' files follow once leaving is recorded | Items 1.32 and 1.12 |
-| Restriction while accuracy is contested or on objection | A restriction flag on a record, honoured by every module | Item 1.46 |
-| Objection in writing | Logged and decided by the data protection officer | Item 1.46 |
+| Restriction while accuracy is contested or on objection | **Built (pull request 36):** a person holds a part of their record back while their correction is answered, and an objection holds its part back until it is decided; HR or the officer restricts a part while its processing is unlawful or it is kept only for the person's legal claim. A restricted part is kept and may be corrected, but letters are not issued from it, changes to the appointment wait, and the sibling systems do not receive it. The person is told whenever a restriction is lifted, and why | Item 1.46; payroll will check the same restriction when it is built |
+| Objection in writing | **Built (pull request 36):** made from My record, or by HR for a paper one, and decided by the Data Protection Officer within `PRIVACY_RESPONSE_DAYS`; it stands unless GSA shows compelling legitimate grounds that override the person's interests, or needs the data for a legal claim, with the reasons given to the person | Item 1.46 |
 | Complaint to the Data Protection Commissioner | Stated in the privacy notice | Item 1.31 |
 
 **Breaches** (pull request 21): every personal data breach is recorded in the register on the Admin

@@ -7,7 +7,7 @@ shipped component is permissively licensed, apart from four LGPL or MPL librarie
 named exceptions (`docs/adr/0002-licence-policy.md`, checked in CI).
 
 **Status:** Release 1 in progress. Every module has models, migrations, an audited API and tests:
-258 backend tests (94 percent coverage) against PostgreSQL, 195 web component tests, and 56 browser
+263 backend tests (94 percent coverage) against PostgreSQL, 199 web component tests, and 60 browser
 journeys on a desktop and a 360px phone with accessibility and Content-Security-Policy checks, all run
 in CI. `SCREENSHOTS=1 bash scripts/e2e.sh` also saves the main screens for review. Core HR, leave and notifications are usable end to end from the
 web app; Release 2 modules are read-only scaffolds.
