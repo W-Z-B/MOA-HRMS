@@ -91,7 +91,8 @@ def test_create_employee_via_api_writes_audit_without_identifiers_in_clear(api, 
     response = api.post("/api/v1/employees/", payload, format="json")
     assert response.status_code == 201, response.content
     entry = AuditLog.objects.get(entity="people.employee", entity_id=response.json()["id"], action="create")
-    assert entry.after["national_id"] == "***"
+    # Masked with a keyed fingerprint (so a change shows in the history), never the value itself.
+    assert entry.after["national_id"].startswith("***") and "999888777" not in str(entry.after)
 
 
 @pytest.mark.django_db

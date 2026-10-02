@@ -296,10 +296,12 @@ tbody tr.selected {
 /* Tabs, secondary buttons, forms, lists. */
 .tabs {
   display: flex;
+  /* Tabs wrap onto a second row rather than scroll: a tab that has scrolled out of sight is one people
+     never find. */
+  flex-wrap: wrap;
   gap: 4px;
   border-bottom: 1px solid var(--rule);
   margin: 0 0 14px;
-  overflow-x: auto;
 }
 .tab {
   background: none;
@@ -847,4 +849,76 @@ dl.terms dd {
 }
 .sessions .chip {
   margin-left: 8px;
+}
+
+/* Employee file: lists of records (qualifications, contacts, bank details) with their actions. */
+.records {
+  margin: 0 0 20px;
+}
+.records > ul > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.records .actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.chip-bank-pending {
+  color: var(--amber-text);
+}
+.chip-bank-active {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.chip-bank-rejected {
+  color: var(--danger);
+}
+
+/* History of a file: newest first, each change in plain words. */
+.history > li {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.history p {
+  margin: 0;
+}
+.history .changes {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+.as-at {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 12px;
+  margin-bottom: 16px;
+}
+
+/* Reports: one button per report, then the table. */
+.report-list {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.report-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+button.report {
+  background: var(--card);
+  color: var(--accent);
+  border: 1px solid var(--rule);
+}
+button.report.active {
+  background: var(--accent);
+  color: var(--accent-ink);
 }

@@ -21,8 +21,6 @@ const EMPTY: EmployeeInput = {
   email: "",
   phone: "",
   address: "",
-  next_of_kin_name: "",
-  next_of_kin_phone: "",
 };
 
 /** Create or edit an employee. Identifiers are only sent when typed; blank means unchanged. */
@@ -41,12 +39,11 @@ export function EmployeeForm({ existing, defaultCampus, onSaved, onCancel }: Pro
           email: existing.email,
           phone: existing.phone,
           address: existing.address,
-          next_of_kin_name: existing.next_of_kin_name,
-          next_of_kin_phone: existing.next_of_kin_phone,
         }
       : { ...EMPTY, campus: defaultCampus ?? 0 },
   );
   const [ids, setIds] = useState({ national_id: "", nis_no: "", tin: "" });
+  const [reason, setReason] = useState("");
   const [campuses, setCampuses] = useState<Campus[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -63,6 +60,7 @@ export function EmployeeForm({ existing, defaultCampus, onSaved, onCancel }: Pro
     setError(null);
     const payload: EmployeeInput = { ...form };
     for (const [key, value] of Object.entries(ids)) if (value.trim()) payload[key as keyof typeof ids] = value.trim();
+    if (existing) payload.change_reason = reason.trim();
     try {
       const saved = existing
         ? await patch<Employee>(`/employees/${existing.id}/`, payload)
@@ -139,14 +137,6 @@ export function EmployeeForm({ existing, defaultCampus, onSaved, onCancel }: Pro
           Address
           <input id="emp-address" value={form.address} onChange={(e) => set("address", e.target.value)} />
         </label>
-        <label>
-          Next of kin
-          <input id="emp-nok" value={form.next_of_kin_name} onChange={(e) => set("next_of_kin_name", e.target.value)} />
-        </label>
-        <label>
-          Next of kin phone
-          <input id="emp-nok-phone" value={form.next_of_kin_phone} onChange={(e) => set("next_of_kin_phone", e.target.value)} />
-        </label>
       </div>
       <fieldset>
         <legend>Identifiers (encrypted; leave blank to keep the current value)</legend>
@@ -165,6 +155,20 @@ export function EmployeeForm({ existing, defaultCampus, onSaved, onCancel }: Pro
           </label>
         </div>
       </fieldset>
+      {existing && (
+        <label>
+          Reason for the change
+          <input
+            id="emp-reason"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            maxLength={300}
+            placeholder="For example: new address given on the form of 30/09/2026"
+            required
+          />
+          <span className="muted small">Kept in the history of this file.</span>
+        </label>
+      )}
       {error && (
         <p role="alert" className="error">
           {error}

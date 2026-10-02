@@ -19,6 +19,9 @@ class AuditLog(models.Model):
     before = models.JSONField(null=True, blank=True)
     after = models.JSONField(null=True, blank=True)
     source_ip = models.GenericIPAddressField(null=True, blank=True)
+    # The employee the record is about, so one person's history reads in one place (audit.services).
+    subject = models.BigIntegerField(null=True, blank=True, db_index=True)
+    reason = models.CharField(max_length=300, blank=True, help_text="Why the change was made, as given")
 
     class Meta:
         ordering = ["-at"]

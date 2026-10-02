@@ -13,9 +13,38 @@ import {
   type Reveal,
 } from "../../api/types";
 import { dmy, inDays } from "../../app/format";
+import { BackgroundTab } from "./BackgroundTab";
+import { BankTab } from "./BankTab";
+import { ContactsTab } from "./ContactsTab";
 import { ContractTab } from "./ContractTab";
+import { HistoryTab } from "./HistoryTab";
 
-type FileTab = "personal" | "assignments" | "contract" | "documents" | "leave";
+type FileTab =
+  | "personal"
+  | "assignments"
+  | "contract"
+  | "background"
+  | "contacts"
+  | "bank"
+  | "documents"
+  | "leave"
+  | "history";
+
+const TAB_LABEL: Record<FileTab, string> = {
+  personal: "Personal",
+  assignments: "Appointments",
+  contract: "Contract",
+  background: "Background",
+  contacts: "Contacts",
+  bank: "Bank",
+  documents: "Documents",
+  leave: "Leave",
+  history: "History",
+};
+// Who sees which tab: the server enforces the same rules; this only hides what would be refused.
+const BANK_ROLES = ["hr_officer", "hr_manager", "administrator", "finance", "auditor"];
+const HISTORY_ROLES = ["hr_officer", "hr_manager", "administrator", "principal", "auditor"];
+const DEPENDANT_ROLES = ["hr_officer", "hr_manager", "administrator", "finance", "auditor"];
 
 const STATUS_LABEL: Record<Employee["status"], string> = {
   active: "Active",
@@ -30,7 +59,8 @@ interface Props {
   onEdit: () => void;
 }
 
-/** Tabbed employee file: personal (with audited reveal), assignments, contract, documents, leave. */
+/** Tabbed employee file: personal details (with audited reveal), appointments, contract, background,
+ * contacts, bank details, documents, leave and the history of every change. */
 export function EmployeeFile({ employee, me, onEdit }: Props) {
   const [tab, setTab] = useState<FileTab>("personal");
   const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -40,6 +70,9 @@ export function EmployeeFile({ employee, me, onEdit }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
   const isHr = hasAnyRole(me, HR_ROLES);
+  const tabs = (Object.keys(TAB_LABEL) as FileTab[]).filter(
+    (t) => (t !== "bank" || hasAnyRole(me, BANK_ROLES)) && (t !== "history" || hasAnyRole(me, HISTORY_ROLES)),
+  );
 
   useEffect(() => {
     const ok = <T,>(set: (v: T) => void) => (v: T) => {
@@ -85,9 +118,9 @@ export function EmployeeFile({ employee, me, onEdit }: Props) {
         )}
       </div>
       <div className="tabs" role="tablist">
-        {(["personal", "assignments", "contract", "documents", "leave"] as FileTab[]).map((t) => (
+        {tabs.map((t) => (
           <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? "tab active" : "tab"} onClick={() => setTab(t)}>
-            {t[0].toUpperCase() + t.slice(1)}
+            {TAB_LABEL[t]}
           </button>
         ))}
       </div>
@@ -109,8 +142,6 @@ export function EmployeeFile({ employee, me, onEdit }: Props) {
           <dd>{employee.phone || "not recorded"}</dd>
           <dt>Address</dt>
           <dd>{employee.address || "not recorded"}</dd>
-          <dt>Next of kin</dt>
-          <dd>{employee.next_of_kin_name ? `${employee.next_of_kin_name} ${employee.next_of_kin_phone}` : "not recorded"}</dd>
           <dt>National ID</dt>
           <dd>{reveal?.national_id ?? employee.national_id_masked ?? "not recorded"}</dd>
           <dt>NIS number</dt>
@@ -138,9 +169,9 @@ export function EmployeeFile({ employee, me, onEdit }: Props) {
                   <strong>{a.position_title}</strong> {a.is_acting && <em>(acting)</em>}
                   <br />
                   <span className="muted small">
-                    {a.appointment_type}, from {a.start_date}
-                    {a.end_date ? ` to ${a.end_date}` : ""}
-                    {a.probation_end ? `, probation ends ${a.probation_end}` : ""} · {a.status}
+                    {a.appointment_type}, from {dmy(a.start_date)}
+                    {a.end_date ? ` to ${dmy(a.end_date)}` : ""}
+                    {a.probation_end ? `, probation ends ${dmy(a.probation_end)}` : ""} · {a.status}
                   </span>
                 </li>
               ))}
@@ -151,6 +182,16 @@ export function EmployeeFile({ employee, me, onEdit }: Props) {
       )}
 
       {tab === "contract" && <ContractTab employee={employee} isHr={isHr} />}
+
+      {tab === "background" && <BackgroundTab employeeId={employee.id} canEdit={isHr} />}
+
+      {tab === "contacts" && (
+        <ContactsTab employeeId={employee.id} canEdit={isHr} canSeeDependants={hasAnyRole(me, DEPENDANT_ROLES)} />
+      )}
+
+      {tab === "bank" && <BankTab employeeId={employee.id} me={me} />}
+
+      {tab === "history" && <HistoryTab key={version} employeeId={employee.id} />}
 
       {tab === "documents" && (
         <>

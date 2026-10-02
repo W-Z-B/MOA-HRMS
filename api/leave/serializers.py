@@ -2,7 +2,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from core.serializers import TimeStampedSerializer
+from core.serializers import InScope, TimeStampedSerializer
 from core.uploads import EVIDENCE, validate_upload
 from iam.models import Role
 from iam.services import has_role
@@ -10,6 +10,7 @@ from leave.models import Entitlement, LeaveDecision, LeaveLedger, LeaveRequest, 
 from leave.rules import assess
 from leave.services import ZERO, balance
 from leave.workflow import LEAVE_REQUEST
+from people.models import Contract, Employee
 
 HR = (Role.HR_OFFICER, Role.HR_MANAGER, Role.ADMINISTRATOR)
 DECIDED = (LeaveRequest.State.APPROVED, LeaveRequest.State.REJECTED, LeaveRequest.State.CANCELLED)
@@ -55,6 +56,7 @@ class LeaveLedgerSerializer(TimeStampedSerializer):
 
 
 class EntitlementSerializer(TimeStampedSerializer):
+    contract = InScope(Contract, campus_field="assignment__employee__campus")
     leave_type_code = serializers.CharField(source="leave_type.code", read_only=True)
     leave_type_name = serializers.CharField(source="leave_type.name", read_only=True)
 
@@ -90,6 +92,8 @@ class LeaveRequestSerializer(TimeStampedSerializer):
     evidence_required = serializers.SerializerMethodField()
     has_evidence = serializers.SerializerMethodField()
     is_mine = serializers.SerializerMethodField()
+    # Scoped before anything else is checked, so a refusal never describes someone on another campus.
+    employee = InScope(Employee, help_text="Yourself, or for HR an employee on a campus you work with")
     employee_name = serializers.CharField(source="employee.full_name", read_only=True)
     leave_type_code = serializers.CharField(source="leave_type.code", read_only=True)
     leave_type_name = serializers.CharField(source="leave_type.name", read_only=True)

@@ -41,8 +41,7 @@ class Employee(TimeStampedModel):
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=40, blank=True)
     address = models.CharField(max_length=255, blank=True)
-    next_of_kin_name = models.CharField(max_length=120, blank=True)
-    next_of_kin_phone = models.CharField(max_length=40, blank=True)
+    # Next of kin and other people to call are EmergencyContact rows (people.EmergencyContact).
     campus = models.ForeignKey("org.Campus", on_delete=models.PROTECT, related_name="employees")
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.ACTIVE)
 
@@ -187,3 +186,137 @@ class Document(TimeStampedModel):
     @property
     def download_name(self) -> str:
         return self.original_name or (self.file.name.rsplit("/", 1)[-1] if self.file else "")
+
+
+class Qualification(TimeStampedModel):
+    """Education and professional qualifications, checked against the original by HR (item 1.06)."""
+
+    class Level(models.TextChoices):
+        CERTIFICATE = "certificate", "Certificate"
+        DIPLOMA = "diploma", "Diploma"
+        ASSOCIATE = "associate", "Associate degree"
+        BACHELOR = "bachelor", "Bachelor's degree"
+        POSTGRADUATE = "postgraduate", "Postgraduate diploma or certificate"
+        MASTER = "master", "Master's degree"
+        DOCTORATE = "doctorate", "Doctorate"
+        PROFESSIONAL = "professional", "Professional qualification or licence"
+        OTHER = "other", "Other"
+
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="qualifications")
+    level = models.CharField(max_length=20, choices=Level.choices)
+    title = models.CharField(max_length=160, help_text="As on the certificate, for example BSc Agriculture")
+    institution = models.CharField(max_length=160)
+    country = models.CharField(max_length=80, default="Guyana")
+    year_awarded = models.PositiveSmallIntegerField(null=True, blank=True)
+    verified_on = models.DateField(null=True, blank=True, help_text="When HR saw the original")
+    document = models.ForeignKey(Document, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+
+    class Meta:
+        ordering = [models.F("year_awarded").desc(nulls_last=True), "title"]
+
+    def __str__(self) -> str:
+        return f"{self.title}, {self.institution}"
+
+
+class PreviousEmployment(TimeStampedModel):
+    """Work before GSA, as declared on appointment (item 1.06)."""
+
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="previous_employment")
+    employer = models.CharField(max_length=160)
+    position = models.CharField(max_length=160)
+    start_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
+    reason_for_leaving = models.CharField(max_length=200, blank=True)
+
+    class Meta:
+        ordering = ["-start_date"]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(end_date__isnull=True) | Q(end_date__gte=models.F("start_date")),
+                name="previous_employment_end_after_start",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.position}, {self.employer}"
+
+
+class Dependant(TimeStampedModel):
+    """Children and others who depend on the employee. The date of birth is kept only because the
+    child tax deduction and medical schemes depend on age (item 1.06)."""
+
+    class Relationship(models.TextChoices):
+        CHILD = "child", "Child"
+        SPOUSE = "spouse", "Spouse or partner"
+        PARENT = "parent", "Parent"
+        OTHER = "other", "Other"
+
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="dependants")
+    name = models.CharField(max_length=160)
+    relationship = models.CharField(max_length=10, choices=Relationship.choices)
+    date_of_birth = models.DateField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["relationship", "name"]
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.get_relationship_display()})"
+
+
+class EmergencyContact(TimeStampedModel):
+    """Who to call, in order. Replaces the single next-of-kin pair on the employee (item 1.06)."""
+
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="emergency_contacts")
+    name = models.CharField(max_length=120)
+    relationship = models.CharField(max_length=60, blank=True)
+    phone = models.CharField(max_length=40)
+    alternate_phone = models.CharField(max_length=40, blank=True)
+    priority = models.PositiveSmallIntegerField(default=1, help_text="1 is called first")
+
+    class Meta:
+        ordering = ["priority", "id"]
+
+    def __str__(self) -> str:
+        return f"{self.name}, {self.phone}"
+
+
+class BankAccount(TimeStampedModel):
+    """Where pay goes. A financial record, which the Data Protection Act treats as sensitive.
+
+    A change takes effect only when a second person approves it (item 1.07): proposed (pending), then
+    active, which supersedes the account before it. The employee is told every time it changes.
+    """
+
+    class State(models.TextChoices):
+        PENDING = "pending", "Waiting for approval"
+        ACTIVE = "active", "In use"
+        SUPERSEDED = "superseded", "Replaced"
+        REJECTED = "rejected", "Not approved"
+
+    employee = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name="bank_accounts")
+    bank_name = models.CharField(max_length=120)
+    branch = models.CharField(max_length=120, blank=True)
+    account_name = models.CharField(max_length=160, help_text="As the bank holds it")
+    account_number = EncryptedTextField()
+    account_number_last4 = models.CharField(max_length=4, help_text="Shown instead of the number")
+    state = models.CharField(max_length=12, choices=State.choices, default=State.PENDING)
+    effective_from = models.DateField(null=True, blank=True)
+    decided_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    decided_at = models.DateTimeField(null=True, blank=True)
+    decision_note = models.CharField(max_length=200, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["employee"], condition=Q(state="active"), name="one_active_bank_account"
+            ),
+            models.UniqueConstraint(
+                fields=["employee"], condition=Q(state="pending"), name="one_pending_bank_account"
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.bank_name} ending {self.account_number_last4} ({self.state})"

@@ -56,6 +56,8 @@ REPORTS = [
         True,
     ),
     ("headcount-by-campus", "Headcount by campus", [], True),
+    # Item 1.09: identifiers missing or repeated, unlikely dates of birth, no contact, no contract.
+    ("data-quality", "Staff records to check", ["hr_officer", "hr_manager", "administrator"], False),
 ]
 
 

@@ -12,7 +12,7 @@ from audit.services import record, snapshot
 from core.views import AuditedModelViewSet
 from iam.models import Role
 from iam.permissions import RolePermission
-from iam.services import has_role, scope_queryset
+from iam.services import campus_in_scope, has_role, scope_queryset
 from leave import serializers
 from leave.models import Entitlement, LeaveLedger, LeaveRequest, LeaveType
 from leave.rules import assess
@@ -57,6 +57,21 @@ class EntitlementViewSet(AuditedModelViewSet):
             qs = qs.filter(contract__assignment__employee_id=params["employee"])
         return qs
 
+    def _check_scope(self, serializer):
+        contract = serializer.validated_data.get("contract") or getattr(serializer.instance, "contract", None)
+        if contract is not None and not campus_in_scope(
+            self.request.user, contract.assignment.employee.campus_id
+        ):
+            self.permission_denied(self.request, message="That employee is not on a campus you work with.")
+
+    def perform_create(self, serializer):
+        self._check_scope(serializer)
+        super().perform_create(serializer)
+
+    def perform_update(self, serializer):
+        self._check_scope(serializer)
+        super().perform_update(serializer)
+
 
 class LeaveRequestViewSet(AuditedModelViewSet):
     """Employees see and create their own requests; managers those sent to them; HR their campuses."""
@@ -100,6 +115,8 @@ class LeaveRequestViewSet(AuditedModelViewSet):
         own = getattr(user, "employee", None)
         if not has_role(user, *HR) and (own is None or employee != own):
             self.permission_denied(self.request, message="You may only create leave requests for yourself.")
+        if employee != own and not campus_in_scope(user, employee.campus_id):
+            self.permission_denied(self.request, message="That employee is not on a campus you work with.")
         super().perform_create(serializer)
 
     def perform_update(self, serializer):

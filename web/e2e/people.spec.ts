@@ -25,3 +25,34 @@ test("HR finds an employee, opens the file, and sees identifiers masked until re
   await expect(hours).toHaveText("40");
   await signOut(page);
 });
+
+test("HR keeps a file complete: an emergency contact, a change with its reason, and the history", async ({ page }, testInfo) => {
+  // Each browser project writes its own number, so every run makes a real change.
+  const phone = testInfo.project.name === "phone" ? "600-7702" : "600-7701";
+  await signIn(page, STAFF.hr.username);
+  await openSection(page, "People");
+  await page.getByLabel("Search staff").fill("Devon");
+  await page.getByRole("row").filter({ hasText: "Devon Charles" }).getByRole("link", { name: "Devon Charles" }).click();
+
+  await page.getByRole("tab", { name: "Contacts" }).click();
+  await page.getByRole("button", { name: "Add an emergency contact" }).click();
+  const form = page.getByRole("form", { name: "Add an emergency contact" });
+  await form.getByLabel(/^Name/).fill("Marcia Charles");
+  await form.getByLabel(/^Relationship/).fill("Sister");
+  await form.getByLabel(/^Phone/).fill("600-5555");
+  await form.getByRole("button", { name: "Save" }).click();
+  const contacts = page.getByRole("region", { name: "Emergency contacts" });
+  await expect(contacts.getByText("Marcia Charles").first()).toBeVisible();
+  await expectAccessible(page, testInfo, "employee contacts");
+
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.getByLabel("Phone", { exact: true }).fill(phone);
+  await page.getByLabel("Reason for the change").fill("Number given on the form of 01/10/2026");
+  await page.getByRole("button", { name: "Save changes" }).click();
+
+  await page.getByRole("tab", { name: "History" }).click();
+  await expect(page.getByText("Reason: Number given on the form of 01/10/2026").first()).toBeVisible();
+  await expect(page.getByText(new RegExp(`Phone changed from .* to ${phone}`)).first()).toBeVisible();
+  await expectAccessible(page, testInfo, "employee history");
+  await signOut(page);
+});
