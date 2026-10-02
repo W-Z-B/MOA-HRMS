@@ -7,6 +7,7 @@ from letters import markup
 from letters.fields import ASK_TYPES, PAY_FIELDS, RECORD_FIELDS
 from letters.models import Letter, LetterTemplate
 from people.models import CareerEvent, Document, Employee
+from signing.models import SignatureRequest
 
 
 class AskSerializer(serializers.Serializer):
@@ -170,6 +171,12 @@ class WriteLetterSerializer(serializers.Serializer):
         required=False,
         allow_null=True,
         help_text="The career change the letter is for",
+    )
+    ask = serializers.ChoiceField(
+        choices=SignatureRequest.Kind.choices,
+        required=False,
+        allow_blank=True,
+        help_text="Ask the person, once it is issued, to acknowledge or accept it (item 1.20)",
     )
 
     def validate(self, attrs):

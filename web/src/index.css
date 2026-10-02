@@ -1266,6 +1266,26 @@ ul.steps-list > li {
   color: var(--amber-text);
 }
 
+/* Signing (item 1.20): the state of each request, and the evidence of a signature. */
+.accounts > li.signature-waiting {
+  border-left-color: var(--amber);
+}
+.accounts > li.signature-declined,
+.accounts > li.signature-withdrawn {
+  border-left-color: var(--muted);
+}
+.chip-signature-signed {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.chip-signature-waiting {
+  color: var(--amber-text);
+}
+code.fingerprint {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
 /* Audit log: whether the chain is intact, beside the button that checks it. */
 .chain-state .notice {
   flex: 1 1 320px;

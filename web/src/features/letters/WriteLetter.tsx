@@ -32,6 +32,7 @@ export function WriteLetter({ employee, onIssued, preset, onClose }: Props) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [preview, setPreview] = useState<LetterPreview | null>(null);
   const [issued, setIssued] = useState<Letter | null>(null);
+  const [ask, setAsk] = useState<"" | "acknowledge" | "accept">("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -60,6 +61,7 @@ export function WriteLetter({ employee, onIssued, preset, onClose }: Props) {
     template: Number(templateId),
     answers,
     ...(preset?.careerEvent ? { career_event: preset.careerEvent } : {}),
+    ...(ask ? { ask } : {}),
   });
   const close = () => (onClose ? onClose() : setOpen(false));
 
@@ -178,6 +180,14 @@ export function WriteLetter({ employee, onIssued, preset, onClose }: Props) {
             </p>
           )}
           <Paper letter={preview} />
+          <label>
+            Once it is issued, ask {employee.first_name} to
+            <select value={ask} onChange={(e) => setAsk(e.target.value as typeof ask)}>
+              <option value="">Nothing more</option>
+              <option value="acknowledge">Acknowledge receiving it</option>
+              <option value="accept">Accept it</option>
+            </select>
+          </label>
           <div className="actions">
             <button onClick={issue} disabled={busy || preview.missing.length > 0}>
               Issue the letter

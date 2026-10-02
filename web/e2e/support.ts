@@ -99,7 +99,7 @@ export async function linkSentTo(address: string, before: Set<string>): Promise<
   throw new Error(`No email with a password link reached ${address}`);
 }
 
-function password(): string {
+export function password(): string {
   const value = process.env.E2E_PASSWORD;
   if (!value) throw new Error("Set E2E_PASSWORD to the DEMO_USER_PASSWORD of the test stack.");
   return value;

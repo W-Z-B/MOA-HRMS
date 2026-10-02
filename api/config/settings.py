@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "notifications",
     "privacy",
     "letters",
+    "signing",
     "integration",
     # Release 2 scaffolds
     "attendance",
@@ -139,6 +140,7 @@ SPECTACULAR_SETTINGS = {
         "CareerChangeKindEnum": "people.models.CareerEvent.Kind",
         "LetterKindEnum": "letters.models.LetterTemplate.Kind",
         "LeavingReasonEnum": "people.models.Separation.Reason",
+        "SignatureKindEnum": "signing.models.SignatureRequest.Kind",
     },
 }
 

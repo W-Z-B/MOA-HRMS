@@ -14,6 +14,7 @@ import {
 } from "../../api/types";
 import { dmy, inDays } from "../../app/format";
 import { WriteLetter } from "../letters/WriteLetter";
+import { SigningPanel } from "../signing/SigningPanel";
 import { BackgroundTab } from "./BackgroundTab";
 import { BankTab } from "./BankTab";
 import { CareerSection } from "./CareerSection";
@@ -219,6 +220,7 @@ export function EmployeeFile({ employee, me, onEdit }: Props) {
               ))}
             </ul>
           )}
+          <SigningPanel employee={employee} documents={documents} me={me} version={version} />
           {isHr && <WriteLetter employee={employee} onIssued={() => setVersion((v) => v + 1)} />}
           {isHr && <DocumentUpload employee={employee} onSaved={() => setVersion((v) => v + 1)} />}
         </>
