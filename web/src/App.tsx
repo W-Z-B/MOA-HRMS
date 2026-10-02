@@ -19,6 +19,7 @@ import { AccountScreen } from "./features/me/AccountScreen";
 import { MyContractScreen } from "./features/me/MyContractScreen";
 import { OrganisationScreen } from "./features/organisation/OrganisationScreen";
 import { DirectoryScreen } from "./features/people/DirectoryScreen";
+import { ScanningScreen } from "./features/people/ScanningScreen";
 import { ComingSoon } from "./features/placeholder/ComingSoon";
 import { MyRecordScreen } from "./features/privacy/MyRecordScreen";
 import { PrivacyNoticeScreen } from "./features/privacy/PrivacyNoticeScreen";
@@ -126,6 +127,7 @@ export default function App() {
   let screen;
   // An employee with no other role opens on their own leave: the dashboard is about the School.
   if (path === "/") screen = isOfficeUser(me) ? <DashboardScreen campusId={campusId} /> : leave;
+  else if (path === "/people/scanning") screen = <ScanningScreen onNavigate={navigate} />;
   else if (path.startsWith("/people"))
     screen = <DirectoryScreen me={me} campusId={campusId} initialId={idIn("/people")} onNavigate={navigate} />;
   else if (path.startsWith("/organisation"))

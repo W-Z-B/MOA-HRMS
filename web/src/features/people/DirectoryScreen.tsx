@@ -74,9 +74,12 @@ export function DirectoryScreen({ me, campusId, initialId, onNavigate }: Props) 
         <div className="panel-head">
           <h1>People</h1>
           {isHr && (
-            <button onClick={() => setPanel({ mode: "create" })}>
-              New employee
-            </button>
+            <div className="actions">
+              <button className="secondary" onClick={() => onNavigate("/people/scanning")}>
+                File scanned papers
+              </button>
+              <button onClick={() => setPanel({ mode: "create" })}>New employee</button>
+            </div>
           )}
         </div>
         <div className="filters">
