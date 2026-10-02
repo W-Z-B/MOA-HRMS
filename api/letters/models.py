@@ -61,6 +61,9 @@ class Letter(TimeStampedModel):
     issued_on = models.DateField()
     values = models.JSONField(help_text="Every field as it went into the letter")
     sha256 = models.CharField(max_length=64, help_text="Fingerprint of the PDF as issued")
+    career_event = models.ForeignKey(
+        "people.CareerEvent", null=True, blank=True, on_delete=models.SET_NULL, related_name="letters"
+    )
 
     class Meta:
         ordering = ["-issued_on", "-id"]

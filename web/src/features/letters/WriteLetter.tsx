@@ -9,9 +9,24 @@ const FILED_AS: Record<Classification, string> = {
   medical: "Medical",
 };
 
+/** A letter for a career change: its template, its answers, and the change it is linked to (item 1.11). */
+export interface LetterPreset {
+  code: string;
+  answers: Record<string, string>;
+  careerEvent: number;
+  title: string;
+}
+
+interface Props {
+  employee: Employee;
+  onIssued: () => void;
+  preset?: LetterPreset;
+  onClose?: () => void;
+}
+
 /** Write a letter to one member of staff from a template: read it, see what it lacks, then issue it (item 1.19). */
-export function WriteLetter({ employee, onIssued }: { employee: Employee; onIssued: () => void }) {
-  const [open, setOpen] = useState(false);
+export function WriteLetter({ employee, onIssued, preset, onClose }: Props) {
+  const [open, setOpen] = useState(preset !== undefined);
   const [templates, setTemplates] = useState<LetterTemplate[] | null>(null);
   const [templateId, setTemplateId] = useState("");
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -23,12 +38,30 @@ export function WriteLetter({ employee, onIssued }: { employee: Employee; onIssu
   useEffect(() => {
     if (!open || templates !== null) return;
     getAll<LetterTemplate>("/letters/templates/")
-      .then((all) => setTemplates(all.filter((t) => t.is_active)))
+      .then((all) => {
+        const active = all.filter((t) => t.is_active);
+        setTemplates(active);
+        if (!preset) return;
+        // A change's letter opens on its template, with the change's answers filled in.
+        const chosen = active.find((t) => t.code === preset.code);
+        if (!chosen) {
+          setError(`No letter template is in use for ${preset.title}.`);
+          return;
+        }
+        setTemplateId(String(chosen.id));
+        setAnswers(Object.fromEntries(chosen.asks.map((ask) => [ask.key, preset.answers[ask.key] ?? ""])));
+      })
       .catch((err) => setError(errorMessage(err, "Could not load the letter templates.")));
-  }, [open, templates]);
+  }, [open, templates, preset]);
 
   const template = templates?.find((t) => String(t.id) === templateId) ?? null;
-  const letter = () => ({ employee: employee.id, template: Number(templateId), answers });
+  const letter = () => ({
+    employee: employee.id,
+    template: Number(templateId),
+    answers,
+    ...(preset ? { career_event: preset.careerEvent } : {}),
+  });
+  const close = () => (onClose ? onClose() : setOpen(false));
 
   // Any change means reading the letter again: what is issued is always what was read.
   function choose(id: string) {
@@ -61,7 +94,8 @@ export function WriteLetter({ employee, onIssued }: { employee: Employee; onIssu
     setError(null);
     try {
       setIssued(await post<Letter>("/letters/", letter()));
-      choose("");
+      if (!preset) choose("");
+      else setPreview(null);
       onIssued();
     } catch (err) {
       setError(errorMessage(err, "The letter was not issued."));
@@ -81,7 +115,7 @@ export function WriteLetter({ employee, onIssued }: { employee: Employee; onIssu
 
   return (
     <section className="sub-form stack" aria-labelledby="write-letter-heading">
-      <h3 id="write-letter-heading">Write a letter</h3>
+      <h3 id="write-letter-heading">{preset ? `Write the letter for ${preset.title}` : "Write a letter"}</h3>
       {issued && (
         <p role="status" className="notice good">
           {issued.template_name} {issued.reference} is issued and filed with the documents.{" "}
@@ -119,7 +153,7 @@ export function WriteLetter({ employee, onIssued }: { employee: Employee; onIssu
           <button type="submit" className="secondary" disabled={busy || template === null}>
             Read the letter
           </button>
-          <button type="button" className="link" onClick={() => setOpen(false)}>
+          <button type="button" className="link" onClick={close}>
             Close
           </button>
         </div>

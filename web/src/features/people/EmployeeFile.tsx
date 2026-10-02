@@ -16,6 +16,7 @@ import { dmy, inDays } from "../../app/format";
 import { WriteLetter } from "../letters/WriteLetter";
 import { BackgroundTab } from "./BackgroundTab";
 import { BankTab } from "./BankTab";
+import { CareerSection } from "./CareerSection";
 import { ContactsTab } from "./ContactsTab";
 import { ContractTab } from "./ContractTab";
 import { DocumentUpload } from "./DocumentUpload";
@@ -173,12 +174,14 @@ export function EmployeeFile({ employee, me, onEdit }: Props) {
                   <span className="muted small">
                     {a.appointment_type}, from {dmy(a.start_date)}
                     {a.end_date ? ` to ${dmy(a.end_date)}` : ""}
-                    {a.probation_end ? `, probation ends ${dmy(a.probation_end)}` : ""} · {a.status}
+                    {a.probation_end ? `, probation ends ${dmy(a.probation_end)}` : ""}
+                    {a.confirmed_on ? `, confirmed ${dmy(a.confirmed_on)}` : ""} · {a.pay_grade_name} · {a.status}
                   </span>
                 </li>
               ))}
             </ul>
           )}
+          <CareerSection employee={employee} me={me} onChanged={() => setVersion((v) => v + 1)} />
           {isHr && <AssignmentForm employee={employee} onSaved={() => setVersion((v) => v + 1)} />}
         </>
       )}
@@ -277,7 +280,11 @@ function AssignmentForm({ employee, onSaved }: { employee: Employee; onSaved: ()
 
   return (
     <form className="stack sub-form" onSubmit={submit}>
-      <h3>Add assignment</h3>
+      <h3>Add an appointment</h3>
+      <p className="muted small">
+        For someone joining, or a second appointment. To move someone, raise their step, have them act or confirm them,
+        record a change above, so their file keeps the story.
+      </p>
       <label>
         Position
         <select id="asg-position" value={position} onChange={(e) => setPosition(e.target.value)} required>

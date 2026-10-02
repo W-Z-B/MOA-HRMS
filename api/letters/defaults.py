@@ -99,19 +99,84 @@ All other conditions of your appointment remain the same.""",
         "classification": "confidential",
         "signatory_title": HR_MANAGER,
         "asks": [
+            {"key": "previous_post", "label": "The post held until now", "type": "text"},
+            {"key": "previous_unit", "label": "Its unit and campus", "type": "text"},
             {"key": "new_post", "label": "The new post", "type": "text"},
             {"key": "new_unit", "label": "The new unit and campus", "type": "text"},
             {"key": "effective_date", "label": "Takes effect on", "type": "date"},
         ],
         "body": """Dear {{first_name}} {{last_name}},
 
-You are transferred from the post of {{post_title}} in the {{unit}}, {{campus}}, to the post of \
-**{{new_post}}** \
-in the {{new_unit}}, from {{effective_date}}.
+You are transferred from the post of {{previous_post}} in the {{previous_unit}} to the post of \
+**{{new_post}}** in the {{new_unit}}, from {{effective_date}}.
 
 Please report to the head of the {{new_unit}} on that day. Your salary and other conditions of \
-service do not \
-change with this transfer.""",
+service do not change with this transfer.""",
+    },
+    {
+        "code": "promotion",
+        "kind": "promotion",
+        "name": "Promotion",
+        "subject": "Promotion to the post of {{new_post}}",
+        "addressed": True,
+        "classification": "confidential",
+        "signatory_title": PRINCIPAL,
+        "asks": [
+            {"key": "previous_post", "label": "The post held until now", "type": "text"},
+            {"key": "new_post", "label": "The new post", "type": "text"},
+            {"key": "new_unit", "label": "The new unit and campus", "type": "text"},
+            {"key": "new_grade", "label": "The new grade and step", "type": "text"},
+            {"key": "new_salary", "label": "The new monthly salary", "type": "text"},
+            {"key": "effective_date", "label": "Takes effect on", "type": "date"},
+        ],
+        "body": """Dear {{first_name}} {{last_name}},
+
+I am pleased to tell you that you are promoted from the post of {{previous_post}} to the post of \
+**{{new_post}}** in the {{new_unit}}, from {{effective_date}}.
+
+From that day your salary is {{new_salary}} a month, on grade {{new_grade}}. All other conditions \
+of your appointment remain the same.
+
+Please accept my congratulations.""",
+    },
+    {
+        "code": "increment",
+        "kind": "increment",
+        "name": "Increment",
+        "subject": "Increment in salary",
+        "addressed": True,
+        "classification": "confidential",
+        "signatory_title": HR_MANAGER,
+        "asks": [
+            {"key": "new_grade", "label": "The new grade and step", "type": "text"},
+            {"key": "new_salary", "label": "The new monthly salary", "type": "text"},
+            {"key": "effective_date", "label": "Takes effect on", "type": "date"},
+        ],
+        "body": """Dear {{first_name}} {{last_name}},
+
+I am pleased to tell you that you are granted an increment from {{effective_date}}. From that day \
+your salary is {{new_salary}} a month, on grade {{new_grade}}.""",
+    },
+    {
+        "code": "acting",
+        "kind": "acting",
+        "name": "Acting appointment",
+        "subject": "Acting appointment as {{acting_post}}",
+        "addressed": True,
+        "classification": "confidential",
+        "signatory_title": HR_MANAGER,
+        "asks": [
+            {"key": "acting_post", "label": "The post acted in", "type": "text"},
+            {"key": "acting_unit", "label": "Its unit and campus", "type": "text"},
+            {"key": "effective_date", "label": "Acting from", "type": "date"},
+            {"key": "acting_until", "label": "Acting until (a date, or further notice)", "type": "text"},
+        ],
+        "body": """Dear {{first_name}} {{last_name}},
+
+You are appointed to act in the post of **{{acting_post}}** in the {{acting_unit}}, from \
+{{effective_date}} until {{acting_until}}, while you continue to hold your own post of {{post_title}}.
+
+You will carry out the duties of the post for that time.""",
     },
     {
         "code": "certificate_of_service",

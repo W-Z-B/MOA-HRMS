@@ -1,7 +1,7 @@
 # Threat model
 
-**Version 1.9, 1 October 2026.** Method: STRIDE over the data flows in section 3, against the code on
-branch `feature/phase-1-letters`. Version 1.1 records the four gaps closed by pull request 16
+**Version 1.10, 1 October 2026.** Method: STRIDE over the data flows in section 3, against the code on
+branch `feature/phase-1-careers`. Version 1.1 records the four gaps closed by pull request 16
 (items 1.28, 1.35, 1.36, 1.37) and one weakness found while closing them (forged addresses). Version 1.2
 records two weaknesses found while building the staff record (pull request 17): writes across campuses,
 and a leave balance disclosed in a refusal. Version 1.3 records accounts and access (pull request 18:
@@ -14,7 +14,8 @@ the log unseen. Version 1.5 records a person's own copy of their record and corr
 request 21, item 1.32). Version 1.7 records a pay disclosure in the organisation API, fixed in pull request 23, together with post
 holders named on campuses the reader does not work with. Version 1.8 records the organisation chart (pull
 request 24, item 1.10), which names people by the staff directory's rule. Version 1.9 records letters (pull request 25, item 1.19), and confidential documents that
-supervisors and Finance could read, fixed there.
+supervisors and Finance could read, fixed there. Version 1.10 records career changes (pull request 26, item
+1.11).
 Reviewed at every release gate and whenever a data flow, role or integration is added. Gaps
 point to items in the Gold Standard Plan checklist.
 
@@ -100,6 +101,7 @@ with the other document files.
 
 | Threat | In place | Gap |
 |---|---|---|
+| Moving someone, or changing their pay, without a trace | **Transfers, promotions, increments, acting appointments and confirmations change appointments only as recorded events with a reason** (pull request 26): each is checked against the file as it will stand on its date, audited when recorded and when it takes effect, and one dated later is applied by the nightly task, which records itself as the system and leaves nothing half done when a change can no longer happen | First appointments are still added directly, until recruitment and onboarding (Phase 3) open them through their own events |
 | Changing records without trace | Every write goes through audited views in the same transaction | |
 | A forged or altered letter | Every letter has a reference, and its record keeps the template version, the values that went in and the SHA-256 fingerprint of the PDF as issued; HR confirms a letter by its reference and can compare the fingerprint (pull request 25) | A way for a bank, embassy or employer to check a letter by its reference without signing in (item 1.47) |
 | Destroying records to hide something | Records are destroyed only under the retention schedule, in a run that one person lists and a **second person approves**; anything can be kept back with a reason; a record no longer due when the run is approved is left; each destruction is in the audit log with its rule and what the record was (pull request 21) | |
@@ -148,6 +150,7 @@ with the other document files.
 | Threat | In place | Gap |
 |---|---|---|
 | Reading another campus's or person's records | One permission layer for every endpoint; campus scoping in every viewset; scoping fails closed for callers who are not people (pull request 15); a test covers the whole permission table | Each new endpoint must join that test (definition of done) |
+| Moving staff onto another campus's post | A change names its post through the same campus check as every other write: an HR officer can move someone only to a post on a campus they work with, and only for staff on such a campus (pull request 26) | |
 | Writing records for another campus | **Fixed in pull request 17:** a campus-scoped HR officer could create an employee, appointment, contract, document, leave request or entitlement for staff on another campus, because scope was checked on reading and editing but not on creating. Every write now checks it, in the field and again in the view, and a test tries each path | |
 | Approving one's own request | The leave workflow refuses self-approval and sends requests to the employee's own manager | Carry the rule into the approvals engine (item 1.33) |
 | Privileged access without a second factor | Enforced in the permission layer, and now in the admin | HR officers (item 1.34) |

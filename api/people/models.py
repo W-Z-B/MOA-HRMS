@@ -95,6 +95,10 @@ class Assignment(TimeStampedModel):
     probation_end = models.DateField(null=True, blank=True)
     is_acting = models.BooleanField(default=False)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.ACTIVE)
+    # The grade and step this person is paid on in the post: an increment moves it up a step. Empty means
+    # the post's own grade (item 1.11).
+    grade = models.ForeignKey("org.Grade", null=True, blank=True, on_delete=models.PROTECT, related_name="+")
+    confirmed_on = models.DateField(null=True, blank=True, help_text="Confirmed in the post after probation")
 
     class Meta:
         ordering = ["-start_date"]
@@ -122,6 +126,11 @@ class Assignment(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"{self.employee} at {self.position} from {self.start_date:%d/%m/%Y}"
+
+    @property
+    def pay_grade(self):
+        """The grade and step this person is paid on: their own after an increment, else the post's."""
+        return self.grade or self.position.grade
 
 
 class Contract(TimeStampedModel):
@@ -320,3 +329,63 @@ class BankAccount(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"{self.bank_name} ending {self.account_number_last4} ({self.state})"
+
+
+class CareerEvent(TimeStampedModel):
+    """A change in someone's career, recorded as one event with its reason (item 1.11).
+
+    Transfers, promotions, increments, acting appointments and confirmations change appointments only through
+    an event, so the file tells the story. An event dated today or earlier takes effect when it is recorded;
+    a later one is scheduled and takes effect on its day, or is held up, with the reason, if it no longer can.
+    """
+
+    class Kind(models.TextChoices):
+        TRANSFER = "transfer", "Transfer"
+        PROMOTION = "promotion", "Promotion"
+        INCREMENT = "increment", "Increment"
+        ACTING = "acting", "Acting appointment"
+        CONFIRMATION = "confirmation", "Confirmation in the post"
+
+    class State(models.TextChoices):
+        SCHEDULED = "scheduled", "Scheduled"
+        APPLIED = "applied", "In effect"
+        CANCELLED = "cancelled", "Cancelled"
+        BLOCKED = "blocked", "Held up"
+
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="career_events")
+    kind = models.CharField(max_length=20, choices=Kind.choices)
+    state = models.CharField(max_length=10, choices=State.choices, default=State.SCHEDULED)
+    effective_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True, help_text="When an acting appointment ends")
+    from_assignment = models.ForeignKey(
+        Assignment, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    to_assignment = models.ForeignKey(
+        Assignment, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    to_position = models.ForeignKey(
+        "org.Position", null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
+    from_grade = models.ForeignKey(
+        "org.Grade", null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
+    to_grade = models.ForeignKey(
+        "org.Grade", null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
+    reason = models.CharField(max_length=300)
+    applied_at = models.DateTimeField(null=True, blank=True)
+    problem = models.CharField(
+        max_length=300, blank=True, help_text="Why a scheduled change could not take effect"
+    )
+
+    class Meta:
+        ordering = ["-effective_date", "-id"]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(end_date__isnull=True) | Q(end_date__gte=models.F("effective_date")),
+                name="career_event_end_after_start",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.get_kind_display()} of {self.employee} from {self.effective_date:%d/%m/%Y}"

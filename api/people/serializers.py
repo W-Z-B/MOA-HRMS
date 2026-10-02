@@ -106,6 +106,9 @@ class AssignmentSerializer(TimeStampedSerializer):
     employee = InScope(Employee, help_text="An employee on a campus you work with")
     position = InScope(Position, campus_field="org_unit__campus")
     position_title = serializers.CharField(source="position.title", read_only=True)
+    pay_grade_name = serializers.SerializerMethodField(
+        help_text="The grade and step paid on: never the amount"
+    )
 
     class Meta(TimeStampedSerializer.Meta):
         model = Assignment
@@ -120,9 +123,18 @@ class AssignmentSerializer(TimeStampedSerializer):
             "probation_end",
             "is_acting",
             "status",
+            "pay_grade_name",
+            "confirmed_on",
             "created_at",
             "updated_at",
         )
+        # Steps and confirmation change only through career events (people/careers.py).
+        read_only_fields = (*TimeStampedSerializer.Meta.read_only_fields, "confirmed_on")
+
+    def get_pay_grade_name(self, assignment) -> str:
+        from org.serializers import grade_name
+
+        return grade_name(assignment.pay_grade)
 
     def validate(self, attrs):
         start, end = attrs.get("start_date"), attrs.get("end_date")

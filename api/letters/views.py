@@ -168,7 +168,12 @@ class LetterViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.G
         employee = data.validated_data["employee"]
         if not campus_in_scope(request.user, employee.campus_id):
             self.permission_denied(request, message="That employee is not on a campus you work with.")
-        return employee, data.validated_data["template"], data.validated_data.get("answers", {})
+        return (
+            employee,
+            data.validated_data["template"],
+            data.validated_data.get("answers", {}),
+            data.validated_data.get("career_event"),
+        )
 
     @extend_schema(
         request=serializers.WriteLetterSerializer,
@@ -176,9 +181,9 @@ class LetterViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.G
         summary="Issue a letter: its PDF is filed in the staff record and the person is told",
     )
     def create(self, request):
-        employee, template, answers = self._written(request)
+        employee, template, answers, event = self._written(request)
         try:
-            letter = services.issue(request, template, employee, answers)
+            letter = services.issue(request, template, employee, answers, career_event=event)
         except services.Refused as exc:
             return _refused(exc)
         return Response(self.get_serializer(letter).data, status=status.HTTP_201_CREATED)
@@ -190,7 +195,7 @@ class LetterViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.G
     )
     @action(detail=False, methods=["post"])
     def preview(self, request):
-        employee, template, answers = self._written(request)
+        employee, template, answers, _ = self._written(request)
         letter = services.draft(
             template, employee, answers, on=timezone.localdate(), reference="(given when issued)"
         )

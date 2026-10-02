@@ -54,7 +54,7 @@ def record_values(employee, on: date) -> dict[str, str]:
     position = assignment.position if assignment else None
     contract = current_contract(employee)
     first = employee.assignments.filter(is_acting=False).order_by("start_date").first()
-    grade = position.grade if position else None
+    grade = assignment.pay_grade if assignment else None
     days = contract.notice_period_days if contract else None
     values = {
         "today": long_date(on),

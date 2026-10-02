@@ -249,6 +249,38 @@ export interface Assignment {
   probation_end: string | null;
   is_acting: boolean;
   status: string;
+  /** The grade and step paid on, by name: never the amount. */
+  pay_grade_name: string;
+  confirmed_on: string | null;
+}
+
+export type CareerKind = "transfer" | "promotion" | "increment" | "acting" | "confirmation";
+
+/** A change in someone's career (item 1.11): scheduled, in effect, held up with the reason, or cancelled. */
+export interface CareerEvent {
+  id: number;
+  employee: number;
+  kind: CareerKind;
+  kind_name: string;
+  state: "scheduled" | "applied" | "cancelled" | "blocked";
+  state_name: string;
+  effective_date: string;
+  end_date: string | null;
+  from_post: string | null;
+  to_position: number | null;
+  to_post: string | null;
+  from_grade_name: string | null;
+  to_grade_name: string | null;
+  reason: string;
+  problem: string;
+  applied_at: string | null;
+  recorded_by: string | null;
+  created_at: string;
+  /** The code of the template its letter is written with. */
+  letter_template: string;
+  /** What its letter asks, answered from the change: for HR only, otherwise null. */
+  letter_answers: Record<string, string> | null;
+  letters: { id: number; reference: string; download_url: string }[];
 }
 
 export interface EmployeeDocument {
