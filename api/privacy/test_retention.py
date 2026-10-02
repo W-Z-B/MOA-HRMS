@@ -205,7 +205,7 @@ def test_a_changed_period_is_confirmed_again_and_only_keepers_change_it(hr_manag
     )
 
     auditor = signed_in(make_user("the.auditor", "auditor"))
-    assert len(auditor.get("/api/v1/privacy/retention-rules/").json()) == 5
+    assert len(auditor.get("/api/v1/privacy/retention-rules/").json()) == 6
     assert (
         auditor.patch(
             f"/api/v1/privacy/retention-rules/{notes.id}/", {"keep_months": 1}, format="json"
@@ -234,14 +234,14 @@ def test_old_logs_go_every_night_without_review(hr_officer, seeded):
     unread = Notification.objects.create(recipient=hr_officer, title="Never read")
     Notification.objects.filter(pk=unread.pk).update(created_at=timezone.now() - timedelta(days=800))
 
-    assert purge(today) == {"sign-in-records": 2, "read-notifications": 1}
+    assert purge(today) == {"sign-in-records": 2, "letter-checks": 0, "read-notifications": 1}
     assert LoginAttempt.objects.count() == 1 and not PasswordResetRequest.objects.exists()
     assert (
         not Notification.objects.filter(pk=read.pk).exists()
         and Notification.objects.filter(pk=unread.pk).exists()
     )
     assert AuditLog.objects.filter(action="purged").count() == 2
-    assert retention_purge() == {"sign-in-records": 0, "read-notifications": 0}
+    assert retention_purge() == {"sign-in-records": 0, "letter-checks": 0, "read-notifications": 0}
 
 
 @pytest.mark.django_db

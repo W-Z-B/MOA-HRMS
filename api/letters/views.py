@@ -5,13 +5,15 @@ was made from. Letters are confidential records: the register is for HR, the Pri
 their campuses; the person a letter is for reads it under My contract.
 """
 
+from django.conf import settings
 from django.db import transaction
-from django.db.models import OuterRef, Q, Subquery
+from django.db.models import Count, Max, OuterRef, Q, Subquery
 from django.http import FileResponse
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import mixins, status, viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, authentication_classes, permission_classes
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from audit.services import record, snapshot
@@ -20,7 +22,7 @@ from core.views import AuditedModelViewSet
 from iam.models import Role
 from iam.permissions import RolePermission, SelfServicePermission
 from iam.services import campus_in_scope, has_role, scope_queryset
-from letters import serializers, services
+from letters import checking, serializers, services
 from letters.fields import ASK_TYPES, PAY_FIELDS, RECORD_FIELDS
 from letters.models import Letter, LetterTemplate
 from people.models import Document
@@ -28,6 +30,19 @@ from people.views import CONFIDENTIAL_READ, HR_WRITE, MEDICAL_READ
 
 TEMPLATE_READ = CONFIDENTIAL_READ
 TEMPLATE_WRITE = (Role.HR_MANAGER, Role.ADMINISTRATOR)
+NO_MATCH = (
+    "No letter matches that reference and code. Check both against the letter; letters the School issued "
+    "before October 2026 carry no code, so ask Human Resources about those."
+)
+
+
+def _with_checks(qs):
+    """How often each letter was checked on the public page, and when last. A count groups the rows, which
+    sets aside the model's own ordering, so the order is given again."""
+    matched = Q(checks__matched=True)
+    return qs.annotate(
+        times_checked=Count("checks", filter=matched), last_checked_at=Max("checks__at", filter=matched)
+    ).order_by("-issued_on", "-id")
 
 
 def _refused(exc: services.Refused) -> Response:
@@ -143,7 +158,7 @@ class LetterViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.G
 
     def get_queryset(self):
         user = self.request.user
-        qs = Letter.objects.select_related("employee", "template", "document", "created_by")
+        qs = _with_checks(Letter.objects.select_related("employee", "template", "document", "created_by"))
         qs = scope_queryset(user, qs, campus_field="employee__campus")
         if not has_role(user, *MEDICAL_READ):
             qs = qs.exclude(document__classification=Document.Classification.MEDICAL)
@@ -229,7 +244,9 @@ class MyLettersViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         employee = getattr(self.request.user, "employee", None)
         if employee is None:
             return Letter.objects.none()
-        return Letter.objects.filter(employee=employee).select_related("employee", "template", "document")
+        return _with_checks(
+            Letter.objects.filter(employee=employee).select_related("employee", "template", "document")
+        )
 
     def get_serializer_context(self):
         return {**super().get_serializer_context(), "own": True}
@@ -238,3 +255,44 @@ class MyLettersViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     @action(detail=True, methods=["get"])
     def download(self, request, pk=None):
         return _download(request, self.get_object())
+
+
+@extend_schema(
+    request=serializers.LetterCheckSerializer,
+    responses={200: serializers.CheckedLetterSerializer, 429: ErrorSerializer},
+    summary="Check that a letter is genuine, by its reference and code, without signing in",
+    auth=[],
+)
+@api_view(["POST"])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def check_letter(request):
+    """Open to anyone shown a letter (item 1.47). A wrong code and an unknown reference are answered alike."""
+    data = serializers.LetterCheckSerializer(data=request.data)
+    data.is_valid(raise_exception=True)
+    try:
+        letter = checking.check(request, data.validated_data["reference"], data.validated_data["code"])
+    except checking.TooMany:
+        return Response(
+            {
+                "code": "too_many_attempts",
+                "detail": "Too many wrong codes have been tried. "
+                f"Try again in {settings.LOGIN_LOCKOUT_MINUTES} minutes.",
+            },
+            status=status.HTTP_429_TOO_MANY_REQUESTS,
+        )
+    empty = dict.fromkeys(("reference", "letter", "about", "issued_on", "subject", "addressed", "blocks"))
+    if letter is None:
+        return Response({"genuine": False, "detail": NO_MATCH, **empty, "values": None, "sha256": None})
+    return Response(
+        {
+            "genuine": True,
+            "detail": "This letter is genuine. Compare its words with the letter you hold.",
+            "reference": letter.reference,
+            "letter": letter.template.name,
+            "about": letter.employee.full_name,
+            "issued_on": letter.issued_on,
+            **checking.as_issued(letter),
+            "sha256": letter.sha256,
+        }
+    )

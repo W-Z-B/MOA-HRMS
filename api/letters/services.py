@@ -97,6 +97,7 @@ def missing_in_words(missing: list[dict]) -> str:
 
 def issue(request, template: LetterTemplate, employee, given: dict, *, career_event=None, ask=None) -> Letter:
     """Issue the letter: a reference, the PDF in the staff file, its fingerprint, and word to the person."""
+    from letters import checking
     from signing import services as signing
 
     if not template.is_active:
@@ -120,11 +121,13 @@ def issue(request, template: LetterTemplate, employee, given: dict, *, career_ev
         letter = draft(template, employee, given, on=today, reference=reference)
         if letter["missing"]:
             raise Refused("missing", missing_in_words(letter["missing"]))
+        code = checking.new_code()
         html_page = pdf.page(
             template=template,
             values=letter["all_values"],
             body_html=markup.to_html(letter["blocks"]),
             subject=letter["subject"],
+            check_code=code,
         )
         content = pdf.render(html_page)
         document = Document.objects.create(
@@ -146,6 +149,7 @@ def issue(request, template: LetterTemplate, employee, given: dict, *, career_ev
             values=letter["values"],
             sha256=hashlib.sha256(content).hexdigest(),
             career_event=career_event,
+            check_code=code,
             created_by=request.user,
             updated_by=request.user,
         )

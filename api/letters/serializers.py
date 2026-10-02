@@ -1,5 +1,7 @@
 """Letters API shapes (item 1.19)."""
 
+from datetime import datetime
+
 from rest_framework import serializers
 
 from core.serializers import InScope, TimeStampedSerializer
@@ -127,6 +129,11 @@ class LetterSerializer(serializers.ModelSerializer):
     kind = serializers.CharField(source="template.kind", read_only=True)
     issued_by = serializers.SerializerMethodField()
     download_url = serializers.SerializerMethodField()
+    check_code = serializers.CharField(
+        read_only=True, allow_null=True, help_text="Printed on the letter, for checking it is genuine"
+    )
+    times_checked = serializers.SerializerMethodField(help_text="How often it was checked on the public page")
+    last_checked_at = serializers.SerializerMethodField()
 
     class Meta:
         model = Letter
@@ -146,8 +153,22 @@ class LetterSerializer(serializers.ModelSerializer):
             "document",
             "career_event",
             "download_url",
+            "check_code",
+            "times_checked",
+            "last_checked_at",
         )
         read_only_fields = fields
+
+    def _checks(self, letter) -> tuple[int, object]:
+        if not hasattr(letter, "times_checked"):  # a letter just issued: no annotation, and no checks
+            return 0, None
+        return letter.times_checked, letter.last_checked_at
+
+    def get_times_checked(self, letter) -> int:
+        return self._checks(letter)[0]
+
+    def get_last_checked_at(self, letter) -> datetime | None:
+        return self._checks(letter)[1]
 
     def get_issued_by(self, letter) -> str | None:
         user = letter.created_by
@@ -192,6 +213,29 @@ class MissingSerializer(serializers.Serializer):
     asked = serializers.BooleanField(
         help_text="Asked of the writer; otherwise it comes from the staff record"
     )
+
+
+class LetterCheckSerializer(serializers.Serializer):
+    reference = serializers.CharField(
+        max_length=40, help_text="As printed on the letter, such as GSA/HR/2026/0001"
+    )
+    code = serializers.CharField(max_length=40, help_text="As printed at the foot of the letter")
+
+
+class CheckedLetterSerializer(serializers.Serializer):
+    """The answer to a check: whether the letter is genuine and, when it is, what it says, nothing more."""
+
+    genuine = serializers.BooleanField()
+    detail = serializers.CharField()
+    reference = serializers.CharField(allow_null=True)
+    letter = serializers.CharField(allow_null=True, help_text="What kind of letter it is")
+    about = serializers.CharField(allow_null=True, help_text="Whom the letter is about")
+    issued_on = serializers.DateField(allow_null=True)
+    subject = serializers.CharField(allow_null=True)
+    addressed = serializers.BooleanField(allow_null=True)
+    blocks = serializers.ListField(child=serializers.DictField(), allow_null=True)
+    values = serializers.DictField(child=serializers.CharField(allow_blank=True), allow_null=True)
+    sha256 = serializers.CharField(allow_null=True, help_text="Fingerprint of the PDF file as issued")
 
 
 class PreviewSerializer(serializers.Serializer):

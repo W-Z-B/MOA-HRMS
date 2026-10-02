@@ -249,6 +249,10 @@ SAFETY_TELL_WORKERS = env("SAFETY_TELL_WORKERS", "yes").strip().lower() != "no"
 # Letters (letters/pdf.py): the name at the head of every letter, and the start of every reference.
 LETTER_ORGANISATION = env("LETTER_ORGANISATION", "Guyana School of Agriculture")
 LETTER_REFERENCE_PREFIX = env("LETTER_REFERENCE_PREFIX", "GSA/HR")
+# Checking a letter (item 1.47): the page named at the foot of every letter, and how many wrong answers one
+# network address, or one reference, may give in the lockout window before checks from it wait.
+LETTER_CHECK_URL = env("LETTER_CHECK_URL", f"{PUBLIC_URL}/#/check-letter")
+LETTER_CHECK_FAILURES = int(env("LETTER_CHECK_FAILURES", "10"))
 
 LOGGING = {
     "version": 1,
