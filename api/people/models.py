@@ -570,3 +570,45 @@ class ExitInterview(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"Exit interview with {self.separation.employee} on {self.held_on:%d/%m/%Y}"
+
+
+class ScanBatch(TimeStampedModel):
+    """A pile of scanned papers filed into staff records at one sitting (item 1.21).
+
+    Each file names its owner by the employee number at the start of its name, such as
+    "E0001 Appointment 2014.pdf"; a file that names nobody HR may file for waits for HR to choose who.
+    """
+
+    doc_type = models.CharField(max_length=40, help_text="What the papers are: contract, certificate...")
+    classification = models.CharField(
+        max_length=20, choices=Document.Classification.choices, default=Document.Classification.CONFIDENTIAL
+    )
+    note = models.CharField(max_length=200, blank=True, help_text="Such as: personnel files, cabinet 2")
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self) -> str:
+        return f"Scanned {self.doc_type}, {self.created_at:%d/%m/%Y}"
+
+
+class ScanItem(models.Model):
+    """One file of a batch: filed into someone's record, or not filed, and why."""
+
+    batch = models.ForeignKey(ScanBatch, on_delete=models.CASCADE, related_name="items")
+    name = models.CharField(max_length=255, help_text="The file's name as sent")
+    sha256 = models.CharField(max_length=64, blank=True, help_text="To notice a file sent twice")
+    employee = models.ForeignKey(
+        Employee, null=True, blank=True, on_delete=models.SET_NULL, related_name="scanned_items"
+    )
+    document = models.ForeignKey(
+        Document, null=True, blank=True, on_delete=models.SET_NULL, related_name="scan_items"
+    )
+    refused = models.CharField(max_length=300, blank=True, help_text="Why it was not filed")
+    at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["at", "id"]
+
+    def __str__(self) -> str:
+        return f"{self.name} ({'filed' if self.document_id else 'not filed'})"
