@@ -169,7 +169,8 @@ button.link {
   padding: 4px;
 }
 input,
-select {
+select,
+textarea {
   font: inherit;
   padding: 7px 9px;
   border: 1px solid var(--rule);
@@ -204,6 +205,12 @@ label {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+/* The card's gap spaces its headings and text; their own margins would double it. */
+.card h1,
+.card h2,
+.card p {
+  margin: 0;
 }
 .loading {
   padding: 24px;
@@ -261,6 +268,14 @@ tbody tr.selected {
 }
 .filters input {
   flex: 1 1 240px;
+}
+/* A search field inside its own (hidden) label: the label takes the width, the field keeps its height. */
+.filters .grow {
+  flex: 1 1 240px;
+}
+.filters label.grow input {
+  flex: none;
+  width: 100%;
 }
 
 /* Directory split view. */
@@ -777,6 +792,9 @@ dl.terms dd {
     min-height: 44px;
     font-size: 16px;
   }
+  textarea {
+    font-size: 16px;
+  }
   button.link,
   input[type="checkbox"] {
     min-height: 0;
@@ -921,4 +939,50 @@ button.report {
 button.report.active {
   background: var(--accent);
   color: var(--accent-ink);
+}
+
+/* Admin: one card per account (or member of staff), its roles, and what may be done to it. */
+.accounts > li {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-left: 4px solid var(--accent);
+  border-radius: 6px;
+  max-width: 760px;
+}
+.accounts > li.state-invited {
+  border-left-color: var(--amber);
+}
+.accounts > li.state-switched_off {
+  border-left-color: var(--muted);
+}
+ul.grants {
+  gap: 2px;
+}
+.grants li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 10px;
+  font-size: 14px;
+}
+.chip-account-active {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.chip-account-invited {
+  color: var(--amber-text);
+}
+.chip-account-switched_off {
+  color: var(--danger);
+}
+td.to-check {
+  color: var(--amber-text);
+  font-weight: 600;
+}
+.sign-off {
+  margin-top: 16px;
 }

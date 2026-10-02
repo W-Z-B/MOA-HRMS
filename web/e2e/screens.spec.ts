@@ -24,7 +24,15 @@ test("main screens", async ({ page }, testInfo) => {
   await page.getByRole("button", { name: "Staff records to check" }).click();
   await page.getByRole("table").waitFor();
   await shot("report-data-quality");
+  await openSection(page, "Admin");
+  await page.getByRole("list", { name: "Accounts" }).waitFor();
+  await shot("admin-accounts");
+  await page.getByRole("tab", { name: "Staff without an account" }).click();
+  await page.waitForTimeout(300);
+  await shot("admin-staff");
   await signOut(page);
+  await page.getByRole("button", { name: "Forgot your password?" }).click();
+  await shot("forgot-password");
 
   await signIn(page, STAFF.employee.username);
   await shot("employee-leave");

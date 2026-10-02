@@ -42,6 +42,8 @@ export interface Employee {
   email: string;
   phone: string;
   address: string;
+  /** The account linked to this record, if one has been opened (set only by opening an account). */
+  user: number | null;
 }
 
 /** Fields accepted on create and update; identifiers are write-only and optional. */
@@ -260,7 +262,12 @@ export interface Notification {
 }
 
 export const HR_ROLES = ["hr_officer", "hr_manager", "administrator"];
-export const hasAnyRole = (me: Me, roles: string[]) => roles.some((r) => me.roles.includes(r));
+/** Who works with accounts (the server enforces the same rules; these only hide what would be refused). */
+export const ACCOUNT_ROLES = ["administrator", "hr_manager", "hr_officer", "auditor"];
+export const ACCOUNT_WRITE_ROLES = ["administrator", "hr_manager", "hr_officer"];
+export const REVIEW_ROLES = ["administrator", "hr_manager", "auditor"];
+export const REVIEW_SIGN_ROLES = ["administrator", "hr_manager"];
+export const hasAnyRole = (me: Me, roles: readonly string[]) => roles.some((r) => me.roles.includes(r));
 /** Staff with work to do in the system beyond their own leave: they see the full navigation. */
 export const isOfficeUser = (me: Me) => me.roles.some((r) => r !== "employee");
 
@@ -365,4 +372,66 @@ export interface ReportSummary {
   name: string;
   description: string;
   ministry_pack: boolean;
+}
+
+/** A link that chooses a password, from /auth/password/check/ and /auth/password/set/. */
+export interface PasswordLink {
+  username: string;
+  kind: "invitation" | "reset";
+}
+
+/** One role an account holds, and where. */
+export interface Grant {
+  id: number;
+  role: string;
+  role_name: string;
+  campus: number | null;
+  where: string;
+  given_by: string | null;
+  given_at: string;
+}
+
+export interface Account {
+  id: number;
+  username: string;
+  name: string;
+  email: string;
+  is_active: boolean;
+  state: "invited" | "active" | "switched_off";
+  last_login: string | null;
+  date_joined: string;
+  authenticator: boolean;
+  employee: {
+    id: number;
+    employee_no: string;
+    full_name: string;
+    campus: number;
+    campus_name: string;
+    status: Employee["status"];
+  } | null;
+  roles: Grant[];
+  sessions: number;
+  /** Only when the account has just been opened: whether the invitation went out. */
+  emailed?: boolean;
+}
+
+export interface RoleChoice {
+  code: string;
+  name: string;
+  may_give: boolean;
+  needs_campus: boolean;
+}
+
+export interface LinkSent {
+  kind: "invitation" | "reset";
+  emailed: boolean;
+  email: string;
+}
+
+export interface AccessReview {
+  id: number;
+  reviewed_by_name: string;
+  reviewed_at: string;
+  accounts: number;
+  notes: string;
 }

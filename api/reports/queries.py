@@ -6,10 +6,15 @@ person running it works with (None for every campus), so the report never reache
 """
 
 from collections import defaultdict
-from datetime import date
+from datetime import date, timedelta
 
-from django.db.models import Count, Q
+from django.contrib.auth import get_user_model
+from django.db.models import Count, Prefetch, Q
+from django.utils import timezone
 
+from iam.accounts import where
+from iam.models import RoleScope
+from iam.services import requires_mfa
 from org.models import Campus, Position
 from people.models import Assignment, Employee
 
@@ -147,8 +152,64 @@ def data_quality(campus_ids: set[int] | None = None, today: date | None = None) 
     return sorted(rows, key=lambda r: (r["campus"], r["employee_no"], r["field"]))
 
 
+DORMANT_DAYS = 90
+
+
+def access_review(campus_ids: set[int] | None = None, today: date | None = None) -> list[dict]:
+    """Who can see what (item 1.27): each role every account that can sign in holds, where, since when,
+    and from whom, with what a reviewer should look at: accounts nobody uses, and missing authenticators.
+    """
+    today = today or timezone.localdate()
+    grants = RoleScope.objects.select_related("role", "campus", "org_unit", "created_by")
+    users = (
+        get_user_model()
+        .objects.filter(is_active=True)
+        .select_related("employee__campus", "totp_device")
+        .prefetch_related(Prefetch("role_scopes", queryset=grants.order_by("role_id", "campus_id")))
+        .order_by("last_name", "first_name", "username")
+    )
+    if campus_ids is not None:
+        users = users.filter(Q(employee__campus_id__in=campus_ids) | Q(role_scopes__campus_id__in=campus_ids))
+
+    rows: list[dict] = []
+    for user in users.distinct():
+        employee = getattr(user, "employee", None)
+        device = getattr(user, "totp_device", None)
+        has_authenticator = bool(device and device.is_confirmed)
+        signed_in = timezone.localdate(user.last_login) if user.last_login else None
+        checks = []
+        if signed_in is None:
+            checks.append("Never signed in")
+        elif today - signed_in > timedelta(days=DORMANT_DAYS):
+            checks.append(f"No sign-in for {DORMANT_DAYS} days")
+        if requires_mfa(user) and not has_authenticator:
+            checks.append("Needs an authenticator and has none")
+        held = list(user.role_scopes.all())
+        if not held:
+            checks.append("No role")
+        for grant in held or [None]:
+            given_by = grant.created_by if grant is not None else None
+            rows.append(
+                {
+                    "employee_id": employee.id if employee else "",
+                    "employee_no": employee.employee_no if employee else "",
+                    "name": user.get_full_name() or user.get_username(),
+                    "username": user.get_username(),
+                    "role": grant.role.name if grant is not None else "No role",
+                    "where": where(grant) if grant is not None else "",
+                    "given": f"{timezone.localdate(grant.created_at):%d/%m/%Y}" if grant is not None else "",
+                    "given_by": (given_by.get_full_name() or given_by.get_username()) if given_by else "",
+                    "last_signed_in": f"{signed_in:%d/%m/%Y}" if signed_in else "Never",
+                    "authenticator": "Yes" if has_authenticator else "No",
+                    "to_check": "; ".join(checks),
+                }
+            )
+    return rows
+
+
 REPORTS = {
     "establishment-vs-actual": establishment_vs_actual,
     "headcount-by-campus": headcount_by_campus,
     "data-quality": data_quality,
+    "access-review": access_review,
 }

@@ -36,6 +36,11 @@ services:
       TZ: America/Guyana
       PORT: "8080"
       DEMO_USER_PASSWORD: *password
+      # Email is written to files instead of sent, so the journeys can open the invitations and the
+      # password links that people receive.
+      EMAIL_FILE_PATH: /srv/files/mail
+    volumes:
+      - e2e_files:/srv/files
     depends_on:
       db:
         condition: service_healthy
@@ -72,9 +77,11 @@ services:
       CI: ${CI:-}
       SCREENSHOTS: ${SCREENSHOTS:-}
       HOME: /tmp
+      E2E_MAIL_DIR: /files/mail
     volumes:
       - ./web:/web
       - e2e_node_modules:/web/node_modules
+      - e2e_files:/files:ro
     command: ["sh", "-c", "npm ci --no-audit --no-fund && npx playwright test"]
     profiles: ["test"]
     depends_on:
@@ -83,3 +90,4 @@ services:
 
 volumes:
   e2e_node_modules:
+  e2e_files:

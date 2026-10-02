@@ -53,7 +53,11 @@ docker compose exec api python manage.py seed --country GY     # campuses, roles
 docker compose exec api python manage.py createsuperuser
 ```
 
-Grant roles in the admin (`/admin/iam/rolescope/`) or through the API once the admin screens land.
+The first administrator is the superuser created above. Everyone else gets an account from the Admin screen
+in the web app (item 1.29): HR opens it from the staff record's email address, and the person receives an
+invitation to choose their own password, which works once for 7 days. Roles are given and taken on the same
+screen; who may give which role is set out in `api/iam/accounts.py`. Nobody ever chooses or sees another
+person's password, and links sent in development print to the API log (`docker compose logs api`).
 Administrator, HR Manager and Finance roles must enrol an authenticator app on first sign-in.
 
 ## 3b. Import sample or migration data
@@ -118,6 +122,9 @@ service volume; see the Development Specification section 4.5 for the full proce
 | The admin sends you to the web app | Expected: sign in at the web app (with the authenticator code if your role needs one), then open `/admin/` again. |
 | You are sent back to sign-in with "signed out after 30 minutes without activity" | The idle time-out (`SESSION_IDLE_MINUTES`). Sessions also end 8 hours after sign-in. My account lists every device signed in. |
 | An upload is refused with "The file's contents do not match its name" | The file is not what its name says (for example a web page saved as `.pdf`). Save it again as a PDF or photograph. Limits: 10 MB for leave evidence, 20 MB for documents. |
+| An invitation or password link does not arrive | In development, email prints to the API log (`docker compose logs api`). Elsewhere, check `SMTP_*` and the address on the account; until an invitation is used, "Send the invitation again" on the Admin screen sends it to the address now on the staff record. Links in the email start with `PUBLIC_URL`. |
+| A password link says it has expired or been used | Invitations work for 7 days and resets for 60 minutes (`INVITATION_DAYS`, `PASSWORD_RESET_MINUTES`), once each; signing in also ends a reset link. Ask for a new one from the sign-in page. |
+| Someone is signed out after HR changed their roles | Expected: giving or taking a role ends the person's sessions, so the change, and any authenticator code it needs, applies from their next sign-in. |
 | Sign-in answers "Too many failed sign-ins from this network" | 20 failed sign-ins from one address in 15 minutes, across any accounts. Wait 15 minutes, or raise `LOGIN_MAX_FAILURES_PER_ADDRESS` if a campus shares one address and the limit is too tight. |
 | Document upload returns 500 and the API log shows `Permission denied: '/srv/files/...'` | The `files` volume was created before the image set its owner. Run `docker compose exec -u root api chown -R app:app /srv/files` once. |
 | Tests report "skipped: database tests need PostgreSQL" | You ran pytest on the host against SQLite. Run `docker compose run --rm api pytest -q`. |

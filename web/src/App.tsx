@@ -3,7 +3,10 @@ import { get, SIGNED_OUT_EVENT } from "./api/client";
 import { isOfficeUser, type Me } from "./api/types";
 import { Shell } from "./app/Shell";
 import { useHashRoute } from "./app/router";
+import { AdminScreen } from "./features/admin/AdminScreen";
+import { ForgotPasswordScreen } from "./features/auth/ForgotPasswordScreen";
 import { LoginScreen } from "./features/auth/LoginScreen";
+import { SetPasswordScreen } from "./features/auth/SetPasswordScreen";
 import { DashboardScreen } from "./features/dashboard/DashboardScreen";
 import { LeaveScreen } from "./features/leave/LeaveScreen";
 import { AccountScreen } from "./features/me/AccountScreen";
@@ -28,6 +31,7 @@ export default function App() {
   const [path, navigate] = useHashRoute();
   const [campusId, setCampusId] = useState<number | null>(readCampus);
   const [signedOutReason, setSignedOutReason] = useState<string | null>(null);
+  const [knownUsername, setKnownUsername] = useState("");
 
   useEffect(() => {
     get<Me>("/auth/me/")
@@ -60,9 +64,34 @@ export default function App() {
     }
   }
 
+  // An emailed link opens this page whether or not someone is signed in on this browser.
+  const link = path.match(/^\/set-password\/([^/]+)\/([^/]+)$/);
+  if (link)
+    return (
+      <SetPasswordScreen
+        uid={link[1]}
+        token={link[2]}
+        onDone={(username) => {
+          setKnownUsername(username);
+          setSignedOutReason("Your password is saved. Sign in with it now.");
+          navigate("/");
+        }}
+        onAskAgain={() => navigate("/forgot-password")}
+      />
+    );
   if (me === undefined) return <p className="loading">Loading GSA HRMS…</p>;
-  if (me === null || (me.mfa_required && !me.mfa_verified))
-    return <LoginScreen onSignedIn={signedIn} notice={signedOutReason} />;
+  if (me === null || (me.mfa_required && !me.mfa_verified)) {
+    if (path === "/forgot-password") return <ForgotPasswordScreen onBack={() => navigate("/")} />;
+    return (
+      <LoginScreen
+        key={knownUsername}
+        onSignedIn={signedIn}
+        notice={signedOutReason}
+        username={knownUsername}
+        onForgotPassword={() => navigate("/forgot-password")}
+      />
+    );
+  }
 
   const idIn = (prefix: string) => {
     const m = path.match(new RegExp(`^${prefix}/(\\d+)`));
@@ -84,7 +113,8 @@ export default function App() {
     screen = <ComingSoon title="Appraisals" sprint="Release 2" requirement="F08" />;
   else if (path.startsWith("/payroll")) screen = <ComingSoon title="Payroll" sprint="Release 2" requirement="F13" />;
   else if (path.startsWith("/reports")) screen = <ReportsScreen campusId={campusId} onNavigate={navigate} />;
-  else if (path.startsWith("/admin")) screen = <ComingSoon title="Admin" sprint="Sprint 2" requirement="F05" />;
+  else if (path.startsWith("/admin"))
+    screen = <AdminScreen me={me} campusId={campusId} path={path} onNavigate={navigate} />;
   else screen = <ComingSoon title="Not found" sprint="a later sprint" requirement="unknown route" />;
 
   return (

@@ -1,0 +1,55 @@
+import { ACCOUNT_ROLES, ACCOUNT_WRITE_ROLES, REVIEW_ROLES, hasAnyRole, type Me } from "../../api/types";
+import { AccessReviewTab } from "./AccessReviewTab";
+import { AccountsTab } from "./AccountsTab";
+import { StaffTab } from "./StaffTab";
+
+interface Props {
+  me: Me;
+  campusId: number | null;
+  path: string;
+  onNavigate: (to: string) => void;
+}
+
+const TABS = [
+  { key: "accounts", path: "/admin", label: "Accounts", roles: ACCOUNT_ROLES },
+  { key: "staff", path: "/admin/staff", label: "Staff without an account", roles: ACCOUNT_WRITE_ROLES },
+  { key: "review", path: "/admin/review", label: "Access review", roles: REVIEW_ROLES },
+] as const;
+
+/** Accounts and access: who can sign in, with which roles, and the review of who can see what. */
+export function AdminScreen({ me, campusId, path, onNavigate }: Props) {
+  const tabs = TABS.filter((t) => hasAnyRole(me, t.roles));
+  const current = tabs.find((t) => t.path === path) ?? tabs[0];
+
+  return (
+    <>
+      <h1>Admin</h1>
+      {current === undefined ? (
+        <p className="muted">Your role has no accounts to look after.</p>
+      ) : (
+        <>
+          <div className="tabs" role="tablist" aria-label="Admin">
+            {tabs.map((t) => (
+              <button
+                key={t.key}
+                id={`admin-tab-${t.key}`}
+                role="tab"
+                aria-selected={t.key === current.key}
+                aria-controls="admin-panel"
+                className={t.key === current.key ? "tab active" : "tab"}
+                onClick={() => onNavigate(t.path)}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          <div id="admin-panel" role="tabpanel" aria-labelledby={`admin-tab-${current.key}`}>
+            {current.key === "accounts" && <AccountsTab me={me} campusId={campusId} />}
+            {current.key === "staff" && <StaffTab campusId={campusId} onNavigate={onNavigate} />}
+            {current.key === "review" && <AccessReviewTab me={me} campusId={campusId} onNavigate={onNavigate} />}
+          </div>
+        </>
+      )}
+    </>
+  );
+}

@@ -1,11 +1,14 @@
 # Threat model
 
-**Version 1.2, 1 October 2026.** Method: STRIDE over the data flows in section 3, against the code on
-branch `feature/phase-1-security-hardening`. Version 1.1 records the four gaps closed by pull request 16
+**Version 1.3, 1 October 2026.** Method: STRIDE over the data flows in section 3, against the code on
+branch `feature/phase-1-accounts`. Version 1.1 records the four gaps closed by pull request 16
 (items 1.28, 1.35, 1.36, 1.37) and one weakness found while closing them (forged addresses). Version 1.2
 records two weaknesses found while building the staff record (pull request 17): writes across campuses,
-and a leave balance disclosed in a refusal. Reviewed at every release gate and whenever a data flow, role or
-integration is added. Gaps point to items in the Gold Standard Plan checklist.
+and a leave balance disclosed in a refusal. Version 1.3 records accounts and access (pull request 18:
+invitations, password links, roles, switching off, the access review) and three weaknesses found while
+building them: a new role that skipped its authenticator code, accounts linked to staff records through the
+employee form, and a report that named staff on every campus. Reviewed at every release gate and whenever a
+data flow, role or integration is added. Gaps point to items in the Gold Standard Plan checklist.
 
 ## 1. What is protected
 
@@ -17,7 +20,7 @@ integration is added. Gaps point to items in the Gold Standard Plan checklist.
 | Employment records | Appointments, contracts, leave, decisions, receipts | Personal | PostgreSQL |
 | Contact data | Phone, address, next of kin | Personal | PostgreSQL |
 | Audit log | Who did what, when, from where, before and after | Integrity-critical | Insert-only table; a database trigger refuses UPDATE and DELETE |
-| Credentials | Passwords, TOTP secrets, service keys, session cookies | Secret | PBKDF2-SHA256 with 1,000,000 iterations; TOTP secrets encrypted; service keys stored as SHA-256 hashes |
+| Credentials | Passwords, TOTP secrets, service keys, session cookies, password links | Secret | PBKDF2-SHA256 with 1,000,000 iterations; TOTP secrets encrypted; service keys stored as SHA-256 hashes; password links signed over the password and the last sign-in, so each works once, for 7 days (invitation) or 60 minutes (reset) |
 | Server secrets | `DJANGO_SECRET_KEY`, `FIELD_ENCRYPTION_KEY`, database and SMTP passwords | Secret | Environment only (git-ignored `.env`, platform variables) |
 | Backups | Database dumps, copies of the file volume | As their content | Not built yet (item 7.09) |
 
@@ -27,8 +30,8 @@ integration is added. Gaps point to items in the Gold Standard Plan checklist.
 |---|---|
 | Employee | Own record, own leave, often on a phone over mobile data |
 | Supervisor | Decisions on their own team's leave |
-| HR officer | Campus-scoped writes, reveal of identifiers, medical evidence for leave |
-| HR manager, Finance, Administrator | Broad access; authenticator code required |
+| HR officer | Campus-scoped writes, reveal of identifiers, medical evidence for leave; opens staff accounts on their campus and gives the employee and supervisor roles there |
+| HR manager, Finance, Administrator | Broad access; authenticator code required. The HR Manager also appoints HR officers; only an administrator gives the roles that see every campus, handle money, audit, answer to the Ministry or administer |
 | Principal, Auditor, Ministry liaison | Broad read |
 | SRMS and LMS | Service keys with scopes `staff:read`, `org:read`, `training:write` |
 | Operators | Shell and database access on the host (Railway now, GSA's server later) |
@@ -77,6 +80,9 @@ flowchart LR
 | Stolen session cookie | HttpOnly; Secure in production; SameSite Lax; HSTS for one year; **a session ends after 30 minutes idle or 8 hours in all; people see every device they are signed in on and can end any of them, or all but the current one** (pull request 16) | |
 | Stolen service key | Hashed at rest, scoped, rotatable, last use recorded, every call audited; sibling calls use the private network | Rotation is not scheduled; record it in the runbook (item 7.11) |
 | Shared phone or kiosk | Sign-out on every screen; initials of the signed-in person shown on phones; 30-minute idle time-out | |
+| HR choosing or knowing someone's password | **Nobody sets another person's password** (pull request 18): an account opens with no usable password, and its holder chooses one from an emailed invitation that works once, for 7 days. The username is in the email; the password never is | Staff with no email address cannot receive an invitation: a one-use set-up code given in person, or sent by text message (item 1.41) |
+| Taking over an account through "forgot password" | The answer is the same whether or not an account exists; the link goes only to the address on the account, works once and for 60 minutes; one network address may ask 5 times and one account is sent 3 links in 15 minutes; choosing a password ends every session the account had (pull request 18) | Sending the email takes a moment, so the response time hints whether one went out; acceptable within these limits, and gone once mail is sent by the job worker |
+| Redirecting the links | An account's email follows the staff record only until its invitation is used, so a mistyped address can be mended; after that it changes only in the database | An audited change of the sign-in address, with a notice to the old address (item 1.42) |
 
 ### Tampering
 
@@ -91,7 +97,7 @@ flowchart LR
 
 | Threat | In place | Gap |
 |---|---|---|
-| Denying an approval or a change | Audit rows with actor, time, address, before and after; leave decisions stored with the decider's name | Keep audit rows at least 7 years (item 1.32); synchronise the production clock (item 7.11) |
+| Denying an approval or a change | Audit rows with actor, time, address, before and after; leave decisions stored with the decider's name; **opening, switching off and on, roles given and taken (with the roles before and after), links sent and authenticators reset are audited, most with a reason, and appear in the person's history** (pull request 18) | Keep audit rows at least 7 years (item 1.32); synchronise the production clock (item 7.11) |
 | Forging the address recorded in the audit log | **Fixed in pull request 16:** the address came from the left-most `X-Forwarded-For` entry, which the client writes. Caddy now sets `X-Real-IP` to the address it saw (strict trusted-proxy parsing behind the hosting platform's edge) and only that is recorded | Sibling systems on the private network reach the API without Caddy; their calls are recorded against their service key |
 
 ### Information disclosure
@@ -102,6 +108,7 @@ flowchart LR
 | Doctor's notes seen by the wrong person | Medical class; the employee and HR only; downloads audited | Authenticator code for HR officers (item 1.34) |
 | Pay seen by the wrong person | Pay fields blanked for roles without need; **bank details encrypted, shown by their last four digits, revealed only to those who decide and always audited; a change takes effect only when a second person approves it, and the employee is told** (pull request 17) | |
 | A refusal describing someone on another campus | **Fixed in pull request 17:** asking for leave for an employee on another campus was refused with that employee's leave balance in the message. Fields that name an employee, appointment, contract, document or post now accept only records in the caller's scope, before any other check, so an id on another campus reads as unknown | |
+| A report naming staff on every campus | **Fixed in pull request 17 (found while building pull request 18):** a campus HR officer could run the staff-records-to-check report for every campus, because the report took its campus from the address and, given none, ran over all of them. Reports whose rows name people now run only over the campuses the person works with, and asking for another is refused | |
 | Script injection stealing data | React escapes output; no user HTML is rendered; `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`; **a Content-Security-Policy that allows only the app's own scripts, styles and data, checked on every screen of every browser journey**; **the API documentation is for signed-in people only outside development** (pull request 16) | The development server runs without the policy (hot reload needs inline scripts) |
 | Real data on staging abroad | Staging holds fictional data only; `seed_demo` refuses to run without `--fictional` and marks every record | Production hosting in Guyana (item 7.04) |
 | Data in backups | | Encrypted backups with an off-site copy (item 7.09) |
@@ -123,6 +130,10 @@ flowchart LR
 | Writing records for another campus | **Fixed in pull request 17:** a campus-scoped HR officer could create an employee, appointment, contract, document, leave request or entitlement for staff on another campus, because scope was checked on reading and editing but not on creating. Every write now checks it, in the field and again in the view, and a test tries each path | |
 | Approving one's own request | The leave workflow refuses self-approval and sends requests to the employee's own manager | Carry the rule into the approvals engine (item 1.33) |
 | Privileged access without a second factor | Enforced in the permission layer, and now in the admin | HR officers (item 1.34) |
+| A new role used without its second factor | **Fixed in pull request 18:** a session was marked verified at sign-in when its roles needed no authenticator code. A role that needs one, given later (in the admin site, for example), then worked in that session without a code. A session now counts as verified only after a code, and giving or taking a role through the accounts screen signs the person out everywhere | |
+| Acting as someone else in self-service | **Fixed in pull request 18:** the employee form accepted an account id, so any HR officer could link an account (their own, for example) to a member of staff, then ask for leave or decide it as that person. The link is now read-only, set only when HR opens an account for that person | |
+| Giving oneself, or others, more access | Who gives which role is fixed: HR officers give the employee and supervisor roles on their own campus, the HR Manager HR officers too, an administrator everything. Only someone who could give every role an account holds may change that account, and nobody changes their own, so an administrator always remains. **The access review lists every role of every account, with who gave it and when, accounts unused for 90 days and missing authenticators; HR signs it off every three months and is reminded when it is due** (pull request 18) | |
+| A leaver keeping access | Switching an account off ends every session at once and is audited with its reason (pull request 18) | Leaving (item 1.13) should switch the account off on the last day by itself |
 
 ## 5. Gaps added to the checklist by this review
 
@@ -132,6 +143,8 @@ flowchart LR
 | 1.35 | Upload controls for every file (closed in pull request 16) |
 | 1.36 | Content-Security-Policy; API documentation for signed-in people (closed in pull request 16) |
 | 1.37 | Sign-in limit by source address (closed in pull request 16) |
+| 1.41 | A first sign-in for staff with no email address: a one-use set-up code in person or by text message |
+| 1.42 | The sign-in email address changed through an audited step that tells the old address |
 | 7.17 | Software bill of materials and third-party notices with each release |
 
 ## 6. Next review

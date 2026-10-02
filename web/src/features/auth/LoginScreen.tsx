@@ -6,11 +6,14 @@ interface Props {
   onSignedIn: (me: Me) => void;
   /** Why the person is seeing this page again, for example after an idle time-out. */
   notice?: string | null;
+  /** Filled in for them, for example after choosing a password from an emailed link. */
+  username?: string;
+  onForgotPassword?: () => void;
 }
 
 /** Login, then TOTP verification for privileged roles (with first-time enrolment). */
-export function LoginScreen({ onSignedIn, notice }: Props) {
-  const [username, setUsername] = useState("");
+export function LoginScreen({ onSignedIn, notice, username: knownUsername = "", onForgotPassword }: Props) {
+  const [username, setUsername] = useState(knownUsername);
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [stage, setStage] = useState<"credentials" | "mfa">("credentials");
@@ -123,6 +126,11 @@ export function LoginScreen({ onSignedIn, notice }: Props) {
         <button type="submit" disabled={busy}>
           {stage === "credentials" ? "Sign in" : "Verify"}
         </button>
+        {stage === "credentials" && onForgotPassword && (
+          <button type="button" className="link" onClick={onForgotPassword}>
+            Forgot your password?
+          </button>
+        )}
       </form>
     </div>
   );

@@ -91,4 +91,12 @@ describe("sign-in", () => {
     render(<LoginScreen onSignedIn={vi.fn()} notice="You were signed out after 30 minutes without activity." />);
     expect(screen.getByRole("status")).toHaveTextContent("You were signed out after 30 minutes without activity.");
   });
+
+  it("fills in the username after a password is chosen, and offers a way back in when it is forgotten", async () => {
+    const onForgotPassword = vi.fn();
+    render(<LoginScreen onSignedIn={vi.fn()} username="kemal.bacchus" onForgotPassword={onForgotPassword} />);
+    expect(screen.getByLabelText("Username")).toHaveValue("kemal.bacchus");
+    await userEvent.setup().click(screen.getByRole("button", { name: "Forgot your password?" }));
+    expect(onForgotPassword).toHaveBeenCalled();
+  });
 });

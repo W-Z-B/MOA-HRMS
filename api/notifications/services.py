@@ -53,7 +53,7 @@ def notify(
 
 
 def _send_email(address: str, title: str, body: str, link: str) -> bool:
-    message = body if not link else f"{body}\n\nOpen in GSA HRMS: https://{settings.ALLOWED_HOSTS[0]}/#{link}"
+    message = body if not link else f"{body}\n\nOpen in GSA HRMS: {settings.PUBLIC_URL}/#{link}"
     try:
         return send_mail(f"[GSA HRMS] {title}", message, settings.DEFAULT_FROM_EMAIL, [address]) == 1
     except Exception:  # noqa: BLE001 - mail failures must never break the business transaction

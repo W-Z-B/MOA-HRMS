@@ -130,6 +130,11 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "Human Resource Management System, Guyana School of Agriculture",
     "VERSION": "0.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    # Choice sets that appear under the same field name in several places get one stable name each.
+    "ENUM_NAME_OVERRIDES": {
+        "EmployeeStatusEnum": "people.models.Employee.Status",
+        "PasswordLinkKindEnum": "iam.accounts.LINK_KINDS",
+    },
 }
 
 CORS_ALLOWED_ORIGINS = [f"https://{h}" for h in ALLOWED_HOSTS if h not in {"localhost", "127.0.0.1", "api"}]
@@ -143,6 +148,10 @@ if env("SMTP_HOST"):
     EMAIL_HOST_USER = env("SMTP_USER", "")
     EMAIL_HOST_PASSWORD = env("SMTP_PASSWORD", "")
     EMAIL_USE_TLS = True
+elif env("EMAIL_FILE_PATH"):
+    # One file per message in that folder: the browser journeys read invitations from it (compose.e2e.yml).
+    EMAIL_BACKEND = "django.core.mail.backends.filebased.EmailBackend"
+    EMAIL_FILE_PATH = env("EMAIL_FILE_PATH")
 else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = env("SMTP_FROM", "hrms@localhost")
@@ -194,6 +203,16 @@ LOGIN_MAX_FAILURES = int(env("LOGIN_MAX_FAILURES", "5"))
 LOGIN_LOCKOUT_MINUTES = int(env("LOGIN_LOCKOUT_MINUTES", "15"))
 # Failed sign-ins from one network address, across all accounts, before that address waits out the window.
 LOGIN_MAX_FAILURES_PER_ADDRESS = int(env("LOGIN_MAX_FAILURES_PER_ADDRESS", "20"))
+
+# Links that set a password (iam/accounts.py): an invitation to a new account, or a reset. Each works once.
+PUBLIC_URL = (env("PUBLIC_URL") or f"https://{ALLOWED_HOSTS[0]}").rstrip("/")
+INVITATION_DAYS = int(env("INVITATION_DAYS", "7"))
+PASSWORD_RESET_MINUTES = int(env("PASSWORD_RESET_MINUTES", "60"))
+# Django's own limit is the longest of the two; each kind of link then applies its own, stricter one.
+PASSWORD_RESET_TIMEOUT = max(INVITATION_DAYS * 24 * 3600, PASSWORD_RESET_MINUTES * 60)
+# Reset requests from one address, and for one account, inside the lockout window.
+PASSWORD_RESETS_PER_ADDRESS = int(env("PASSWORD_RESETS_PER_ADDRESS", "5"))
+PASSWORD_RESETS_PER_ACCOUNT = 3
 
 LOGGING = {
     "version": 1,

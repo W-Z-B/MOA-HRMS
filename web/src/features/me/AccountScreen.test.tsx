@@ -51,6 +51,50 @@ describe("my account", () => {
     expect(screen.queryByRole("button", { name: "Sign out everywhere else" })).not.toBeInTheDocument();
   });
 
+  it("changes my password and says how many other devices were signed out", async () => {
+    const server = fakeServer({
+      "GET /auth/sessions/": [{ body: [here, laptop] }, { body: [here] }],
+      "POST /auth/password/change/": { body: { ended: 1 } },
+    });
+    render(<AccountScreen />);
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("Current password"), "Old-Password-2025");
+    await user.type(screen.getByLabelText("New password"), "Guava-Season-Starts-2026");
+    await user.type(screen.getByLabelText("New password again"), "Guava-Season-Starts-2026");
+    await user.click(screen.getByRole("button", { name: "Change password" }));
+    expect(await screen.findByRole("status")).toHaveTextContent("You were signed out on 1 other device.");
+    expect(server.calls.find((c) => c.path === "/auth/password/change/")?.body).toEqual({
+      current_password: "Old-Password-2025",
+      new_password: "Guava-Season-Starts-2026",
+    });
+    expect(screen.getByLabelText("Current password")).toHaveValue("");
+  });
+
+  it("refuses two new passwords that differ, and shows the server's reasons", async () => {
+    const server = fakeServer({
+      "GET /auth/sessions/": { body: [here] },
+      "POST /auth/password/change/": [
+        { status: 400, body: { code: "wrong_password", detail: "Your current password is not right." } },
+        { status: 400, body: { new_password: ["This password is too common."] } },
+      ],
+    });
+    render(<AccountScreen />);
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("Current password"), "not-it");
+    await user.type(screen.getByLabelText("New password"), "Guava-Season-Starts-2026");
+    await user.type(screen.getByLabelText("New password again"), "Guava-Season-Starts-2027");
+    await user.click(screen.getByRole("button", { name: "Change password" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("The two new passwords are not the same.");
+    expect(server.calls.some((c) => c.path === "/auth/password/change/")).toBe(false);
+
+    await user.clear(screen.getByLabelText("New password again"));
+    await user.type(screen.getByLabelText("New password again"), "Guava-Season-Starts-2026");
+    await user.click(screen.getByRole("button", { name: "Change password" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Your current password is not right.");
+    await user.click(screen.getByRole("button", { name: "Change password" }));
+    expect(await screen.findByText("This password is too common.")).toBeInTheDocument();
+  });
+
   it("says so when the list cannot be loaded", async () => {
     fakeServer({ "GET /auth/sessions/": { status: 500, body: { code: "error", detail: "Server error." } } });
     render(<AccountScreen />);

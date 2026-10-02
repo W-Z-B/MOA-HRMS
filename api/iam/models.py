@@ -69,7 +69,11 @@ class TotpDevice(TimeStampedModel):
 
 
 class LoginAttempt(models.Model):
-    """Every login attempt, used to lock an account after repeated failures (see iam.views.login_view)."""
+    """Every login attempt, used to lock an account after repeated failures (see iam.views.login_view).
+
+    Choosing a password through an emailed link is kept here as a success too: it proves the person, so
+    the failures before it no longer count towards a lockout.
+    """
 
     username = models.CharField(max_length=150, db_index=True)
     source_ip = models.GenericIPAddressField(null=True, blank=True)
@@ -82,6 +86,44 @@ class LoginAttempt(models.Model):
 
     def __str__(self) -> str:
         return f"{self.username} {'ok' if self.success else 'failed'} at {self.at:%Y-%m-%d %H:%M}"
+
+
+class PasswordResetRequest(models.Model):
+    """A request for a password link, kept to limit how often one address, or one account, may ask.
+
+    What was typed is not kept: only the account it matched, if any, and the address it came from.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE, related_name="+"
+    )
+    source_ip = models.GenericIPAddressField(null=True, blank=True)
+    at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-at"]
+        indexes = [models.Index(fields=["source_ip", "at"], name="resetrequest_ip_at")]
+
+    def __str__(self) -> str:
+        return f"Password link asked for at {self.at:%Y-%m-%d %H:%M}"
+
+
+class AccessReview(models.Model):
+    """A sign-off that someone went through the list of who can see what and confirmed it (item 1.27).
+
+    The access-review report is the list; this row is the evidence that it was checked, for the auditor.
+    """
+
+    reviewed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
+    reviewed_at = models.DateTimeField(auto_now_add=True)
+    accounts = models.PositiveIntegerField(help_text="How many accounts the list held when it was signed off")
+    notes = models.TextField(blank=True, help_text="What was changed or queried as a result")
+
+    class Meta:
+        ordering = ["-reviewed_at"]
+
+    def __str__(self) -> str:
+        return f"Access review {self.reviewed_at:%d/%m/%Y} by {self.reviewed_by}"
 
 
 class UserSession(models.Model):

@@ -19,9 +19,10 @@ describe("navigation by role", () => {
     expect(navFor(person([])).map((i) => i.label)).toEqual(["Leave", "My contract", "My account"]);
   });
 
-  it("shows staff who work in the system the whole menu", () => {
-    expect(navFor(person(["employee", "supervisor"]))).toEqual(NAV);
+  it("shows staff who work in the system the whole menu, and Admin only to those who manage accounts", () => {
+    expect(navFor(person(["employee", "supervisor"]))).toEqual(NAV.filter((i) => i.label !== "Admin"));
     expect(navFor(person(["hr_officer"]))).toEqual(NAV);
+    expect(navFor(person(["auditor"])).map((i) => i.label)).toContain("Admin");
   });
 });
 
