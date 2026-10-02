@@ -135,14 +135,7 @@ class ContractSerializer(TimeStampedSerializer):
     """Pay is shown to HR, Finance, the Principal and auditors. Other readers see the rest of the terms."""
 
     PAY_FIELDS = ("hourly_rate", "hourly_rate_effective")
-    PAY_ROLES = (
-        Role.HR_OFFICER,
-        Role.HR_MANAGER,
-        Role.ADMINISTRATOR,
-        Role.FINANCE,
-        Role.PRINCIPAL,
-        Role.AUDITOR,
-    )
+    PAY_ROLES = tuple(Role.SEES_PAY)
 
     assignment = InScope(Assignment, campus_field="employee__campus")
     employee = serializers.IntegerField(source="assignment.employee_id", read_only=True)

@@ -19,6 +19,7 @@ export function useHashRoute(): [string, (to: string) => void] {
 export const NAV = [
   { path: "/", label: "Dashboard", office: true },
   { path: "/people", label: "People", office: true },
+  { path: "/organisation", label: "Organisation", office: true },
   { path: "/leave", label: "Leave", office: false },
   { path: "/me", label: "My contract", office: false },
   { path: "/my-record", label: "My record", office: false },

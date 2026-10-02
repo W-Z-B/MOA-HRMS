@@ -11,6 +11,7 @@ import { DashboardScreen } from "./features/dashboard/DashboardScreen";
 import { LeaveScreen } from "./features/leave/LeaveScreen";
 import { AccountScreen } from "./features/me/AccountScreen";
 import { MyContractScreen } from "./features/me/MyContractScreen";
+import { OrganisationScreen } from "./features/organisation/OrganisationScreen";
 import { DirectoryScreen } from "./features/people/DirectoryScreen";
 import { ComingSoon } from "./features/placeholder/ComingSoon";
 import { MyRecordScreen } from "./features/privacy/MyRecordScreen";
@@ -115,6 +116,8 @@ export default function App() {
   if (path === "/") screen = isOfficeUser(me) ? <DashboardScreen campusId={campusId} /> : leave;
   else if (path.startsWith("/people"))
     screen = <DirectoryScreen me={me} campusId={campusId} initialId={idIn("/people")} onNavigate={navigate} />;
+  else if (path.startsWith("/organisation"))
+    screen = <OrganisationScreen me={me} campusId={campusId} path={path} onNavigate={navigate} />;
   else if (path.startsWith("/leave")) screen = leave;
   else if (path === "/me") screen = <MyContractScreen />;
   else if (path === "/my-record") screen = <MyRecordScreen />;

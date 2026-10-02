@@ -29,6 +29,8 @@ class Role(TimeStampedModel):
         (AUDITOR, "Auditor"),
     )
     MFA_REQUIRED = frozenset({ADMINISTRATOR, HR_MANAGER, FINANCE})
+    # Roles that see pay: rates on contracts and the amounts of the salary scale.
+    SEES_PAY = frozenset({HR_OFFICER, HR_MANAGER, ADMINISTRATOR, FINANCE, PRINCIPAL, AUDITOR})
 
     code = models.CharField(max_length=40, unique=True, choices=CODES)
     name = models.CharField(max_length=80)

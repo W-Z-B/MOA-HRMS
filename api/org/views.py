@@ -15,7 +15,7 @@ class CampusViewSet(AuditedModelViewSet):
 
 
 class OrgUnitViewSet(AuditedModelViewSet):
-    queryset = OrgUnit.objects.select_related("campus", "parent")
+    queryset = OrgUnit.objects.select_related("campus", "parent", "head")
     serializer_class = serializers.OrgUnitSerializer
     write_roles = WRITE
     filterset_fields = ("campus", "unit_type", "parent")
@@ -39,7 +39,7 @@ class GradeViewSet(AuditedModelViewSet):
 
 
 class PositionViewSet(AuditedModelViewSet):
-    queryset = Position.objects.select_related("grade", "org_unit", "org_unit__campus")
+    queryset = Position.objects.select_related("grade__scale", "org_unit", "org_unit__campus")
     serializer_class = serializers.PositionSerializer
     write_roles = WRITE
 

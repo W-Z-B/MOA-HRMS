@@ -24,6 +24,12 @@ test("main screens", async ({ page }, testInfo) => {
   await page.getByRole("button", { name: "Staff records to check" }).click();
   await page.getByRole("table").waitFor();
   await shot("report-data-quality");
+  await openSection(page, "Organisation");
+  await page.getByRole("table", { name: "Posts" }).waitFor();
+  await shot("organisation-posts");
+  await page.getByRole("tab", { name: "Units" }).click();
+  await page.getByRole("list", { name: "Units" }).waitFor();
+  await shot("organisation-units");
   await openSection(page, "Admin");
   await page.getByRole("list", { name: "Accounts" }).waitFor();
   await shot("admin-accounts");
