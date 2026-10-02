@@ -38,6 +38,7 @@ const record: OwnRecord = {
     dependants: [],
     emergency_contacts: [{ name: "Ravi Persaud", phone: "592-600-0001" }],
     bank_accounts: [{ bank: "Republic Bank (Guyana)", account_ending: "7890" }],
+    work_accidents: [{ reference: "IN-2026-002", injury: "Cut to the left palm", nis_notice_of_accident_given_on: null }],
     documents: [],
     history_of_changes: [
       {
@@ -137,6 +138,9 @@ describe("my record", () => {
     expect(within(personal).getByText("NIS number").nextSibling).toHaveTextContent("A1234567");
     expect(within(personal).getByText("Date of birth").nextSibling).toHaveTextContent("14/03/1990");
     expect(within(personal).getByText("Other names").nextSibling).toHaveTextContent("—");
+    const accidents = screen.getByRole("region", { name: "Accidents at work" });
+    expect(accidents).toHaveTextContent("Cut to the left palm");
+    expect(accidents).toHaveTextContent("NIS notice of accident given on");
     const bank = screen.getByRole("region", { name: "Bank accounts" });
     expect(within(bank).getByText("7890")).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Qualifications" })).toHaveTextContent("None on file.");

@@ -16,6 +16,7 @@ const SECTIONS: [string, string][] = [
   ["dependants", "Dependants"],
   ["emergency_contacts", "Emergency contacts"],
   ["bank_accounts", "Bank accounts"],
+  ["work_accidents", "Accidents at work"],
   ["documents", "Documents on file"],
   ["history_of_changes", "Changes made to your record"],
 ];
@@ -32,6 +33,7 @@ const LABELS: Record<string, string> = {
   last_sign_in: "Last signed in",
   signed_in_on: "Signed in on",
   privacy_notices_read: "Privacy notices read",
+  nis_notice_of_accident_given_on: "NIS notice of accident given on",
 };
 const SUBJECTS: [string, string][] = [
   ["personal", "Personal details"],
