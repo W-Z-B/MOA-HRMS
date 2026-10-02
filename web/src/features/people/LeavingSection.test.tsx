@@ -59,7 +59,10 @@ const leavingSoon: Separation = {
   created_at: "2026-10-01T10:00:00Z",
   letter_template: "certificate_of_service",
   letter_answers: { last_day: "2026-12-31" },
+  clearance: { done: 0, total: 6, open: [] },
 };
+const noClearance = { body: { steps: [], outstanding_items: [] } };
+const noInterview = { status: 404, body: { code: "not_found", detail: "No exit interview is recorded." } };
 const left: Separation = {
   ...leavingSoon,
   id: 6,
@@ -99,6 +102,8 @@ describe("leaving", () => {
         },
       },
       "POST /separations/": { status: 201, body: { ...leavingSoon, reason: "resignation" } },
+      "GET /separations/5/clearance/": noClearance,
+      "GET /separations/5/exit-interview/": noInterview,
     });
     const onChanged = vi.fn();
     render(<LeavingSection employee={asha} me={person(["hr_officer"])} onChanged={onChanged} />);
@@ -131,6 +136,8 @@ describe("leaving", () => {
   it("shows a leaving on its way with what is owed, and withdraws it", async () => {
     const server = fakeServer({
       "GET /separations/": [page([leavingSoon]), page([{ ...leavingSoon, state: "withdrawn", state_name: "Withdrawn", withdrawn_reason: "Unit kept open" }])],
+      "GET /separations/5/clearance/": noClearance,
+      "GET /separations/5/exit-interview/": noInterview,
       "POST /separations/5/withdraw/": { body: { ...leavingSoon, state: "withdrawn" } },
     });
     render(<LeavingSection employee={asha} me={person(["hr_manager"])} onChanged={vi.fn()} />);
@@ -152,6 +159,8 @@ describe("leaving", () => {
   it("writes the certificate of service for someone who has left", async () => {
     const server = fakeServer({
       "GET /separations/": page([left]),
+      "GET /separations/6/clearance/": noClearance,
+      "GET /separations/6/exit-interview/": noInterview,
       "GET /letters/templates/": page([certificate]),
       "POST /letters/preview/": {
         body: { subject: "Certificate of service: Asha Persaud", addressed: false, blocks: [], values: {}, missing: [], classification: "internal" },
@@ -177,7 +186,7 @@ describe("leaving", () => {
   });
 
   it("shows the Principal the leaving without actions, and nothing at all to a supervisor", async () => {
-    fakeServer({ "GET /separations/": page([leavingSoon]) });
+    fakeServer({ "GET /separations/": page([leavingSoon]), "GET /separations/5/clearance/": noClearance });
     const { unmount } = render(<LeavingSection employee={asha} me={person(["principal"])} onChanged={vi.fn()} />);
     expect(await screen.findByText("Leaving on 31/12/2026")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Withdraw the leaving" })).not.toBeInTheDocument();
