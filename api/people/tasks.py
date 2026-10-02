@@ -8,6 +8,7 @@ from procrastinate.contrib.django import app
 from iam.models import Role
 from notifications.services import notify, users_with_role
 from people.careers import apply_due
+from people.leaving import complete_due
 from people.models import Assignment
 
 log = logging.getLogger(__name__)
@@ -89,3 +90,12 @@ def apply_career_events(timestamp: int | None = None) -> dict:
     counts = apply_due(date.today())
     log.info("people.apply_career_events %s", counts)
     return counts
+
+
+@app.periodic(cron="40 0 * * *")  # 00:40, after the day's career changes
+@app.task(name="people.complete_separations", queue="people")
+def complete_separations(timestamp: int | None = None) -> int:
+    """Everyone whose last day has passed has left: status, appointments and account follow (1.12, 1.13)."""
+    done = complete_due(date.today())
+    log.info("people.complete_separations completed %s", done)
+    return done

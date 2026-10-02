@@ -51,6 +51,9 @@ def record_values(employee, on: date) -> dict[str, str]:
     from people.services import current_contract
 
     assignment = employee.current_assignment
+    if assignment is None:
+        # A leaver's letters, such as a certificate of service, speak of the post they last held.
+        assignment = employee.assignments.filter(is_acting=False).order_by("-start_date").first()
     position = assignment.position if assignment else None
     contract = current_contract(employee)
     first = employee.assignments.filter(is_acting=False).order_by("start_date").first()
