@@ -1,7 +1,7 @@
 # Threat model
 
-**Version 1.18, 2 October 2026.** Method: STRIDE over the data flows in section 3, against the code on
-branch `feature/phase-1-email-change`. Version 1.1 records the four gaps closed by pull request 16
+**Version 1.19, 2 October 2026.** Method: STRIDE over the data flows in section 3, against the code on
+branch `feature/phase-1-scanning`. Version 1.1 records the four gaps closed by pull request 16
 (items 1.28, 1.35, 1.36, 1.37) and one weakness found while closing them (forged addresses). Version 1.2
 records two weaknesses found while building the staff record (pull request 17): writes across campuses,
 and a leave balance disclosed in a refusal. Version 1.3 records accounts and access (pull request 18:
@@ -22,7 +22,8 @@ records the approvals engine, stand-ins and time limits (pull request 30, item 1
 discipline and grievance register (pull request 31, item 1.15). Version 1.16 records the accident and
 incident register (pull request 32, item 1.16). Version 1.17 records the public page that checks a letter
 (pull request 33, item 1.47), the first part of the system open to people with no account. Version 1.18
-records the audited change of a sign-in email address (pull request 34, item 1.42).
+records the audited change of a sign-in email address (pull request 34, item 1.42). Version 1.19 records
+scanned papers filed in bulk (pull request 35, item 1.21).
 Reviewed at every release gate and whenever a data flow, role or integration is added. Gaps
 point to items in the Gold Standard Plan checklist.
 
@@ -133,6 +134,7 @@ with the other document files.
 |---|---|---|
 | Identifiers in lists, logs or the integration API | Encrypted at rest, masked in responses and audit snapshots, full values only through the audited reveal for HR roles, never in the integration API | Rotating the field key is a manual procedure; keep the key and the backups apart (item 7.09) |
 | Confidential documents seen by supervisors or Finance | **Fixed in pull request 25:** only medical documents were held back, so supervisors and Finance could list and download confidential ones: contract scans that show pay, and leave evidence that the leave screens keep to the employee and HR. Confidential documents, and the register of letters, are now for HR, the Principal and the auditor; a contract or identity document cannot be filed below Confidential, nor a medical paper below Medical | |
+| Scanned papers filed into the wrong person's record | Each file is placed by the employee number its name starts with, and only among the staff on the campuses the HR officer works with: a number from elsewhere reads as nobody's, so a refusal never tells who works where. A file that names nobody waits for HR to choose. Every file passes the same content and size checks as any document, is filed no lower than its type needs, and its filing is in the audit log with its batch; the same file sent twice for one person is filed once (pull request 35) | A file named with the wrong number goes into the wrong record: the batch lists where each file went, so HR checks it and removes a misfiled paper, which the audit log keeps |
 | A letter made to reach a server | Letters are built from escaped text only, so wording and values can add no markup, and the PDF engine is given a fetcher that refuses every address: no image, style sheet or page is fetched (pull request 25) | |
 | A discipline or grievance case seen by the wrong person | **The most restricted record in the system** (pull request 31): the HR Manager sees every case, anyone else only a case they are named on, and nobody a case about themselves, whatever their roles; administrators and the auditor see none unless named. Its audit rows name the case and its state, never the allegation, the reasons or the person, and stay out of the person's file history | Case papers are kept as written steps; scanned papers attached to a case would need a class of their own, held to the case's officers |
 | An unfair dismissal | Before any action the allegation must be on record in writing, and before a final warning, a suspension or a dismissal the employee's response or the hearing too; an appeal is heard by someone who did not make the decision (pull request 31) | GSA's conditions of service set how long warnings last and the time for an appeal; the defaults (6, 12 and 24 months; 14 days) await confirmation |
