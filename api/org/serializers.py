@@ -17,6 +17,11 @@ DIRECTORY_ROLES = (
 )
 
 
+def grade_name(grade) -> str:
+    """A grade as staff say it: scale, grade and step, never what it pays."""
+    return f"{grade.scale.code} {grade.code}, step {grade.step}"
+
+
 def _may(serializer, roles) -> bool:
     request = serializer.context.get("request")
     return request is not None and has_role(request.user, *roles)
@@ -144,7 +149,7 @@ class PositionSerializer(TimeStampedSerializer):
         )
 
     def get_grade_name(self, position) -> str:
-        return f"{position.grade.scale.code} {position.grade.code}, step {position.grade.step}"
+        return grade_name(position.grade)
 
     def get_holder(self, position) -> str | None:
         if not _names(self, position.org_unit.campus_id):
