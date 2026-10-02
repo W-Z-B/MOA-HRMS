@@ -1,102 +1,15 @@
-"""Generic request workflow: states, transitions, actor rules, guards and side effects.
+"""The leave request's workflow: its guards, side effects and definition, on the approvals engine (item 1.33).
 
-Definitions are plain data so they can later be loaded from the database (workflow_definition
-table in the design). The leave request definition lives at the bottom of this module.
+The engine (approvals.engine) is shared by every module; this module holds what is particular to leave.
 """
 
-from collections.abc import Callable
-from dataclasses import dataclass, field
 from datetime import date
 
-from django.db import transaction
-
-from audit.services import record
+from approvals.engine import MANAGER, OWNER, STAND_IN, Transition, WorkflowDefinition, WorkflowError
 from iam.models import Role
 from iam.services import has_role
 
-OWNER = "owner"  # the employee the request belongs to
-MANAGER = "manager"  # the person the request was sent to on submission
-STAND_IN = "stand_in"  # a campus supervisor, only while the request has no manager to go to
-
-
-class WorkflowError(Exception):
-    code = "invalid_transition"
-
-    def __init__(self, detail: str, code: str | None = None):
-        super().__init__(detail)
-        if code:
-            self.code = code
-
-
-@dataclass(frozen=True)
-class Transition:
-    action: str
-    sources: tuple[str, ...]
-    target: str
-    actors: tuple[str, ...]  # role codes, or OWNER, MANAGER, STAND_IN
-    requires_comment: bool = False
-    independent: bool = False  # a decision on the request: never taken by the employee it belongs to
-    guards: tuple[Callable, ...] = field(default_factory=tuple)  # run first; raise WorkflowError to refuse
-    on_success: tuple[Callable, ...] = field(default_factory=tuple)
-
-
-@dataclass(frozen=True)
-class WorkflowDefinition:
-    key: str
-    transitions: tuple[Transition, ...]
-
-    def _can_act(self, instance, user, transition: Transition) -> bool:
-        employee = getattr(user, "employee", None)
-        is_owner = employee is not None and employee.pk == instance.employee_id
-        if transition.independent and is_owner:
-            return False
-        manager_id = getattr(instance, "manager_id", None)
-        for actor in transition.actors:
-            if actor == OWNER:
-                if is_owner:
-                    return True
-            elif actor == MANAGER:
-                if employee is not None and manager_id is not None and employee.pk == manager_id:
-                    return True
-            elif actor == STAND_IN:
-                if manager_id is None and has_role(user, Role.SUPERVISOR):
-                    return True
-            elif has_role(user, actor):
-                return True
-        return False
-
-    def allowed_actions(self, instance, user) -> list[str]:
-        return [
-            t.action
-            for t in self.transitions
-            if instance.state in t.sources and self._can_act(instance, user, t)
-        ]
-
-    def apply(self, instance, action: str, *, request, comment: str = ""):
-        """Move `instance` through `action` as request.user, run side effects, audit. Atomic."""
-        user = request.user
-        matches = [t for t in self.transitions if t.action == action and instance.state in t.sources]
-        if not matches:
-            raise WorkflowError(f"'{action}' is not allowed from state '{instance.state}'.")
-        transition = matches[0]
-        if not self._can_act(instance, user, transition):
-            raise WorkflowError("You are not permitted to perform this action.", code="forbidden_actor")
-        if transition.requires_comment and not comment.strip():
-            raise WorkflowError("A comment is required for this action.", code="comment_required")
-        for guard in transition.guards:
-            guard(instance, request)
-        with transaction.atomic():
-            before = {"state": instance.state}
-            instance.previous_state = instance.state
-            instance.state = transition.target
-            if comment:
-                instance.decision_comment = comment
-            instance.updated_by = user
-            instance.save()
-            for hook in transition.on_success:
-                hook(instance, request)
-            record(request, f"transition:{action}", instance, before=before, after={"state": instance.state})
-        return instance
+__all__ = ["LEAVE_REQUEST", "WorkflowError"]
 
 
 # Leave request: guards and side effects.
@@ -142,22 +55,29 @@ def _issue_receipt(instance, request):
 
 
 def _record_decision(instance, request):
+    from approvals.delegation import acts_for
     from leave.models import LeaveDecision, LeaveRequest
 
     user = request.user
     employee = getattr(user, "employee", None)
+    standing_in = False
     if instance.manager_id is None:
         is_manager = has_role(user, Role.SUPERVISOR) and not has_role(user, *HR)
     else:
-        is_manager = employee is not None and employee.pk == instance.manager_id
+        own = employee is not None and employee.pk == instance.manager_id
+        standing_in = not own and acts_for(employee, instance.manager_id)
+        is_manager = own or standing_in
     at_first_step = instance.previous_state == LeaveRequest.State.SUBMITTED
     rejected = instance.state == LeaveRequest.State.REJECTED
+    name = employee.full_name if employee else user.get_full_name() or user.get_username()
+    if standing_in and at_first_step:
+        name = f"{name}, standing in for {instance.manager.full_name}"
     LeaveDecision.objects.create(
         request=instance,
         step=LeaveDecision.Step.MANAGER if at_first_step and is_manager else LeaveDecision.Step.HR,
         outcome=LeaveDecision.Outcome.REJECTED if rejected else LeaveDecision.Outcome.APPROVED,
         actor=user,
-        actor_name=employee.full_name if employee else user.get_full_name() or user.get_username(),
+        actor_name=name[:160],
         comment=instance.decision_comment if rejected else "",
     )
 
@@ -184,7 +104,10 @@ def _notify_manager(instance, request):
     from notifications.services import notify, users_with_role
 
     if instance.manager_id:
-        recipients = [instance.manager.user]
+        # The manager, and whoever stands in for them while they are away (item 1.33).
+        from approvals.delegation import delegates_of, users_of
+
+        recipients = users_of([instance.manager, *delegates_of(instance.manager)])
     else:
         recipients = users_with_role(Role.SUPERVISOR, campus=instance.employee.campus).exclude(
             employee=instance.employee
@@ -276,6 +199,7 @@ HR = (Role.HR_OFFICER, Role.HR_MANAGER)
 
 LEAVE_REQUEST = WorkflowDefinition(
     key="leave_request",
+    waiting_states=("submitted", "supervisor_approved"),
     transitions=(
         Transition(
             "submit",

@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "privacy",
     "letters",
     "signing",
+    "approvals",
     "integration",
     # Release 2 scaffolds
     "attendance",
@@ -222,6 +223,11 @@ PRIVACY_RESPONSE_DAYS = int(env("PRIVACY_RESPONSE_DAYS", "30"))
 # Reset requests from one address, and for one account, inside the lockout window.
 PASSWORD_RESETS_PER_ADDRESS = int(env("PASSWORD_RESETS_PER_ADDRESS", "5"))
 PASSWORD_RESETS_PER_ACCOUNT = 3
+
+# Time limits on decisions (item 1.33), in working days: a reminder when a request has waited this long at a
+# step, and it goes on up the line (or to the HR Manager) when it has waited this many more.
+DECISION_DAYS = int(env("DECISION_DAYS", "3"))
+ESCALATE_AFTER_DAYS = int(env("ESCALATE_AFTER_DAYS", "2"))
 
 # Letters (letters/pdf.py): the name at the head of every letter, and the start of every reference.
 LETTER_ORGANISATION = env("LETTER_ORGANISATION", "Guyana School of Agriculture")

@@ -98,6 +98,11 @@ class LeaveRequest(TimeStampedModel):
         max_digits=5, decimal_places=2, default=0, help_text="Days the balance did not cover (with evidence)"
     )
     receipt = models.JSONField(null=True, blank=True, help_text="Issued once, on final approval")
+    waiting_since = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When it began waiting at its present step: its time limit counts from here",
+    )
 
     class Meta:
         ordering = ["-from_date"]
