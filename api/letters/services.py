@@ -95,10 +95,18 @@ def missing_in_words(missing: list[dict]) -> str:
     return f"The letter cannot be issued yet: {'; '.join(parts)}."
 
 
-def issue(request, template: LetterTemplate, employee, given: dict, *, career_event=None) -> Letter:
+def issue(request, template: LetterTemplate, employee, given: dict, *, career_event=None, ask=None) -> Letter:
     """Issue the letter: a reference, the PDF in the staff file, its fingerprint, and word to the person."""
+    from signing import services as signing
+
     if not template.is_active:
         raise Refused("retired", "That template is no longer in use.")
+    if ask and signing.signer_of(employee) is None:
+        raise Refused(
+            "no_account",
+            f"{employee.full_name} has no account to sign with. Issue the letter without asking, "
+            "or open an account for them first.",
+        )
     newest = current(template.code)
     if newest is not None and newest.pk != template.pk:
         raise Refused(
@@ -154,7 +162,7 @@ def issue(request, template: LetterTemplate, employee, given: dict, *, career_ev
             },
         )
     user = employee.user
-    if user is not None and user.is_active:
+    if user is not None and user.is_active and not ask:  # when asked to sign, that notice says it all
         notify(
             [user],
             title=f"A letter for you: {template.name}",
@@ -162,4 +170,6 @@ def issue(request, template: LetterTemplate, employee, given: dict, *, career_ev
             link="/me",
             dedupe_key=f"letter:{issued.pk}",
         )
+    if ask:
+        signing.ask(request, document=issued.document, kind=ask)
     return issued

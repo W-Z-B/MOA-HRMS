@@ -37,6 +37,7 @@ RECORDS = {
     "people.exitinterview": "Exit interview",
     "letters.lettertemplate": "Letter template",
     "letters.letter": "Letter",
+    "signing.signaturerequest": "Signature request",
 }
 ACTIONS = {
     "create": "Added",
@@ -100,6 +101,11 @@ ACTIONS = {
     "leaving_completed": "Left the School",
     "leaving_withdrawn": "Leaving withdrawn",
     "item_returned": "Given back",
+    "signature_requested": "Asked to sign",
+    "document_signed": "Signed",
+    "signature_declined": "Declined to sign",
+    "signature_withdrawn": "Signature request withdrawn",
+    "signature_failed": "Signing refused: wrong password",
     "clearance_step": "Clearance step closed",
     "template_revised": "Letter template revised",
     "template_retired": "Letter template retired",

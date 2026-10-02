@@ -173,6 +173,7 @@ class LetterViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.G
             data.validated_data["template"],
             data.validated_data.get("answers", {}),
             data.validated_data.get("career_event"),
+            data.validated_data.get("ask") or None,
         )
 
     @extend_schema(
@@ -181,9 +182,9 @@ class LetterViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.G
         summary="Issue a letter: its PDF is filed in the staff record and the person is told",
     )
     def create(self, request):
-        employee, template, answers, event = self._written(request)
+        employee, template, answers, event, ask = self._written(request)
         try:
-            letter = services.issue(request, template, employee, answers, career_event=event)
+            letter = services.issue(request, template, employee, answers, career_event=event, ask=ask)
         except services.Refused as exc:
             return _refused(exc)
         return Response(self.get_serializer(letter).data, status=status.HTTP_201_CREATED)
@@ -195,7 +196,7 @@ class LetterViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.G
     )
     @action(detail=False, methods=["post"])
     def preview(self, request):
-        employee, template, answers, _ = self._written(request)
+        employee, template, answers, _, _ = self._written(request)
         letter = services.draft(
             template, employee, answers, on=timezone.localdate(), reference="(given when issued)"
         )

@@ -32,7 +32,7 @@ from iam.accounts import (
 )
 from iam.models import LoginAttempt, PasswordResetRequest, TotpDevice, UserSession
 from iam.permissions import MFA_SESSION_KEY
-from iam.services import requires_mfa, role_codes
+from iam.services import account_locked, address_blocked, requires_mfa, role_codes
 from iam.sessions import describe_device, end_sessions
 
 
@@ -130,32 +130,6 @@ def _me_payload(user, session) -> dict:
     }
 
 
-def _is_locked(username: str) -> bool:
-    """True when the account has reached the failure limit inside the lockout window."""
-    window_start = timezone.now() - timedelta(minutes=settings.LOGIN_LOCKOUT_MINUTES)
-    recent = LoginAttempt.objects.filter(username=username, at__gte=window_start).order_by("-at")
-    failures = 0
-    for attempt in recent[: settings.LOGIN_MAX_FAILURES]:
-        if attempt.success:
-            break
-        failures += 1
-    return failures >= settings.LOGIN_MAX_FAILURES
-
-
-def _address_blocked(address: str | None) -> bool:
-    """True when one address has failed too often inside the window, whatever the accounts tried.
-
-    The account lockout stops guessing one person's password; this stops one password being tried
-    against many accounts. Only failures count, so a campus signing in through one network address is
-    not held up by its own successful sign-ins.
-    """
-    if address is None:
-        return False
-    window_start = timezone.now() - timedelta(minutes=settings.LOGIN_LOCKOUT_MINUTES)
-    failures = LoginAttempt.objects.filter(source_ip=address, success=False, at__gte=window_start).count()
-    return failures >= settings.LOGIN_MAX_FAILURES_PER_ADDRESS
-
-
 @extend_schema(
     request=LoginSerializer,
     responses={200: MeSerializer, 401: ErrorSerializer, 423: ErrorSerializer, 429: ErrorSerializer},
@@ -169,7 +143,7 @@ def login_view(request):
     data.is_valid(raise_exception=True)
     username = data.validated_data["username"]
     address = client_ip(request)
-    if _address_blocked(address):
+    if address_blocked(address):
         return Response(
             {
                 "code": "too_many_attempts",
@@ -178,7 +152,7 @@ def login_view(request):
             },
             status=status.HTTP_429_TOO_MANY_REQUESTS,
         )
-    if _is_locked(username):
+    if account_locked(username):
         return Response(
             {
                 "code": "locked_out",

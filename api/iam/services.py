@@ -1,6 +1,11 @@
 """Role look-ups used by permissions, scoping and workflows."""
 
-from iam.models import Role, RoleScope
+from datetime import timedelta
+
+from django.conf import settings
+from django.utils import timezone
+
+from iam.models import LoginAttempt, Role, RoleScope
 
 BROAD_READ_ROLES = frozenset(
     {Role.ADMINISTRATOR, Role.HR_MANAGER, Role.PRINCIPAL, Role.FINANCE, Role.AUDITOR}
@@ -64,3 +69,29 @@ def scope_queryset(user, queryset, campus_field: str = "campus"):
     if not ids:
         return queryset.none()
     return queryset.filter(**{f"{campus_field}__in": ids})
+
+
+def account_locked(username: str) -> bool:
+    """True when the account has reached the failure limit inside the lockout window."""
+    window_start = timezone.now() - timedelta(minutes=settings.LOGIN_LOCKOUT_MINUTES)
+    recent = LoginAttempt.objects.filter(username=username, at__gte=window_start).order_by("-at")
+    failures = 0
+    for attempt in recent[: settings.LOGIN_MAX_FAILURES]:
+        if attempt.success:
+            break
+        failures += 1
+    return failures >= settings.LOGIN_MAX_FAILURES
+
+
+def address_blocked(address: str | None) -> bool:
+    """True when one address has failed too often inside the window, whatever the accounts tried.
+
+    The account lockout stops guessing one person's password; this stops one password being tried
+    against many accounts. Only failures count, so a campus signing in through one network address is
+    not held up by its own successful sign-ins.
+    """
+    if address is None:
+        return False
+    window_start = timezone.now() - timedelta(minutes=settings.LOGIN_LOCKOUT_MINUTES)
+    failures = LoginAttempt.objects.filter(source_ip=address, success=False, at__gte=window_start).count()
+    return failures >= settings.LOGIN_MAX_FAILURES_PER_ADDRESS
