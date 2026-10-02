@@ -134,6 +134,25 @@ def test_removing_something_still_in_use_is_refused_in_words(hr_manager, unit):
 
 
 @pytest.mark.django_db
+def test_the_refusal_counts_each_kind_of_record_in_words(unit, employee):
+    from datetime import date
+
+    from core.exceptions import still_held
+    from org.models import Position
+    from people.models import Assignment
+
+    posts = list(Position.objects.filter(org_unit=unit))
+    held = Assignment.objects.create(
+        employee=employee, position=posts[0], appointment_type="permanent", start_date=date(2026, 1, 1)
+    )
+    assert still_held({held}) == "It cannot be removed while 1 assignment still refers to it."
+    assert still_held({*posts, held}) == (
+        "It cannot be removed while 1 assignment and 2 positions still refer to it."
+    )
+    assert still_held(set()) == "It cannot be removed while other records still refer to it."
+
+
+@pytest.mark.django_db
 def test_a_unit_stays_on_its_campus_and_never_under_itself(hr_manager, unit, campus):
     from org.models import Campus, OrgUnit
 

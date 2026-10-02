@@ -114,7 +114,7 @@ describe("posts", () => {
       "GET /org/positions/": page([lecturer]),
       "GET /org/units/": page([agriculture]),
       "GET /org/grades/": page([grade]),
-      "PATCH /org/positions/10/": { status: 409, body: { code: "in_use", detail: "It cannot be removed while 1 assignments still refer to it." } },
+      "PATCH /org/positions/10/": { status: 409, body: { code: "in_use", detail: "It cannot be removed while 1 assignment still refers to it." } },
     });
     render_("/organisation", ["administrator"]);
     const user = userEvent.setup();
@@ -124,7 +124,7 @@ describe("posts", () => {
     const form = screen.getByRole("form", { name: "Change post AGR-002" });
     await user.selectOptions(within(form).getByLabelText("Status"), "frozen");
     await user.click(within(form).getByRole("button", { name: "Save the post" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("still refer to it");
+    expect(await screen.findByRole("alert")).toHaveTextContent("1 assignment still refers to it");
     expect(server.calls.find((c) => c.method === "PATCH")?.body).toMatchObject({ status: "frozen" });
   });
 });

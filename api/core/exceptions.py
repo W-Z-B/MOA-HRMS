@@ -6,6 +6,8 @@ session ended" from "you may not do that" without reading sentences. Field valid
 per-field shape.
 """
 
+from collections import Counter
+
 from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
 from django.db.models import ProtectedError
 from django.http import Http404
@@ -14,16 +16,24 @@ from rest_framework.response import Response
 from rest_framework.views import exception_handler
 
 
+def still_held(objects) -> str:
+    """Why a record cannot go, counted kind by kind: "1 assignment and 2 positions still refer to it"."""
+    counts = Counter(obj._meta for obj in objects)
+    parts = sorted(
+        f"{n} {meta.verbose_name if n == 1 else meta.verbose_name_plural}" for meta, n in counts.items()
+    )
+    if not parts:
+        return "It cannot be removed while other records still refer to it."
+    listed = parts[0] if len(parts) == 1 else f"{', '.join(parts[:-1])} and {parts[-1]}"
+    verb = "refers" if sum(counts.values()) == 1 else "refer"
+    return f"It cannot be removed while {listed} still {verb} to it."
+
+
 def api_exception_handler(exc, context):
     if isinstance(exc, ProtectedError):
         # Removing a record others still point to, such as a unit that still has posts: say so, not a 500.
-        held = exc.protected_objects
-        names = ", ".join(sorted({str(obj._meta.verbose_name_plural) for obj in held})) or "records"
         return Response(
-            {
-                "code": "in_use",
-                "detail": f"It cannot be removed while {len(held)} {names} still refer to it.",
-            },
+            {"code": "in_use", "detail": still_held(exc.protected_objects)},
             status=status.HTTP_409_CONFLICT,
         )
     response = exception_handler(exc, context)
