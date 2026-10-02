@@ -89,6 +89,67 @@ class CorrectionRequest(TimeStampedModel):
         return f"Correction {self.id} for {self.employee}: {self.get_state_display()}"
 
 
+class Objection(TimeStampedModel):
+    """An objection in writing to how part of a record is used, decided by the data protection officer
+    (item 1.46). The Data Protection Act 2023 lets it stand unless GSA shows compelling legitimate grounds
+    that override the person's interests, rights and freedoms, or needs the data for a legal claim."""
+
+    class State(models.TextChoices):
+        OPEN = "open", "With the data protection officer"
+        UPHELD = "upheld", "Upheld: that use stops"
+        NOT_UPHELD = "not_upheld", "Not upheld"
+
+    employee = models.ForeignKey("people.Employee", on_delete=models.CASCADE, related_name="objections")
+    part = models.CharField(max_length=20, choices=CorrectionRequest.Subject.choices)
+    grounds = models.TextField(max_length=2000, help_text="Why, in the person's own situation")
+    state = models.CharField(max_length=12, choices=State.choices, default=State.OPEN)
+    due_by = models.DateField(help_text="When the officer should have decided (PRIVACY_RESPONSE_DAYS after)")
+    decided_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    decided_at = models.DateTimeField(null=True, blank=True)
+    reasons = models.TextField(max_length=2000, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"Objection {self.id} by {self.employee}: {self.get_state_display()}"
+
+
+class Restriction(TimeStampedModel):
+    """Part of a record held back from use (item 1.46): kept, and corrected if need be, but not used to make
+    decisions about the person or sent out of the system, until the restriction is lifted."""
+
+    class Ground(models.TextChoices):
+        CONTESTED = "contested", "Its accuracy is contested"
+        UNLAWFUL = "unlawful", "Its processing is unlawful"
+        LEGAL_CLAIM = "legal_claim", "Kept only for the person's legal claim"
+        OBJECTION = "objection", "The person has objected"
+
+    employee = models.ForeignKey("people.Employee", on_delete=models.CASCADE, related_name="restrictions")
+    part = models.CharField(max_length=20, choices=CorrectionRequest.Subject.choices)
+    ground = models.CharField(max_length=12, choices=Ground.choices)
+    note = models.TextField(max_length=1000, blank=True)
+    correction = models.ForeignKey(
+        CorrectionRequest, null=True, blank=True, on_delete=models.SET_NULL, related_name="restrictions"
+    )
+    objection = models.ForeignKey(
+        Objection, null=True, blank=True, on_delete=models.SET_NULL, related_name="restrictions"
+    )
+    lifted_at = models.DateTimeField(null=True, blank=True)
+    lifted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    lifted_reason = models.TextField(max_length=1000, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.get_part_display()} of {self.employee} restricted: {self.get_ground_display()}"
+
+
 class RetentionRule(models.Model):
     """How long one kind of record is kept, and what happens then (item 1.32).
 

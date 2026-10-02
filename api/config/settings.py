@@ -154,6 +154,7 @@ SPECTACULAR_SETTINGS = {
         "InjuryTreatmentEnum": "incidents.models.Person.Treatment",
         "SafetyNoticeDutyEnum": "incidents.models.Notice.Duty",
         "SafetyNoticeRecipientEnum": "incidents.models.Notice.Recipient",
+        "RecordPartEnum": "privacy.models.CorrectionRequest.Subject",
     },
 }
 

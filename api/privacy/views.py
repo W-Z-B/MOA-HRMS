@@ -26,8 +26,8 @@ from iam.services import campus_in_scope, has_role, scope_queryset
 from notifications.models import Notification
 from notifications.services import notify, users_with_role
 from people.models import Employee
-from privacy import services
-from privacy.models import CorrectionRequest, NoticeAcknowledgement, PrivacyNotice
+from privacy import restrictions, services
+from privacy.models import CorrectionRequest, NoticeAcknowledgement, PrivacyNotice, Restriction
 
 NOTICE_WRITE = (Role.ADMINISTRATOR, Role.HR_MANAGER)
 CORRECTION_DECIDE = (Role.HR_OFFICER, Role.HR_MANAGER, Role.ADMINISTRATOR)
@@ -75,6 +75,13 @@ class CorrectionSerializer(serializers.ModelSerializer):
     decided_by_name = serializers.SerializerMethodField()
     overdue = serializers.SerializerMethodField()
     is_mine = serializers.SerializerMethodField()
+    restrict = serializers.BooleanField(
+        write_only=True,
+        required=False,
+        default=False,
+        help_text="Restrict that part of the record until the request is answered (item 1.46)",
+    )
+    restricted = serializers.SerializerMethodField(help_text="That part is restricted until it is answered")
 
     class Meta:
         model = CorrectionRequest
@@ -96,6 +103,8 @@ class CorrectionSerializer(serializers.ModelSerializer):
             "decided_at",
             "decision_note",
             "is_mine",
+            "restrict",
+            "restricted",
         )
         read_only_fields = ("state", "due_by", "created_at", "decided_at", "decision_note")
 
@@ -108,6 +117,9 @@ class CorrectionSerializer(serializers.ModelSerializer):
     def get_is_mine(self, request_) -> bool:
         user = self.context["request"].user
         return request_.employee.user_id == user.pk
+
+    def get_restricted(self, request_) -> bool:
+        return request_.restrictions.filter(lifted_at__isnull=True).exists()
 
 
 class DecisionSerializer(serializers.Serializer):
@@ -258,6 +270,7 @@ class CorrectionViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets
         ):
             self.permission_denied(self.request, message="You may ask only about your own record.")
         days = settings.PRIVACY_RESPONSE_DAYS
+        restrict = serializer.validated_data.pop("restrict", False)
         with transaction.atomic():
             correction = serializer.save(
                 employee=employee,
@@ -275,6 +288,15 @@ class CorrectionViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets
                     "should_be": correction.should_be,
                 },
             )
+            if restrict:  # the right to restriction while accuracy is contested (item 1.46)
+                restrictions.place(
+                    self.request,
+                    employee,
+                    part=correction.subject,
+                    ground=Restriction.Ground.CONTESTED,
+                    correction=correction,
+                    note="Asked for with the correction request",
+                )
         handlers = {
             person
             for code in CORRECTION_DECIDE
@@ -322,7 +344,9 @@ class CorrectionViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets
             correction.updated_by = request.user
             correction.save()
             record(request, f"correction_{outcome}", correction, after={"note": note}, reason=note)
-        words = "has been corrected" if outcome == "corrected" else "was not changed"
+            words = "has been corrected" if outcome == "corrected" else "was not changed"
+            for held in correction.restrictions.filter(lifted_at__isnull=True):
+                restrictions.lift(request, held, f"Your correction request was answered: the record {words}.")
         notify(
             [correction.employee.user],
             title=f"Your correction request {words}",

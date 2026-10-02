@@ -111,7 +111,10 @@ STAFF = [
 # Joined this week: HR has yet to open their accounts, so there is someone to invite (item 1.29).
 NEW_STARTERS = {"E0010", "E0011"}
 # Accounts for people who are not on the staff: username, first name, last name, role (on every campus).
-OUTSIDE_ACCOUNTS = [("audit.reviewer", "Audit", "Reviewer", "auditor")]
+OUTSIDE_ACCOUNTS = [
+    ("audit.reviewer", "Audit", "Reviewer", "auditor"),
+    ("privacy.officer", "Privacy", "Officer", "data_protection_officer"),
+]
 # A contract that ends soon and a probation that is still running, so the daily alerts have work to do.
 ENDS = {"E0009": date(2026, 11, 16)}
 PROBATION_ENDS = {"E0005": date(2026, 12, 31)}

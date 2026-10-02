@@ -112,10 +112,15 @@ def record_change(
     end_date: date | None = None,
 ) -> CareerEvent:
     """Record a change, checked against the file; it takes effect now if its date has come."""
+    from privacy import restrictions
+
     name = employee.full_name
     current = employee.current_assignment
     if employee.status == Employee.Status.SEPARATED:
         raise Refused("left", f"{name} has left the School.")
+    held = restrictions.refusal(employee, restrictions.CAREER_PARTS)
+    if held:  # no decision is made on an appointment the person contests or objects to (item 1.46)
+        raise Refused("restricted", held)
     if kind != Kind.ACTING and current is None:
         raise Refused("no_post", f"{name} holds no post to change.")
     if current is not None and kind != Kind.ACTING and effective_date <= current.start_date:

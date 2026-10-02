@@ -20,6 +20,7 @@ class Role(TimeStampedModel):
     EMPLOYEE = "employee"
     MINISTRY_LIAISON = "ministry_liaison"
     AUDITOR = "auditor"
+    DATA_PROTECTION_OFFICER = "data_protection_officer"
     CODES = (
         (ADMINISTRATOR, "System Administrator"),
         (HR_MANAGER, "HR Manager"),
@@ -30,6 +31,7 @@ class Role(TimeStampedModel):
         (EMPLOYEE, "Employee"),
         (MINISTRY_LIAISON, "Ministry of Agriculture Liaison"),
         (AUDITOR, "Auditor"),
+        (DATA_PROTECTION_OFFICER, "Data Protection Officer"),
     )
     MFA_REQUIRED = frozenset({ADMINISTRATOR, HR_MANAGER, FINANCE})
     # Roles that see pay: rates on contracts and the amounts of the salary scale.

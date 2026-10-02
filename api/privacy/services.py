@@ -221,6 +221,26 @@ def _staff_record(employee) -> dict:
             }
             for c in CorrectionRequest.objects.filter(employee=employee)
         ],
+        "restrictions": [
+            {
+                "part": r.get_part_display(),
+                "ground": r.get_ground_display(),
+                "since": r.created_at,
+                "lifted_on": r.lifted_at,
+                "why_lifted": r.lifted_reason,
+            }
+            for r in employee.restrictions.all()
+        ],
+        "objections": [
+            {
+                "about": o.get_part_display(),
+                "grounds": o.grounds,
+                "state": o.get_state_display(),
+                "asked_on": o.created_at,
+                "reasons": o.reasons,
+            }
+            for o in employee.objections.all()
+        ],
         # Their own injury only: others hurt in the same incident are not theirs to see.
         "work_accidents": [
             {

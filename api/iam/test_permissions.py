@@ -14,6 +14,7 @@ MATRIX = [
     ("employee", False, False, False, False),
     ("ministry_liaison", False, False, False, False),
     ("auditor", True, False, True, False),
+    ("data_protection_officer", False, False, False, False),
 ]
 
 
