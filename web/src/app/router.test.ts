@@ -20,10 +20,11 @@ describe("navigation by role", () => {
     expect(navFor(person([])).map((i) => i.label)).toEqual(own);
   });
 
-  it("shows staff who work in the system the whole menu, and Admin only to those who manage accounts", () => {
-    expect(navFor(person(["employee", "supervisor"]))).toEqual(NAV.filter((i) => i.label !== "Admin"));
+  it("shows staff who work in the system the whole menu, Admin to those who manage accounts, Letters to HR", () => {
+    expect(navFor(person(["employee", "supervisor"]))).toEqual(NAV.filter((i) => !["Admin", "Letters"].includes(i.label)));
     expect(navFor(person(["hr_officer"]))).toEqual(NAV);
-    expect(navFor(person(["auditor"])).map((i) => i.label)).toContain("Admin");
+    expect(navFor(person(["auditor"])).map((i) => i.label)).toEqual(expect.arrayContaining(["Admin", "Letters"]));
+    expect(navFor(person(["finance"])).map((i) => i.label)).not.toContain("Letters");
   });
 });
 

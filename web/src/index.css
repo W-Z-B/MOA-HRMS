@@ -1155,6 +1155,55 @@ mark {
   }
 }
 
+/* Letters (item 1.19): a letter read before it is issued, set out as on paper. */
+.letter-paper {
+  max-width: 680px;
+  padding: 24px 28px;
+  background: #fff;
+  border: 1px solid var(--rule);
+  border-top: 4px solid var(--accent);
+  border-radius: 4px;
+  font-family: Georgia, "DejaVu Serif", serif;
+  line-height: 1.5;
+}
+.letter-paper .subject {
+  font-weight: 700;
+}
+.letter-paper p {
+  margin: 0 0 10px;
+}
+.missing {
+  max-width: 680px;
+  padding: 10px 14px;
+  border-left: 4px solid var(--amber);
+  background: #fff8e6;
+}
+.missing p,
+.missing ul {
+  margin: 0;
+}
+.template-body {
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--stripe);
+  border-radius: 4px;
+  white-space: pre-wrap;
+  font-size: 13px;
+}
+.field-list {
+  gap: 2px;
+  font-size: 14px;
+}
+.ask-row {
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--stripe);
+}
+@media (max-width: 760px) {
+  .letter-paper {
+    padding: 16px;
+  }
+}
+
 /* Audit log: whether the chain is intact, beside the button that checks it. */
 .chain-state .notice {
   flex: 1 1 320px;

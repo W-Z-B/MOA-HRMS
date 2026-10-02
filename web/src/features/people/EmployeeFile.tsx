@@ -13,6 +13,7 @@ import {
   type Reveal,
 } from "../../api/types";
 import { dmy, inDays } from "../../app/format";
+import { WriteLetter } from "../letters/WriteLetter";
 import { BackgroundTab } from "./BackgroundTab";
 import { BankTab } from "./BankTab";
 import { ContactsTab } from "./ContactsTab";
@@ -210,6 +211,7 @@ export function EmployeeFile({ employee, me, onEdit }: Props) {
               ))}
             </ul>
           )}
+          {isHr && <WriteLetter employee={employee} onIssued={() => setVersion((v) => v + 1)} />}
           {isHr && <DocumentUpload employee={employee} onSaved={() => setVersion((v) => v + 1)} />}
         </>
       )}

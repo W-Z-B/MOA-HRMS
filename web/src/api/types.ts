@@ -146,6 +146,76 @@ export interface OrgChart {
   campuses: ChartCampus[];
 }
 
+export type Classification = "internal" | "confidential" | "medical";
+
+/** Something a letter template asks of the writer, beyond the staff record. */
+export interface LetterAsk {
+  key: string;
+  label: string;
+  type: "text" | "date";
+}
+
+/** One version of a letter's wording (item 1.19). A change is saved as the next version. */
+export interface LetterTemplate {
+  id: number;
+  code: string;
+  version: number;
+  kind: string;
+  kind_name: string;
+  name: string;
+  subject: string;
+  body: string;
+  asks: LetterAsk[];
+  addressed: boolean;
+  classification: Classification;
+  classification_name: string;
+  signatory_name: string;
+  signatory_title: string;
+  is_active: boolean;
+  fields_used: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LetterFields {
+  record: { key: string; label: string; pay: boolean }[];
+  ask_types: { value: LetterAsk["type"]; label: string }[];
+}
+
+export interface LetterRun {
+  text: string;
+  bold: boolean;
+}
+
+export type LetterBlock = { type: "paragraph"; lines: LetterRun[][] } | { type: "list"; items: LetterRun[][] };
+
+/** What a letter would say, and what it still needs before it can be issued. */
+export interface LetterPreview {
+  subject: string;
+  addressed: boolean;
+  blocks: LetterBlock[];
+  values: Record<string, string>;
+  missing: { key: string; label: string; asked: boolean }[];
+  classification: Classification;
+}
+
+export interface Letter {
+  id: number;
+  reference: string;
+  employee: number;
+  employee_name: string;
+  employee_no: string;
+  template: number;
+  template_name: string;
+  template_version: number;
+  kind: string;
+  issued_on: string;
+  issued_by: string | null;
+  sha256: string;
+  document: number;
+  download_url: string;
+}
+
 export interface SalaryScale {
   id: number;
   code: string;
@@ -374,6 +444,11 @@ export const SETUP_ROLES = ["administrator", "hr_manager", "hr_officer", "audito
 export const SETUP_WRITE_ROLES = ["administrator", "hr_manager"];
 export const ORG_WRITE_ROLES = ["administrator", "hr_manager"];
 export const GRADE_WRITE_ROLES = ["administrator", "hr_manager", "finance"];
+/** Letters: the register and templates are read by those who read confidential documents; HR writes letters,
+ * and the HR Manager and administrators keep the templates. */
+export const LETTER_ROLES = ["hr_officer", "hr_manager", "administrator", "principal", "auditor"];
+export const LETTER_WRITE_ROLES = ["hr_officer", "hr_manager", "administrator"];
+export const TEMPLATE_WRITE_ROLES = ["hr_manager", "administrator"];
 export const hasAnyRole = (me: Me, roles: readonly string[]) => roles.some((r) => me.roles.includes(r));
 /** Staff with work to do in the system beyond their own leave: they see the full navigation. */
 export const isOfficeUser = (me: Me) => me.roles.some((r) => r !== "employee");

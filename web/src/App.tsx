@@ -9,6 +9,7 @@ import { LoginScreen } from "./features/auth/LoginScreen";
 import { SetPasswordScreen } from "./features/auth/SetPasswordScreen";
 import { DashboardScreen } from "./features/dashboard/DashboardScreen";
 import { LeaveScreen } from "./features/leave/LeaveScreen";
+import { LettersScreen } from "./features/letters/LettersScreen";
 import { AccountScreen } from "./features/me/AccountScreen";
 import { MyContractScreen } from "./features/me/MyContractScreen";
 import { OrganisationScreen } from "./features/organisation/OrganisationScreen";
@@ -118,6 +119,7 @@ export default function App() {
     screen = <DirectoryScreen me={me} campusId={campusId} initialId={idIn("/people")} onNavigate={navigate} />;
   else if (path.startsWith("/organisation"))
     screen = <OrganisationScreen me={me} campusId={campusId} path={path} onNavigate={navigate} />;
+  else if (path.startsWith("/letters")) screen = <LettersScreen me={me} path={path} onNavigate={navigate} />;
   else if (path.startsWith("/leave")) screen = leave;
   else if (path === "/me") screen = <MyContractScreen />;
   else if (path === "/my-record") screen = <MyRecordScreen />;
