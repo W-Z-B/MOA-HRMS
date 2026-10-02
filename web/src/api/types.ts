@@ -497,6 +497,132 @@ export interface CaseRecord {
 export const CASE_ROLES = ["hr_officer", "hr_manager", "principal", "supervisor"];
 export const CASE_OPEN_ROLES = ["hr_officer", "hr_manager"];
 
+/** Accidents and incidents (item 1.16). Anyone reports one. HR, the Principal, supervisors and the auditor read
+ * the register on their campuses; HR keeps it, and only HR reads what an injury was. */
+export const INCIDENT_READ_ROLES = ["hr_officer", "hr_manager", "administrator", "principal", "supervisor", "auditor"];
+export const INCIDENT_KEEP_ROLES = ["hr_officer", "hr_manager", "administrator"];
+export type IncidentKind = "accident" | "near_miss" | "dangerous" | "disease";
+export type IncidentState = "reported" | "investigating" | "closed";
+
+export interface IncidentSummary {
+  id: number;
+  reference: string;
+  kind: IncidentKind;
+  kind_name: string;
+  occurred_at: string;
+  campus: number;
+  campus_name: string;
+  org_unit: number | null;
+  org_unit_name: string | null;
+  place: string;
+  state: IncidentState;
+  state_name: string;
+  people_hurt: number;
+  notices_overdue: boolean;
+}
+
+/** The injury, treatment and time off work are null for anyone who does not keep the register. */
+export interface IncidentPerson {
+  id: number;
+  who: "staff" | "student" | "contractor" | "visitor";
+  who_name: string;
+  employee: number | null;
+  name: string;
+  injury: string | null;
+  treatment: string | null;
+  treatment_name: string | null;
+  off_work_from: string | null;
+  back_at_work_on: string | null;
+  days_off: number | null;
+  died_on: string | null;
+  nis_form_on: string | null;
+}
+
+export interface SafetyNotice {
+  id: number;
+  duty: string;
+  duty_name: string;
+  recipient: string;
+  recipient_name: string;
+  person: number | null;
+  sent_on: string;
+  how: string;
+  their_reference: string;
+  recorded_by: string | null;
+}
+
+/** A notice the Occupational Safety and Health Act requires: by when, to whom, and whether each was sent. */
+export interface SafetyDuty {
+  duty: string;
+  duty_name: string;
+  section: string;
+  person: number | null;
+  person_name: string | null;
+  due_on: string;
+  overdue: boolean;
+  to: { recipient: string; recipient_name: string; sent_on: string | null }[];
+}
+
+export interface SafetyAction {
+  id: number;
+  what: string;
+  owner: number;
+  owner_name: string;
+  due_on: string;
+  done_on: string | null;
+  done_note: string;
+  overdue: boolean;
+}
+
+export interface Incident extends IncidentSummary {
+  industrial: boolean;
+  description: string;
+  immediate_action: string;
+  reported_by: string | null;
+  created_at: string;
+  cause: string;
+  investigated_on: string | null;
+  investigated_by: string | null;
+  closed_on: string | null;
+  closed_by: string | null;
+  people: IncidentPerson[];
+  notices: SafetyNotice[];
+  duties: SafetyDuty[];
+  actions: SafetyAction[];
+  outstanding: string[];
+}
+
+export interface MyIncident {
+  id: number;
+  reference: string;
+  kind: IncidentKind;
+  kind_name: string;
+  occurred_at: string;
+  campus_name: string;
+  place: string;
+  description: string;
+  state: IncidentState;
+  state_name: string;
+  reported_by_me: boolean;
+  my_injury: {
+    injury: string;
+    treatment_name: string;
+    off_work_from: string | null;
+    back_at_work_on: string | null;
+    nis_form_on: string | null;
+  } | null;
+}
+
+export interface MySafetyAction {
+  id: number;
+  reference: string;
+  place: string;
+  what: string;
+  due_on: string;
+  done_on: string | null;
+  overdue: boolean;
+}
+
 export interface EmployeeDocument {
   id: number;
   doc_type: string;

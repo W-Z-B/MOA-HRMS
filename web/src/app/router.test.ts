@@ -14,8 +14,8 @@ const person = (roles: string[]): Me => ({
 });
 
 describe("navigation by role", () => {
-  it("shows an employee only their own leave, contract and account", () => {
-    const own = ["To do", "Leave", "My contract", "My record", "My account"];
+  it("shows an employee their own leave, contract and account, and where to report an incident", () => {
+    const own = ["To do", "Leave", "Incidents", "My contract", "My record", "My account"];
     expect(navFor(person(["employee"])).map((i) => i.label)).toEqual(own);
     expect(navFor(person([])).map((i) => i.label)).toEqual(own);
   });

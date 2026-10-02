@@ -1,7 +1,7 @@
 # Threat model
 
-**Version 1.15, 1 October 2026.** Method: STRIDE over the data flows in section 3, against the code on
-branch `feature/phase-1-cases`. Version 1.1 records the four gaps closed by pull request 16
+**Version 1.16, 2 October 2026.** Method: STRIDE over the data flows in section 3, against the code on
+branch `feature/phase-1-incidents`. Version 1.1 records the four gaps closed by pull request 16
 (items 1.28, 1.35, 1.36, 1.37) and one weakness found while closing them (forged addresses). Version 1.2
 records two weaknesses found while building the staff record (pull request 17): writes across campuses,
 and a leave balance disclosed in a refusal. Version 1.3 records accounts and access (pull request 18:
@@ -19,7 +19,8 @@ supervisors and Finance could read, fixed there. Version 1.10 records career cha
 records the clearance, the exit interview and the register of items issued (pull request 28, items 1.13, 1.17).
 Version 1.13 records electronic signatures and their evidence (pull request 29, item 1.20). Version 1.14
 records the approvals engine, stand-ins and time limits (pull request 30, item 1.33). Version 1.15 records the
-discipline and grievance register (pull request 31, item 1.15).
+discipline and grievance register (pull request 31, item 1.15). Version 1.16 records the accident and
+incident register (pull request 32, item 1.16).
 Reviewed at every release gate and whenever a data flow, role or integration is added. Gaps
 point to items in the Gold Standard Plan checklist.
 
@@ -132,6 +133,9 @@ with the other document files.
 | A letter made to reach a server | Letters are built from escaped text only, so wording and values can add no markup, and the PDF engine is given a fetcher that refuses every address: no image, style sheet or page is fetched (pull request 25) | |
 | A discipline or grievance case seen by the wrong person | **The most restricted record in the system** (pull request 31): the HR Manager sees every case, anyone else only a case they are named on, and nobody a case about themselves, whatever their roles; administrators and the auditor see none unless named. Its audit rows name the case and its state, never the allegation, the reasons or the person, and stay out of the person's file history | Case papers are kept as written steps; scanned papers attached to a case would need a class of their own, held to the case's officers |
 | An unfair dismissal | Before any action the allegation must be on record in writing, and before a final warning, a suspension or a dismissal the employee's response or the hearing too; an appeal is heard by someone who did not make the decision (pull request 31) | GSA's conditions of service set how long warnings last and the time for an appeal; the defaults (6, 12 and 24 months; 14 days) await confirmation |
+| An injury seen by the wrong person | What an injury or illness was, its treatment and the time off work are read only by those who keep the incident register: HR officers on the campus, the HR Manager and administrators. The Principal, supervisors and the auditor see that someone was hurt and which notices are due, never the injury; the person hurt sees their own, and it is in their copy of their record. Audit rows name the incident and which fields changed, never the injury, and stay out of the person's file history (pull request 32) | What happened is free text and may name who was hurt; the screen asks reporters to leave the injury to its own field |
+| A notice the law requires is missed | The register works out each notice the Occupational Safety and Health Act requires (sections 69, 70 and 74), to whom and by when; HR has it under To do and a reminder each morning once it is due; an incident is not closed while a notice, an action, the investigation, a return to work or an NIS notice of accident is outstanding (pull request 32) | Which of GSA's places are industrial establishments, whether students on practical work count as workers, and whether GSA has a committee, representative or union to tell, are GSA's to confirm |
+| A false or careless report | Anyone signed in may report, and the reporter is recorded; a reporter cannot change a report once sent; HR's corrections are audited with the fields they changed (pull request 32) | |
 | What someone said of their managers on leaving | The exit interview is for HR and the Principal only; the auditor sees that it was offered, not what was said (pull request 28) | |
 | Why someone left, and what they were paid to leave | Leaving, its reason (a dismissal, a death) and the figures owed are for HR, the Principal and the auditor, on their campuses; the figures only for the roles that see pay; supervisors do not see leaving at all (pull request 27) | |
 | Doctor's notes seen by the wrong person | Medical class; the employee and HR only; downloads audited | Authenticator code for HR officers (item 1.34) |

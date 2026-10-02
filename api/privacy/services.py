@@ -221,6 +221,22 @@ def _staff_record(employee) -> dict:
             }
             for c in CorrectionRequest.objects.filter(employee=employee)
         ],
+        # Their own injury only: others hurt in the same incident are not theirs to see.
+        "work_accidents": [
+            {
+                "reference": p.incident.reference,
+                "kind": p.incident.get_kind_display(),
+                "when": p.incident.occurred_at,
+                "where": p.incident.place,
+                "what_happened": p.incident.description,
+                "injury": p.injury,
+                "treatment": p.get_treatment_display(),
+                "off_work_from": p.off_work_from,
+                "back_at_work_on": p.back_at_work_on,
+                "nis_notice_of_accident_given_on": p.nis_form_on,
+            }
+            for p in employee.incident_injuries.select_related("incident")
+        ],
         "history_of_changes": [
             {key: entry[key] for key in ("at", "actor", "action_name", "record", "changes", "reason")}
             for entry in (

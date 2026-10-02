@@ -172,6 +172,39 @@ def _hr_followups(user) -> list[dict]:
     return items
 
 
+def _incidents(user) -> list[dict]:
+    """Reports to look into and notices the Act requires, for HR; safety actions, for whoever has one."""
+    from incidents.duties import duties
+    from incidents.models import Action, Incident, Notice
+    from incidents.views import KEEPERS
+
+    items = []
+    today = timezone.localdate()
+    if has_role(user, *KEEPERS):
+        open_ = scope_queryset(user, Incident.objects.exclude(state=Incident.State.CLOSED), "campus")
+        for incident in open_.prefetch_related("people__employee", "notices"):
+            link = f"/incidents/{incident.pk}"
+            if incident.state == Incident.State.REPORTED:
+                what = f"{incident.reference}: {incident.get_kind_display().lower()} at {incident.place}"
+                items.append(_item("incident", "Incident to look into", what, incident.created_at, link))
+            for due in duties(incident, today):
+                if not due.unsent:
+                    continue
+                what = (
+                    f"{incident.reference}: {Notice.Duty(due.duty).label.lower()}, by {due.due_on:%d/%m/%Y}"
+                )
+                item = _item("safety_notice", "Notice to send", what, incident.created_at, link)
+                item["overdue"] = due.overdue(today)
+                items.append(item)
+    given = Action.objects.filter(owner__user=user, done_on__isnull=True).select_related("incident")
+    for action in given:
+        what = f"{action.incident.reference}: {action.what}, by {action.due_on:%d/%m/%Y}"
+        item = _item("safety_action", "Safety action", what, action.created_at, "/incidents")
+        item["overdue"] = today > action.due_on
+        items.append(item)
+    return items
+
+
 def _signatures(user) -> list[dict]:
     from signing.models import SignatureRequest
 
@@ -192,6 +225,7 @@ def waiting_for(user) -> list[dict]:
         *_corrections(user),
         *_disposals(user),
         *_hr_followups(user),
+        *_incidents(user),
         *_signatures(user),
     ]
     return sorted(items, key=lambda item: item["since"])

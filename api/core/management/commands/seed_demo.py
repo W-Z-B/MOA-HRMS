@@ -9,7 +9,7 @@ reachable from the internet never receives accounts with a password its owner di
 """
 
 import os
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
@@ -20,6 +20,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from iam.models import Role, RoleScope
+from incidents.models import Action, Incident, Person
 from leave.models import Entitlement, LeaveLedger, LeaveRequest, LeaveType
 from leave.services import debit_for_request, working_days
 from org.models import Campus, Grade, OrgUnit, Position, SalaryScale
@@ -135,6 +136,50 @@ ISSUED = [
     ("E0004", "protective", "Rubber boots and overalls", "", date(2026, 1, 12)),
     ("E0003", "device", "Laptop", "GSA-IT-0042", date(2023, 9, 4)),
     ("E0008", "key", "Key to the Essequibo seed store", "", date(2013, 9, 2)),
+]
+
+# Accidents and incidents (item 1.16), both closed so that nothing waits on anyone: reference, kind, when,
+# unit, where, what happened, what was done at once, the cause found, closed on, who was hurt (employee,
+# injury, treatment) and the action taken (owner, what, due, done, what was done).
+INCIDENTS = [
+    (
+        "IN-2026-001",
+        "near_miss",
+        datetime(2026, 3, 10, 10, 15),
+        "LIV",
+        "Livestock pens, gate 2",
+        "A bull pushed through a gate whose latch had worked loose. Nobody was in the pen.",
+        "The gate was tied shut and the bull moved to the far paddock.",
+        "The latch was worn, and pen gates were not on any inspection list.",
+        date(2026, 3, 28),
+        None,
+        (
+            "E0004",
+            "Replace the latches on every pen gate and add them to the monthly check.",
+            date(2026, 3, 31),
+            date(2026, 3, 27),
+            "New latches fitted; the gates are on the monthly checklist.",
+        ),
+    ),
+    (
+        "IN-2026-002",
+        "accident",
+        datetime(2026, 5, 18, 14, 0),
+        "AGR",
+        "Soil laboratory sink",
+        "A beaker cracked while being washed and cut a hand.",
+        "First aid from the laboratory kit; the broken glass was cleared away.",
+        "Chipped glassware was still in use.",
+        date(2026, 6, 15),
+        ("E0003", "Cut to the left palm", "first_aid"),
+        (
+            "E0002",
+            "Check the glassware each term and throw away anything chipped.",
+            date(2026, 6, 30),
+            date(2026, 6, 12),
+            "Glassware checked; nine chipped pieces thrown away.",
+        ),
+    ),
 ]
 
 # Every invented employee signs in as first.last. Heads of unit are supervisors as well.
@@ -284,6 +329,8 @@ class Command(BaseCommand):
                 defaults={"kind": kind, "tag": tag, "issued_on": issued_on, "note": FICTIONAL},
             )
 
+        self._incidents(staff, units)
+
         vacant = sum(1 for p in Position.objects.filter(number__in=positions) if p.is_vacant)
         self.stdout.write(
             self.style.SUCCESS(
@@ -296,6 +343,49 @@ class Command(BaseCommand):
         else:
             self.stdout.write(
                 f"Accounts: {accounts} created. {len(NEW_STARTERS)} new starters have none, for HR to invite."
+            )
+
+    def _incidents(self, staff, units) -> None:
+        keeper = staff[HR_OFFICER].user  # None when no accounts were created
+        for reference, kind, when, unit, place, what, at_once, cause, closed_on, hurt, action in INCIDENTS:
+            incident, created = Incident.objects.get_or_create(
+                reference=reference,
+                defaults={
+                    "kind": kind,
+                    "occurred_at": timezone.make_aware(when),
+                    "campus": units[unit].campus,
+                    "org_unit": units[unit],
+                    "place": place,
+                    "description": what,
+                    "immediate_action": at_once,
+                    "cause": cause,
+                    "investigated_on": closed_on,
+                    "investigated_by": keeper,
+                    "state": Incident.State.CLOSED,
+                    "closed_on": closed_on,
+                    "closed_by": keeper,
+                    "created_by": keeper,
+                },
+            )
+            if not created:
+                continue
+            if hurt:
+                number, injury, treatment = hurt
+                Person.objects.create(
+                    incident=incident,
+                    who=Person.Who.STAFF,
+                    employee=staff[number],
+                    injury=injury,
+                    treatment=treatment,
+                )
+            owner, task, due_on, done_on, done_note = action
+            Action.objects.create(
+                incident=incident,
+                what=task,
+                owner=staff[owner],
+                due_on=due_on,
+                done_on=done_on,
+                done_note=done_note,
             )
 
     def _grades(self) -> dict[str, Grade]:

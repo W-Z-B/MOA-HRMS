@@ -10,6 +10,14 @@ export function inDays(value: Days | null | undefined): string {
   return `${parseFloat(n.toFixed(2))} ${n === 1 ? "day" : "days"}`;
 }
 
+/** Today, or this minute, by this device's clock, as date and datetime-local inputs write them. */
+export function localNow(): string {
+  const now = new Date();
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  return now.toISOString().slice(0, 16);
+}
+export const localToday = (): string => localNow().slice(0, 10);
+
 /** 2026-03-02 reads as 02/03/2026. */
 export function dmy(iso: string | null | undefined): string {
   if (!iso) return "";

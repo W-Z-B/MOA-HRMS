@@ -48,6 +48,10 @@ test("main screens", async ({ page }, testInfo) => {
   await page.getByRole("tab", { name: "Chart" }).click();
   await page.getByRole("list", { name: "Units on Mon Repos Campus" }).waitFor();
   await shot("organisation-chart");
+  await openSection(page, "Incidents");
+  await page.getByRole("table", { name: "Incidents" }).getByRole("button", { name: "IN-2026-002" }).click();
+  await page.getByRole("list", { name: "People hurt" }).waitFor();
+  await shot("incident");
   await openSection(page, "Admin");
   await page.getByRole("list", { name: "Accounts" }).waitFor();
   await shot("admin-accounts");

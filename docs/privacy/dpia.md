@@ -1,9 +1,10 @@
 # Data protection impact assessment
 
-**Draft 0.3, 1 October 2026,** prepared by the development team for GSA's data protection officer.
+**Draft 0.4, 2 October 2026,** prepared by the development team for GSA's data protection officer.
 Draft 0.2 records the privacy rights built in pull request 20: the notice and its acknowledgement, a
 person's own record, and correction requests. Draft 0.3 records the retention schedule, reviewed disposal
-and the breach register built in pull request 21.
+and the breach register built in pull request 21. Draft 0.4 adds the accident and incident register (pull
+request 32), which holds injuries: health data.
 GSA is the data controller and owns this assessment; the development team keeps it current as the
 system changes. It is signed in section 9 before any real staff record is loaded (checklist item 7.03).
 
@@ -22,7 +23,7 @@ numbers. **GSA's legal adviser should map each point to the Act's sections and c
 The Act requires an assessment before processing that is likely to result in a high risk to people's
 rights and freedoms. The HRMS processes, for every member of staff:
 
-- health records (doctor's notes) and financial records (pay terms, later pay and bank details), both
+- health records (doctor's notes, injuries at work) and financial records (pay terms, later pay and bank details), both
   sensitive personal data under the Act;
 - national identifiers (national ID, NIS number, TIN), which the Act allows regulations to protect
   further;
@@ -51,6 +52,8 @@ personal data.
 | Staff who leave | The clearance on leaving, and what they said in an exit interview, if they chose to give one | HR | Clearing someone who leaves; learning why people leave | Consent for the interview (it may be declined); contract for the clearance |
 | Staff who leave | Why and when they left, the notice given, and the figures owed (leave not taken, pay in lieu of notice, severance) | HR | Ending employment lawfully; paying what is owed under the Termination of Employment and Severance Pay Act 1997 and the Leave with Pay Act | Legal obligation; contract |
 | Staff in a discipline or grievance case | The allegation or grievance, each step taken, the decision with its reasons, any appeal | HR, the officers named on the case | Handling discipline and grievances fairly, and showing that a dismissal was for good cause (Termination of Employment and Severance Pay Act 1997) | Contract; legal obligation; seen only by the HR Manager and those named |
+| Staff, students, contractors and visitors hurt or made ill at work | Name; what the injury or illness was and the part of the body; treatment; the days off work; a death; when the NIS notice of accident was given | The person reporting, HR | Keeping the register and sending the notices the Occupational Safety and Health Act 1997 requires (sections 69, 70 and 74); a claim to NIS injury benefit; preventing it happening again | Legal obligation; health data handled under the Act's conditions for employment and social security; the injury is read only by HR and the person hurt |
+| Anyone who reports an incident | Their name, and what they saw | The person | Finding out what happened | Legal obligation; functions of a public body |
 | Staff who decide requests | Who stands in for them, when and why; reminders and escalations of requests waiting for them | The person, HR, the system | Making sure requests are decided in time | Functions of a public body; contract |
 | Staff | Their signatures on documents: when, from which address and device, the sentence agreed to, and the fingerprint of the document | The person, the system | Showing that a document was received or accepted (Electronic Communications and Transactions Act 2023) | Contract; legal obligation |
 | Staff | Letters issued to them (appointment, confirmation, transfer, job letters, certificates of service), the values each drew from the record, and a fingerprint of each PDF | HR | Employment administration; proof of employment at the employee's request | Contract; functions of a public body |
@@ -82,6 +85,7 @@ as a leaver's file, wait for the leaving process (item 1.12).
 | Personnel file and appointments | Employment plus the period required by Government records and pension rules |
 | Leave register and decisions | As the Leave with Pay Act and Labour Officer inspections require |
 | Doctor's notes | Two years after the leave they support (in the schedule; GSA to confirm) |
+| Accident and incident register | No period proposed yet: the Act requires a register (section 69(7)) and its regulations may set how long it is kept; the legal adviser to advise, as an injury can lead to a claim years later |
 | Audit log | Seven years (Planning Pack requirement) |
 | Access review sign-offs | Seven years, with the audit log |
 | Sign-in records, devices, requests for a password link | Twelve months; a device record ends with its session |
@@ -131,7 +135,7 @@ Likelihood and severity before the planned measures; residual risk once they are
 | Risk to people | Likelihood | Severity | Measures | Residual |
 |---|---|---|---|---|
 | Identity fraud after identifiers leak | Possible | Severe | Encryption, masking, audited reveal, authenticator code for all who can reveal (1.34) | Low |
-| Health information seen by the wrong person | Possible | Severe | Medical class, access by the employee and HR only, audited downloads, 1.34 | Low |
+| Health information seen by the wrong person | Possible | Severe | Medical class, access by the employee and HR only, audited downloads, 1.34; injuries in the incident register read only by HR and the person hurt (pull request 32) | Low |
 | Pay or bank details disclosed | Possible | Significant | Pay fields restricted, bank details encrypted with second approval (1.07), confidential documents and letters for HR, the Principal and the auditor only (pull request 25), separation of duties in pay (4.15) | Low |
 | Wrong records leading to wrong leave or pay | Possible | Significant | Validation, ledger-based balances, receipts, self-service view, rectification (2.18), parallel pay runs (4.26) | Low |
 | Records kept too long | Likely until built | Moderate | Retention schedule and disposal run (1.32) | Low once built |

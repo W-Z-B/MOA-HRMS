@@ -1,7 +1,10 @@
-import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { errorMessage, get, getAll, post } from "../../api/client";
 import { CASE_OPEN_ROLES, hasAnyRole, type CaseKind, type CaseRecord, type Employee, type Me } from "../../api/types";
+import { ActionForm as SharedActionForm } from "../../app/ActionForm";
 import { dmy } from "../../app/format";
+
+const ActionForm = SharedActionForm<CaseRecord>;
 
 const STEPS: [string, string][] = [
   ["allegation", "Allegation put in writing"],
@@ -34,48 +37,6 @@ const APPEAL_OUTCOMES: [string, string][] = [
   ["varied", "Decision varied"],
   ["overturned", "Decision overturned"],
 ];
-
-/** A small form that posts to one of a case's actions and hands back the case as it now stands. */
-function ActionForm({
-  label,
-  path,
-  fields,
-  onDone,
-  children,
-}: {
-  label: string;
-  path: string;
-  fields: () => Record<string, unknown>;
-  onDone: (fresh: CaseRecord) => void;
-  children: ReactNode;
-}) {
-  const [error, setError] = useState<string | null>(null);
-
-  async function send(e: FormEvent) {
-    e.preventDefault();
-    setError(null);
-    try {
-      onDone(await post<CaseRecord>(path, fields()));
-    } catch (err) {
-      setError(errorMessage(err, "That was not recorded."));
-    }
-  }
-
-  return (
-    <form className="stack sub-form" onSubmit={send} aria-label={label}>
-      <h4>{label}</h4>
-      {children}
-      {error && (
-        <p role="alert" className="error">
-          {error}
-        </p>
-      )}
-      <div className="actions">
-        <button type="submit">{label}</button>
-      </div>
-    </form>
-  );
-}
 
 function CaseDetail({ initial, onChanged }: { initial: CaseRecord; onChanged: () => void }) {
   const [c, setCase] = useState(initial);

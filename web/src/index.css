@@ -1307,3 +1307,23 @@ ol.case-steps > li {
   flex: 1 1 320px;
   margin: 0;
 }
+
+/* Incidents (item 1.16): what happened as it was written, and a one-line form beside an action. */
+.incident-text {
+  white-space: pre-wrap;
+  max-width: 760px;
+}
+.inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 10px;
+  margin-top: 6px;
+}
+.inline-form label {
+  flex: 1 1 220px;
+}
+.inline-form .error {
+  flex-basis: 100%;
+  margin: 0;
+}
