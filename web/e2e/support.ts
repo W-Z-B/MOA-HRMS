@@ -72,6 +72,13 @@ const LEAVERS = {
 } as const;
 export const leaver = (testInfo: TestInfo) => LEAVERS[testInfo.project.name as keyof typeof LEAVERS];
 
+/** Heads of unit who name a stand-in, one for each browser project, and the colleague they name. */
+const STAND_INS = {
+  desktop: { username: "michael.thomas", delegate: "Shanta Ramdeen" },
+  phone: { username: "natasha.khan", delegate: "Devon Charles" },
+} as const;
+export const standIn = (testInfo: TestInfo) => STAND_INS[testInfo.project.name as keyof typeof STAND_INS];
+
 /** Where the test stack writes the email it would send (compose.e2e.yml). */
 const MAIL_DIR = process.env.E2E_MAIL_DIR ?? "/files/mail";
 

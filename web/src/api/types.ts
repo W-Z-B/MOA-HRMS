@@ -433,6 +433,33 @@ export interface SignatureRequest {
   download_url: string;
 }
 
+/** Something waiting for my decision, from any module (item 1.33). */
+export interface WaitingItem {
+  kind: string;
+  kind_name: string;
+  title: string;
+  since: string;
+  waited_days: number;
+  overdue: boolean;
+  link: string;
+  for_whom: string;
+}
+
+/** A stand-in: while someone is away, a colleague decides what is sent to them (item 1.33). */
+export interface Delegation {
+  id: number;
+  delegator: number;
+  delegator_name: string;
+  delegate: number;
+  delegate_name: string;
+  starts: string;
+  ends: string;
+  reason: string;
+  cancelled: boolean;
+  in_force: boolean;
+  created_at: string;
+}
+
 export interface EmployeeDocument {
   id: number;
   doc_type: string;

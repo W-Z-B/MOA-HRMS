@@ -17,6 +17,6 @@ test("an employee lands on their own leave and sees only their own pages", async
   await signIn(page, STAFF.employee.username);
   await expect(page.getByRole("heading", { name: "Leave", level: 1 })).toBeVisible();
   const nav = page.getByRole("navigation", { name: "Main" });
-  await expect(nav.getByRole("link")).toHaveText(["Leave", "My contract", "My record", "My account"]);
+  await expect(nav.getByRole("link")).toHaveText(["To do", "Leave", "My contract", "My record", "My account"]);
   await signOut(page);
 });

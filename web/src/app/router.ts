@@ -18,6 +18,7 @@ export function useHashRoute(): [string, (to: string) => void] {
 /** `office` entries are for staff who work in the system; everyone sees the rest. `roles` narrows an entry further. */
 export const NAV = [
   { path: "/", label: "Dashboard", office: true },
+  { path: "/to-do", label: "To do", office: false },
   { path: "/people", label: "People", office: true },
   { path: "/organisation", label: "Organisation", office: true },
   { path: "/letters", label: "Letters", office: true, roles: LETTER_ROLES },
