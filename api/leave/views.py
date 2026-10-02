@@ -85,7 +85,13 @@ class LeaveRequestViewSet(AuditedModelViewSet):
         qs = LeaveRequest.objects.select_related("employee", "leave_type", "manager").prefetch_related(
             "decisions"
         )
-        own_or_mine_to_decide = Q(employee__user=user) | Q(manager__user=user)
+        from approvals.delegation import delegator_ids
+
+        # Mine, sent to me, or sent to someone I stand in for today (item 1.33).
+        stands_in_for = delegator_ids(getattr(user, "employee", None))
+        own_or_mine_to_decide = (
+            Q(employee__user=user) | Q(manager__user=user) | Q(manager_id__in=stands_in_for)
+        )
         if has_role(user, *HR, Role.PRINCIPAL, Role.AUDITOR):
             scoped = scope_queryset(user, LeaveRequest.objects.all(), campus_field="employee__campus")
             qs = qs.filter(Q(pk__in=scoped.values("pk")) | own_or_mine_to_decide)

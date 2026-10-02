@@ -1,7 +1,7 @@
 # Threat model
 
-**Version 1.13, 1 October 2026.** Method: STRIDE over the data flows in section 3, against the code on
-branch `feature/phase-1-signing`. Version 1.1 records the four gaps closed by pull request 16
+**Version 1.14, 1 October 2026.** Method: STRIDE over the data flows in section 3, against the code on
+branch `feature/phase-1-approvals`. Version 1.1 records the four gaps closed by pull request 16
 (items 1.28, 1.35, 1.36, 1.37) and one weakness found while closing them (forged addresses). Version 1.2
 records two weaknesses found while building the staff record (pull request 17): writes across campuses,
 and a leave balance disclosed in a refusal. Version 1.3 records accounts and access (pull request 18:
@@ -17,7 +17,8 @@ request 24, item 1.10), which names people by the staff directory's rule. Versio
 supervisors and Finance could read, fixed there. Version 1.10 records career changes (pull request 26, item
 1.11). Version 1.11 records leaving and the figures owed (pull request 27, items 1.12 to 1.14). Version 1.12
 records the clearance, the exit interview and the register of items issued (pull request 28, items 1.13, 1.17).
-Version 1.13 records electronic signatures and their evidence (pull request 29, item 1.20).
+Version 1.13 records electronic signatures and their evidence (pull request 29, item 1.20). Version 1.14
+records the approvals engine, stand-ins and time limits (pull request 30, item 1.33).
 Reviewed at every release gate and whenever a data flow, role or integration is added. Gaps
 point to items in the Gold Standard Plan checklist.
 
@@ -158,7 +159,9 @@ with the other document files.
 | Reading another campus's or person's records | One permission layer for every endpoint; campus scoping in every viewset; scoping fails closed for callers who are not people (pull request 15); a test covers the whole permission table | Each new endpoint must join that test (definition of done) |
 | Moving staff onto another campus's post | A change names its post through the same campus check as every other write: an HR officer can move someone only to a post on a campus they work with, and only for staff on such a campus (pull request 26) | |
 | Writing records for another campus | **Fixed in pull request 17:** a campus-scoped HR officer could create an employee, appointment, contract, document, leave request or entitlement for staff on another campus, because scope was checked on reading and editing but not on creating. Every write now checks it, in the field and again in the view, and a test tries each path | |
-| Approving one's own request | The leave workflow refuses self-approval and sends requests to the employee's own manager | Carry the rule into the approvals engine (item 1.33) |
+| Approving one's own request | **The approvals engine refuses any decision by the person a request belongs to, whoever they act as, a stand-in included** (pull request 30); requests go to the employee's own manager, and a request escalated up the line is never sent to the person who asked | |
+| A stand-in deciding more than they should | A stand-in decides only what is sent to the person they stand in for, only between the days named, and the decision is recorded as made "standing in for" that person; anyone can end their own stand-in early, and HR can name or end one for staff on their campuses. Only colleagues the person may see can be named, so a refusal never names anyone else (pull request 30) | |
+| A request stalled by someone away | **Time limits**: a request waiting three working days brings a reminder; after two more it goes on up the line (or to every campus supervisor, with HR told), and at the HR step to the HR Manager; each step is audited and the people concerned are told (pull request 30) | Approvals for other kinds of request (career changes, overtime) use the same engine as they arrive |
 | Privileged access without a second factor | Enforced in the permission layer, and now in the admin | HR officers (item 1.34) |
 | A new role used without its second factor | **Fixed in pull request 18:** a session was marked verified at sign-in when its roles needed no authenticator code. A role that needs one, given later (in the admin site, for example), then worked in that session without a code. A session now counts as verified only after a code, and giving or taking a role through the accounts screen signs the person out everywhere | |
 | Acting as someone else in self-service | **Fixed in pull request 18:** the employee form accepted an account id, so any HR officer could link an account (their own, for example) to a member of staff, then ask for leave or decide it as that person. The link is now read-only, set only when HR opens an account for that person | |

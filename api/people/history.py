@@ -38,6 +38,7 @@ RECORDS = {
     "letters.lettertemplate": "Letter template",
     "letters.letter": "Letter",
     "signing.signaturerequest": "Signature request",
+    "approvals.delegation": "Stand-in",
 }
 ACTIONS = {
     "create": "Added",
@@ -102,6 +103,8 @@ ACTIONS = {
     "leaving_withdrawn": "Leaving withdrawn",
     "item_returned": "Given back",
     "signature_requested": "Asked to sign",
+    "escalated": "Sent on up the line",
+    "delegation_ended": "Stand-in ended",
     "document_signed": "Signed",
     "signature_declined": "Declined to sign",
     "signature_withdrawn": "Signature request withdrawn",
