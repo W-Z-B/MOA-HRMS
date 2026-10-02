@@ -90,6 +90,9 @@ const issued: Letter = {
   sha256: "ab".repeat(32),
   document: 90,
   download_url: "/api/v1/letters/40/download/",
+  check_code: "K0Q1-9XMB-4T3V",
+  times_checked: 0,
+  last_checked_at: null,
 };
 
 describe("writing a letter", () => {
@@ -146,11 +149,17 @@ describe("writing a letter", () => {
 
 describe("the letters screen", () => {
   it("lists the letters issued and finds one", async () => {
-    const server = fakeServer({ "GET /letters/": page([issued]), "GET /letters/?q=E0001": page([issued]) });
+    const checked = { ...issued, id: 41, reference: "GSA/HR/2026/0002", times_checked: 2, last_checked_at: "2026-10-02T09:00:00-04:00" };
+    const older = { ...issued, id: 39, reference: "GSA/HR/2026/0000", check_code: null };
+    const server = fakeServer({ "GET /letters/": page([checked, issued, older]), "GET /letters/?q=E0001": page([issued]) });
     render(<LettersScreen me={person(["hr_officer"])} path="/letters" onNavigate={vi.fn()} />);
     const table = await screen.findByRole("table", { name: "Letters issued" });
     expect(within(table).getByRole("link", { name: "GSA/HR/2026/0001" })).toHaveAttribute("href", issued.download_url);
-    expect(within(table).getByText(/by Natasha Khan/)).toBeInTheDocument();
+    expect(within(table).getAllByText(/by Natasha Khan/)).toHaveLength(3);
+    const rows = within(table).getAllByRole("row");
+    expect(rows[1]).toHaveTextContent("K0Q1-9XMB-4T3V checked 2 times, last 02/10/2026");
+    expect(rows[2]).toHaveTextContent("K0Q1-9XMB-4T3V not checked yet");
+    expect(rows[3]).toHaveTextContent("No code: issued before letters carried one");
     await userEvent.setup().type(screen.getByRole("searchbox", { name: "Find a letter" }), "E0001");
     await vi.waitFor(() => expect(server.calls.some((c) => c.path === "/letters/?q=E0001")).toBe(true));
   });

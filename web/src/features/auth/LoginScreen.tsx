@@ -9,10 +9,12 @@ interface Props {
   /** Filled in for them, for example after choosing a password from an emailed link. */
   username?: string;
   onForgotPassword?: () => void;
+  /** For someone shown a letter from the School, who has no account. */
+  onCheckLetter?: () => void;
 }
 
 /** Login, then TOTP verification for privileged roles (with first-time enrolment). */
-export function LoginScreen({ onSignedIn, notice, username: knownUsername = "", onForgotPassword }: Props) {
+export function LoginScreen({ onSignedIn, notice, username: knownUsername = "", onForgotPassword, onCheckLetter }: Props) {
   const [username, setUsername] = useState(knownUsername);
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
@@ -129,6 +131,11 @@ export function LoginScreen({ onSignedIn, notice, username: knownUsername = "", 
         {stage === "credentials" && onForgotPassword && (
           <button type="button" className="link" onClick={onForgotPassword}>
             Forgot your password?
+          </button>
+        )}
+        {stage === "credentials" && onCheckLetter && (
+          <button type="button" className="link" onClick={onCheckLetter}>
+            Shown a letter from the School? Check it is genuine
           </button>
         )}
       </form>

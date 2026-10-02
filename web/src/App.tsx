@@ -5,6 +5,7 @@ import { Shell } from "./app/Shell";
 import { useHashRoute } from "./app/router";
 import { AdminScreen } from "./features/admin/AdminScreen";
 import { ForgotPasswordScreen } from "./features/auth/ForgotPasswordScreen";
+import { CheckLetterScreen } from "./features/letters/CheckLetterScreen";
 import { LoginScreen } from "./features/auth/LoginScreen";
 import { SetPasswordScreen } from "./features/auth/SetPasswordScreen";
 import { DashboardScreen } from "./features/dashboard/DashboardScreen";
@@ -93,6 +94,8 @@ export default function App() {
         onAskAgain={() => navigate("/forgot-password")}
       />
     );
+  // Anyone shown a letter checks it here, signed in or not (item 1.47).
+  if (path === "/check-letter") return <CheckLetterScreen onBack={() => navigate("/")} />;
   if (me === undefined) return <p className="loading">Loading GSA HRMS…</p>;
   if (me === null || (me.mfa_required && !me.mfa_verified)) {
     if (path === "/forgot-password") return <ForgotPasswordScreen onBack={() => navigate("/")} />;
@@ -103,6 +106,7 @@ export default function App() {
         notice={signedOutReason}
         username={knownUsername}
         onForgotPassword={() => navigate("/forgot-password")}
+        onCheckLetter={() => navigate("/check-letter")}
       />
     );
   }

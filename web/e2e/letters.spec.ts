@@ -1,6 +1,6 @@
 import { expect, expectAccessible, letterPerson, openSection, password, signIn, signOut, STAFF, test } from "./support";
 
-test("HR writes a job letter from a person's file, and the person reads it under My contract", async ({ page }, testInfo) => {
+test("HR writes a job letter, the person reads it under My contract, and a bank checks it is genuine", async ({ page }, testInfo) => {
   const person = letterPerson(testInfo);
   await signIn(page, STAFF.hr.username);
   await openSection(page, "People");
@@ -32,7 +32,11 @@ test("HR writes a job letter from a person's file, and the person reads it under
 
   await openSection(page, "Letters");
   await page.getByRole("searchbox", { name: "Find a letter" }).fill(reference);
-  await expect(page.getByRole("table", { name: "Letters issued" })).toContainText(person.name);
+  const row = page.getByRole("table", { name: "Letters issued" }).getByRole("row").filter({ hasText: reference });
+  await expect(row).toContainText(person.name);
+  await expect(row).toContainText("not checked yet");
+  const code = ((await row.locator("code").textContent()) ?? "").trim();
+  expect(code).toMatch(/^[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}$/);
   await expectAccessible(page, testInfo, "letters issued");
   await page.getByRole("tab", { name: "Templates" }).click();
   await page.getByRole("button", { name: "Read the wording of Certificate of service" }).click();
@@ -55,4 +59,17 @@ test("HR writes a job letter from a person's file, and the person reads it under
   await expect(page.getByRole("status").filter({ hasText: `Signed: Job letter, ${reference}.` })).toBeVisible();
   await expect(page.getByRole("list", { name: "Signed or declined" })).toContainText(reference);
   await signOut(page);
+
+  // A bank shown the letter checks it with no account, by the reference and code at its foot (item 1.47).
+  await page.getByRole("button", { name: "Shown a letter from the School? Check it is genuine" }).click();
+  const check = page.getByRole("form", { name: "Check a letter" });
+  await check.getByLabel("Reference").fill(reference);
+  await check.getByLabel("Code").fill("ABCD-EFGH-JKMN");
+  await check.getByRole("button", { name: "Check the letter" }).click();
+  await expect(page.getByRole("alert")).toContainText("No letter matches that reference and code.");
+  await check.getByLabel("Code").fill(code.toLowerCase());
+  await check.getByRole("button", { name: "Check the letter" }).click();
+  await expect(page.getByRole("status")).toContainText(`Genuine: Job letter ${reference}, about ${person.name}`);
+  await expect(page.getByRole("article", { name: "The letter" })).toContainText("for a loan application at a bank.");
+  await expectAccessible(page, testInfo, "checking a letter");
 });

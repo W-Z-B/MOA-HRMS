@@ -214,6 +214,25 @@ export interface Letter {
   sha256: string;
   document: number;
   download_url: string;
+  /** Printed at the foot of the letter for checking it (item 1.47); none on letters issued before. */
+  check_code: string | null;
+  times_checked: number;
+  last_checked_at: string | null;
+}
+
+/** What the public page answers about a letter: whether it is genuine and, if so, only what it says. */
+export interface CheckedLetter {
+  genuine: boolean;
+  detail: string;
+  reference: string | null;
+  letter: string | null;
+  about: string | null;
+  issued_on: string | null;
+  subject: string | null;
+  addressed: boolean | null;
+  blocks: LetterBlock[] | null;
+  values: Record<string, string> | null;
+  sha256: string | null;
 }
 
 export interface SalaryScale {
