@@ -65,6 +65,12 @@ notice tab). A starting draft for GSA to complete is `docs/privacy/privacy-notic
 and acknowledges it at their next sign-in, once for each version. `seed_demo --fictional` publishes a
 demonstration notice, so on staging everyone sees it once.
 
+Public holidays (Admin screen, Holidays tab): `seed` adds every holiday whose date follows a rule (the fixed
+dates, Labour Day included; Good Friday and Easter Monday from Easter; CARICOM Day on the first Monday in
+July) for this year and next. Phagwah, Eid ul-Adha, Youman Nabi and Deepavali, and any substitute day for a
+holiday on a Sunday, are named in the gazette each year: the HR Manager enters them there, where the year is
+checked against the full list. Leave does not count holidays, so enter them before staff ask for leave.
+
 The retention schedule (Admin screen, Retention tab) starts with the impact assessment's proposed periods,
 marked "Not yet" agreed. Before go-live, GSA confirms or changes each one. Logs are removed every night at
 04:00; records are destroyed only through a run that a second person approves.

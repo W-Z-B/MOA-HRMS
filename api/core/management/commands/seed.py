@@ -8,6 +8,7 @@ from datetime import date
 
 from django.core.management.base import BaseCommand
 
+from core.holidays import by_rule
 from core.models import PublicHoliday
 from iam.models import Role
 from leave.models import LeaveType
@@ -21,17 +22,9 @@ CAMPUSES = [
     ("ESQ", "Essequibo Campus", "Cotton Field, Essequibo Coast", "Region 2"),
 ]
 
-# Fixed-date Guyana public holidays. Movable holidays (Phagwah, Good Friday, Easter Monday, Eid ul-Adha,
-# Youman Nabi, Deepavali, CARICOM Day) must be added per year by HR from the official gazette.
-FIXED_HOLIDAYS = [
-    ((1, 1), "New Year's Day"),
-    ((2, 23), "Republic Day (Mashramani)"),
-    ((5, 5), "Arrival Day"),
-    ((5, 26), "Independence Day"),
-    ((8, 1), "Emancipation Day"),
-    ((12, 25), "Christmas Day"),
-    ((12, 26), "Boxing Day"),
-]
+# Guyana's public holidays that follow a rule (fixed dates, Easter, the first Monday in July) are worked out
+# in core.holidays. Phagwah, Eid ul-Adha, Youman Nabi, Deepavali and any substitute day are named in the
+# gazette each year, and HR adds them on the Admin screen (Holidays).
 
 LEAVE_TYPES = [
     # code, name, annual days, accrues monthly, carry over max, paid, evidence, term restricted
@@ -102,8 +95,8 @@ class Command(BaseCommand):
                 },
             )
         for year in (options["year"], options["year"] + 1):
-            for (month, day), name in FIXED_HOLIDAYS:
-                PublicHoliday.objects.update_or_create(date=date(year, month, day), defaults={"name": name})
+            for holiday in by_rule(year):
+                PublicHoliday.objects.update_or_create(date=holiday.day, defaults={"name": holiday.name})
         for key, name, roles, pack in REPORTS:
             ReportDefinition.objects.update_or_create(
                 key=key, defaults={"name": name, "roles": roles, "is_ministry_pack": pack}

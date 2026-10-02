@@ -6,6 +6,7 @@ import {
   NOTICE_ROLES,
   RETENTION_ROLES,
   REVIEW_ROLES,
+  SETUP_ROLES,
   hasAnyRole,
   type Me,
 } from "../../api/types";
@@ -14,6 +15,8 @@ import { AccountsTab } from "./AccountsTab";
 import { AuditTab } from "./AuditTab";
 import { BreachesTab } from "./BreachesTab";
 import { CorrectionsTab } from "./CorrectionsTab";
+import { HolidaysTab } from "./HolidaysTab";
+import { LeaveTypesTab } from "./LeaveTypesTab";
 import { NoticeTab } from "./NoticeTab";
 import { RetentionTab } from "./RetentionTab";
 import { StaffTab } from "./StaffTab";
@@ -34,6 +37,8 @@ const TABS = [
   { key: "notice", path: "/admin/privacy-notice", label: "Privacy notice", roles: NOTICE_ROLES },
   { key: "retention", path: "/admin/retention", label: "Retention", roles: RETENTION_ROLES },
   { key: "breaches", path: "/admin/breaches", label: "Breaches", roles: RETENTION_ROLES },
+  { key: "holidays", path: "/admin/holidays", label: "Holidays", roles: SETUP_ROLES },
+  { key: "leave-types", path: "/admin/leave-types", label: "Leave types", roles: SETUP_ROLES },
 ] as const;
 
 /** Accounts and access, the audit log, and privacy: who can sign in and see what, what was done, and people's rights. */
@@ -72,6 +77,8 @@ export function AdminScreen({ me, campusId, path, onNavigate }: Props) {
             {current.key === "notice" && <NoticeTab me={me} />}
             {current.key === "retention" && <RetentionTab me={me} />}
             {current.key === "breaches" && <BreachesTab me={me} />}
+            {current.key === "holidays" && <HolidaysTab me={me} />}
+            {current.key === "leave-types" && <LeaveTypesTab me={me} />}
           </div>
         </>
       )}

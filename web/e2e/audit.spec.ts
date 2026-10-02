@@ -29,5 +29,16 @@ test("the auditor checks the audit log, finds what happened to a file, and downl
   await page.getByRole("tab", { name: "Breaches" }).click();
   await expect(page.getByText("No breaches recorded.")).toBeVisible();
   await expectAccessible(page, testInfo, "breach register");
+
+  // And the holidays, with Labour Day on file, and the leave types, without changing either.
+  await page.getByRole("tab", { name: "Holidays" }).click();
+  const year = new Date().getFullYear();
+  const holidays = page.getByRole("table", { name: `Guyana's public holidays in ${year}` });
+  await expect(holidays.getByRole("row").filter({ hasText: "Labour Day" })).toContainText(`01/05/${year}`);
+  await expectAccessible(page, testInfo, "holidays");
+  await page.getByRole("tab", { name: "Leave types" }).click();
+  await expect(page.getByRole("table", { name: "Leave types and their rules" })).toContainText("Annual leave");
+  await expect(page.getByRole("button", { name: /^Change / })).toHaveCount(0);
+  await expectAccessible(page, testInfo, "leave types");
   await signOut(page);
 });

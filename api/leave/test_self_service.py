@@ -168,8 +168,8 @@ def test_the_note_is_seen_by_the_employee_and_hr_only(team, make_user, campus):
         {
             "employee": asha.id,
             "leave_type": LeaveType.objects.get(code="SIC").id,
-            "from_date": "2026-04-06",
-            "to_date": "2026-04-06",
+            "from_date": "2026-04-07",  # a Tuesday: Monday 6 April 2026 is Easter Monday
+            "to_date": "2026-04-07",
             "evidence": document.id,
         },
         format="json",

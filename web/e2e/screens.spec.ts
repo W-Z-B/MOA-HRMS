@@ -30,6 +30,12 @@ test("main screens", async ({ page }, testInfo) => {
   await page.getByRole("tab", { name: "Staff without an account" }).click();
   await page.waitForTimeout(300);
   await shot("admin-staff");
+  await page.getByRole("tab", { name: "Holidays" }).click();
+  await page.getByRole("table").waitFor();
+  await shot("admin-holidays");
+  await page.getByRole("tab", { name: "Leave types" }).click();
+  await page.getByRole("table").waitFor();
+  await shot("admin-leave-types");
   await signOut(page);
   await page.getByRole("button", { name: "Forgot your password?" }).click();
   await shot("forgot-password");

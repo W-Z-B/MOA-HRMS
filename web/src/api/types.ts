@@ -275,6 +275,9 @@ export const NOTICE_ROLES = ["administrator", "hr_manager", "auditor"];
 export const NOTICE_WRITE_ROLES = ["administrator", "hr_manager"];
 export const RETENTION_ROLES = ["administrator", "hr_manager", "auditor"];
 export const RETENTION_WRITE_ROLES = ["administrator", "hr_manager"];
+/** Holidays and leave types: read by those who work with accounts, kept by the HR Manager and administrators. */
+export const SETUP_ROLES = ["administrator", "hr_manager", "hr_officer", "auditor"];
+export const SETUP_WRITE_ROLES = ["administrator", "hr_manager"];
 export const hasAnyRole = (me: Me, roles: readonly string[]) => roles.some((r) => me.roles.includes(r));
 /** Staff with work to do in the system beyond their own leave: they see the full navigation. */
 export const isOfficeUser = (me: Me) => me.roles.some((r) => r !== "employee");
@@ -590,4 +593,37 @@ export interface Breach {
   closed_at: string | null;
   recorded_by: string | null;
   created_at: string;
+}
+
+export interface Holiday {
+  id: number;
+  date: string;
+  weekday: string;
+  name: string;
+}
+
+/** A year checked against Guyana's holidays, from /holidays/calendar/. */
+export interface HolidayCalendar {
+  year: number;
+  expected: { name: string; rule: string; date: string | null; on_file: Holiday | null }[];
+  others: Holiday[];
+  sundays: Holiday[];
+}
+
+/** Every rule of a leave type, as HR keeps them. */
+export interface LeaveTypeRules {
+  id: number;
+  code: string;
+  name: string;
+  annual_entitlement_days: string;
+  accrues_monthly: boolean;
+  carry_over_max_days: string;
+  max_balance_days: string | null;
+  is_paid: boolean;
+  requires_evidence: boolean;
+  over_balance: "allow" | "refuse" | "evidence";
+  evidence_name: string;
+  evidence_is_medical: boolean;
+  appointment_types: string[];
+  term_time_restricted: boolean;
 }

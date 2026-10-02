@@ -38,6 +38,14 @@ class LeaveTypeSerializer(TimeStampedSerializer):
             "updated_at",
         )
 
+    def validate_code(self, value):
+        # Requests, balances and the demonstration data find a leave type by its code.
+        if self.instance is not None and value != self.instance.code:
+            raise serializers.ValidationError(
+                "The code of a leave type never changes; change its name instead."
+            )
+        return value
+
 
 class LeaveLedgerSerializer(TimeStampedSerializer):
     class Meta(TimeStampedSerializer.Meta):
