@@ -1,7 +1,7 @@
 /** Hash-based routing with no dependency. A router library is approved in principle (ADR 0009) and is added when a feature needs it. */
 
 import { useEffect, useState } from "react";
-import { ACCOUNT_ROLES, LETTER_ROLES, hasAnyRole, isOfficeUser, type Me } from "../api/types";
+import { ACCOUNT_ROLES, CASE_ROLES, LETTER_ROLES, hasAnyRole, isOfficeUser, type Me } from "../api/types";
 
 const read = () => window.location.hash.replace(/^#/, "") || "/";
 
@@ -22,6 +22,7 @@ export const NAV = [
   { path: "/people", label: "People", office: true },
   { path: "/organisation", label: "Organisation", office: true },
   { path: "/letters", label: "Letters", office: true, roles: LETTER_ROLES },
+  { path: "/cases", label: "Cases", office: true, roles: CASE_ROLES },
   { path: "/leave", label: "Leave", office: false },
   { path: "/me", label: "My contract", office: false },
   { path: "/my-record", label: "My record", office: false },
