@@ -1225,6 +1225,31 @@ mark {
   color: var(--danger);
 }
 
+/* Leaving (items 1.12 to 1.14): the figures owed, with the total set apart. */
+.card-block.leaving-leaving {
+  border-left: 4px solid var(--amber);
+}
+.card-block.leaving-left {
+  border-left: 4px solid var(--muted);
+}
+table.figures {
+  max-width: 560px;
+  border-collapse: collapse;
+}
+table.figures td {
+  padding: 4px 8px 4px 0;
+  border-bottom: 1px solid var(--stripe);
+}
+table.figures tr.total td {
+  font-weight: 700;
+  border-bottom: 0;
+  border-top: 2px solid var(--rule);
+}
+ul.notes {
+  margin: 0;
+  padding-left: 18px;
+}
+
 /* Audit log: whether the chain is intact, beside the button that checks it. */
 .chain-state .notice {
   flex: 1 1 320px;

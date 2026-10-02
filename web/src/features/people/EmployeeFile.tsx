@@ -20,6 +20,7 @@ import { CareerSection } from "./CareerSection";
 import { ContactsTab } from "./ContactsTab";
 import { ContractTab } from "./ContractTab";
 import { DocumentUpload } from "./DocumentUpload";
+import { LeavingSection } from "./LeavingSection";
 import { HistoryTab } from "./HistoryTab";
 
 type FileTab =
@@ -182,6 +183,7 @@ export function EmployeeFile({ employee, me, onEdit }: Props) {
             </ul>
           )}
           <CareerSection employee={employee} me={me} onChanged={() => setVersion((v) => v + 1)} />
+          <LeavingSection employee={employee} me={me} onChanged={() => setVersion((v) => v + 1)} />
           {isHr && <AssignmentForm employee={employee} onSaved={() => setVersion((v) => v + 1)} />}
         </>
       )}

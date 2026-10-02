@@ -9,11 +9,11 @@ const FILED_AS: Record<Classification, string> = {
   medical: "Medical",
 };
 
-/** A letter for a career change: its template, its answers, and the change it is linked to (item 1.11). */
+/** A letter written for something on file: its template, its answers, and the career change it is for, if any. */
 export interface LetterPreset {
   code: string;
   answers: Record<string, string>;
-  careerEvent: number;
+  careerEvent?: number;
   title: string;
 }
 
@@ -59,7 +59,7 @@ export function WriteLetter({ employee, onIssued, preset, onClose }: Props) {
     employee: employee.id,
     template: Number(templateId),
     answers,
-    ...(preset ? { career_event: preset.careerEvent } : {}),
+    ...(preset?.careerEvent ? { career_event: preset.careerEvent } : {}),
   });
   const close = () => (onClose ? onClose() : setOpen(false));
 

@@ -283,6 +283,64 @@ export interface CareerEvent {
   letters: { id: number; reference: string; download_url: string }[];
 }
 
+export type LeavingReason =
+  | "resignation"
+  | "retirement"
+  | "contract_end"
+  | "notice"
+  | "redundancy"
+  | "dismissal"
+  | "mutual"
+  | "probation"
+  | "death";
+
+/** The notice the law and the contract ask for, and whether the last day leaves enough of it. */
+export interface LeavingNotice {
+  needed: boolean;
+  why?: string;
+  given_by?: "employee" | "school";
+  given_on?: string;
+  rule?: string;
+  full_notice_ends?: string;
+  short_by_days?: number;
+}
+
+/** What is owed on leaving (item 1.14): the statutory minimum, for the roles that see pay. */
+export interface Settlement {
+  last_day?: string;
+  grade?: string;
+  monthly?: string;
+  weekly?: string;
+  daily?: string;
+  service_from?: string;
+  completed_years?: number;
+  lines: { key: "leave" | "notice" | "severance"; label: string; amount: string }[];
+  total: string;
+  notes: string[];
+}
+
+/** Someone leaving the School (item 1.12): leaving until the night after the last day, then left. */
+export interface Separation {
+  id: number;
+  employee: number;
+  employee_name: string;
+  reason: LeavingReason;
+  reason_name: string;
+  state: "leaving" | "left" | "withdrawn";
+  state_name: string;
+  notice_given_on: string | null;
+  last_day: string;
+  note: string;
+  completed_at: string | null;
+  withdrawn_reason: string;
+  notice: LeavingNotice;
+  settlement: Settlement | null;
+  recorded_by: string | null;
+  created_at: string;
+  letter_template: string;
+  letter_answers: Record<string, string> | null;
+}
+
 export interface EmployeeDocument {
   id: number;
   doc_type: string;
