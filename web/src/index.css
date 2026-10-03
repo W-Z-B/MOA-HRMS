@@ -1,3 +1,13 @@
+/* Public Sans, served by the app itself (SIL Open Font Licence 1.1, web/public/fonts/OFL.txt): nothing is
+   fetched from a third party, so no visitor's address leaves and the Content-Security-Policy stands. */
+@font-face {
+  font-family: "Public Sans";
+  src: url("/fonts/public-sans-latin-wght.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* Design tokens (item 2.30): the crest's colours. A thin yellow band above a deep green header, GSA green
    for actions, on a paper ground. Every pairing of text and ground below meets WCAG AA. */
 :root {
