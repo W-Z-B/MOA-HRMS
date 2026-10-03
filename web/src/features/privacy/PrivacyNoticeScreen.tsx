@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ApiError, post, get } from "../../api/client";
 import type { CurrentNotice, PrivacyNotice } from "../../api/types";
 import { dmy } from "../../app/format";
+import { AuthFrame } from "../auth/AuthFrame";
 
 /** The notice as paragraphs: a blank line in the text starts a new one. */
 export function NoticeText({ notice }: { notice: PrivacyNotice }) {
@@ -60,7 +61,7 @@ export function PrivacyNoticeScreen({ onAcknowledged, onSignOut }: Props) {
   }
 
   return (
-    <div className="login">
+    <AuthFrame>
       <section className="card notice-card" aria-labelledby="notice-heading">
         <h1>GSA HRMS</h1>
         <h2 id="notice-heading">{notice?.title ?? "Privacy notice"}</h2>
@@ -80,6 +81,6 @@ export function PrivacyNoticeScreen({ onAcknowledged, onSignOut }: Props) {
           Sign out
         </button>
       </section>
-    </div>
+    </AuthFrame>
   );
 }

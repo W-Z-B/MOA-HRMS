@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { ApiError, post } from "../../api/client";
 import type { PasswordLink } from "../../api/types";
+import { AuthFrame } from "./AuthFrame";
 
 interface Props {
   uid: string;
@@ -57,7 +58,7 @@ export function SetPasswordScreen({ uid, token, onDone, onAskAgain }: Props) {
   const type = visible ? "text" : "password";
 
   return (
-    <div className="login">
+    <AuthFrame>
       <form className="card" onSubmit={submit} aria-labelledby="set-heading">
         <h1>GSA HRMS</h1>
         <h2 id="set-heading">{link?.kind === "invitation" ? "Welcome: choose your password" : "Choose a new password"}</h2>
@@ -122,6 +123,6 @@ export function SetPasswordScreen({ uid, token, onDone, onAskAgain }: Props) {
           </>
         )}
       </form>
-    </div>
+    </AuthFrame>
   );
 }

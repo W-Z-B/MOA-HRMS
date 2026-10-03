@@ -46,7 +46,7 @@ test.describe.serial("accounts", () => {
     await page.getByRole("button", { name: "Sign in" }).click();
     // Their first sign-in: the privacy notice comes first (item 1.31).
     expect(await passNotice(page)).toBe(true);
-    await expect(page.getByRole("heading", { name: "Leave", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Home", level: 1 })).toBeVisible();
     await signOut(page);
 
     // The link worked once.
@@ -75,7 +75,7 @@ test.describe.serial("accounts", () => {
     await page.getByLabel("Password", { exact: true }).fill(RESET);
     await page.getByRole("button", { name: "Sign in" }).click();
     await passNotice(page);
-    await expect(page.getByRole("heading", { name: "Leave", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Home", level: 1 })).toBeVisible();
     await signOut(page);
   });
 
@@ -108,10 +108,10 @@ test.describe.serial("accounts", () => {
     try {
       await device.goto("/");
       await device.getByLabel("Username").fill(starter.username);
-      await device.getByLabel("Password").fill(RESET);
+      await device.getByLabel("Password", { exact: true }).fill(RESET);
       await device.getByRole("button", { name: "Sign in" }).click();
       await passNotice(device);
-      await expect(device.getByRole("heading", { name: "Leave", level: 1 })).toBeVisible();
+      await expect(device.getByRole("heading", { name: "Home", level: 1 })).toBeVisible();
 
       await card.getByRole("button", { name: `Switch off the account of ${starter.name}` }).click();
       await card.getByLabel("Why switch it off?").fill("Journey test: switched off and on again");

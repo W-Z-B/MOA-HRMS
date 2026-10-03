@@ -8,12 +8,12 @@ test.describe.serial("privacy rights", () => {
     const person = privacyPerson(testInfo);
     await page.goto("/");
     await page.getByLabel("Username").fill(person.username);
-    await page.getByLabel("Password").fill(process.env.E2E_PASSWORD ?? "");
+    await page.getByLabel("Password", { exact: true }).fill(process.env.E2E_PASSWORD ?? "");
     await page.getByRole("button", { name: "Sign in" }).click();
     await expect(page.getByRole("heading", { name: "Demonstration privacy notice" })).toBeVisible();
     await expectAccessible(page, testInfo, "privacy notice");
     await page.getByRole("button", { name: "I have read this notice" }).click();
-    await expect(page.getByRole("button", { name: "Sign out", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "GSA HRMS Home" })).toBeVisible();
 
     await openSection(page, "My record");
     await expect(page.getByRole("region", { name: "Personal details" })).toContainText(person.employeeNo);

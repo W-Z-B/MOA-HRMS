@@ -10,6 +10,13 @@ export interface Me {
   employee_id: number | null;
   /** Version of the privacy notice still to read and acknowledge, if any. */
   privacy_notice_due?: number | null;
+  /** Who the person is at the School (item 2.30): their post, its unit, units they head, their campus. */
+  position?: string | null;
+  unit?: string | null;
+  heads?: string[];
+  campus?: string | null;
+  /** Campuses the person works with: the campus switch shows when there is more than one. */
+  campuses?: Campus[];
 }
 
 export interface Paginated<T> {
@@ -821,6 +828,8 @@ export interface Notification {
 }
 
 export const HR_ROLES = ["hr_officer", "hr_manager", "administrator"];
+/** Who reads the staff list, and so finds people from search (people.views.STAFF_READ). */
+export const STAFF_READ_ROLES = ["hr_officer", "hr_manager", "administrator", "principal", "finance", "supervisor", "auditor"];
 /** Who works with accounts (the server enforces the same rules; these only hide what would be refused). */
 export const ACCOUNT_ROLES = ["administrator", "hr_manager", "hr_officer", "auditor"];
 export const ACCOUNT_WRITE_ROLES = ["administrator", "hr_manager", "hr_officer"];
@@ -851,6 +860,46 @@ export const TEMPLATE_WRITE_ROLES = ["hr_manager", "administrator"];
 export const hasAnyRole = (me: Me, roles: readonly string[]) => roles.some((r) => me.roles.includes(r));
 /** Staff with work to do in the system beyond their own leave: they see the full navigation. */
 export const isOfficeUser = (me: Me) => me.roles.some((r) => r !== "employee");
+
+/** What a person's Home shows (item 2.30), from /home/: figures for their role, on their campuses. */
+export type Persona = "hr" | "principal" | "manager" | "office" | "employee";
+
+export interface CampusFigures {
+  id: number;
+  code: string;
+  name: string;
+  active: number;
+  posts: number;
+  filled: number;
+  vacant: number;
+  frozen: number;
+}
+
+export interface HomeSummary {
+  persona: Persona;
+  as_at: string;
+  ending_days: number;
+  leave: { mine: number; waiting: number | null };
+  staff: { campuses: CampusFigures[]; active: number; posts: number; filled: number; vacant: number; frozen: number } | null;
+  units: { id: number; name: string; campus: string; posts: number; filled: number; vacant: number; frozen: number }[] | null;
+  ending: { employee: number; name: string; position: string; campus: string; what: "contract" | "probation"; on: string }[] | null;
+  no_account: {
+    count: number;
+    latest: { employee: number; name: string; position: string | null; campus: string; started: string | null }[];
+  } | null;
+  team:
+    | {
+        employee: number;
+        name: string;
+        position: string;
+        appointment: string;
+        started: string;
+        ends: string | null;
+        probation_end: string | null;
+        is_me: boolean;
+      }[]
+    | null;
+}
 
 export interface ReportRow {
   [key: string]: string | number;

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { ApiError, post } from "../../api/client";
+import { AuthFrame } from "./AuthFrame";
 
 interface Props {
   onBack: () => void;
@@ -30,7 +31,7 @@ export function ForgotPasswordScreen({ onBack }: Props) {
   }
 
   return (
-    <div className="login">
+    <AuthFrame>
       <form className="card" onSubmit={submit} aria-labelledby="forgot-heading">
         <h1>GSA HRMS</h1>
         <h2 id="forgot-heading">Forgot your password?</h2>
@@ -71,6 +72,6 @@ export function ForgotPasswordScreen({ onBack }: Props) {
           Back to sign in
         </button>
       </form>
-    </div>
+    </AuthFrame>
   );
 }

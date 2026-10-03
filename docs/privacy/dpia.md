@@ -1,6 +1,6 @@
 # Data protection impact assessment
 
-**Draft 0.8, 2 October 2026,** prepared by the development team for GSA's data protection officer.
+**Draft 0.9, 2 October 2026,** prepared by the development team for GSA's data protection officer.
 Draft 0.2 records the privacy rights built in pull request 20: the notice and its acknowledgement, a
 person's own record, and correction requests. Draft 0.3 records the retention schedule, reviewed disposal
 and the breach register built in pull request 21. Draft 0.4 adds the accident and incident register (pull
@@ -8,7 +8,9 @@ request 32), which holds injuries: health data. Draft 0.5 adds the public page t
 request 33): what it shows, and the log of checks. Draft 0.6 adds changes of sign-in email (pull request 34). Draft 0.7 adds scanned papers
 filed in bulk (pull request 35): they become documents in each person's file, under the same rules as any
 document, and each batch keeps a list of where its files went. Draft 0.8 adds restriction and objection
-(pull request 36), and a Data Protection Officer role for whoever GSA names.
+(pull request 36), and a Data Protection Officer role for whoever GSA names. Draft 0.9 adds each role's
+Home and search (pull request 37, item 2.30). It collects nothing new. It shows people what they could
+already read, gathered where they start.
 GSA is the data controller and owns this assessment; the development team keeps it current as the
 system changes. It is signed in section 9 before any real staff record is loaded (checklist item 7.03).
 
@@ -118,6 +120,13 @@ Choices already made to collect and show less:
 - No decision about a person is made by the system alone, and no staff data goes to an outside AI
   service (ADR 0007).
 - Fictional data only outside production.
+- Home and search (item 2.30) add no new data. Home names the staff whose contract or probation ends in the
+  next 90 days, and the new starters with no account:
+  - to HR and the Principal, on the campuses they work with;
+  - to a head of unit, for their own team only.
+  It shows names, posts, campuses and dates, never an identifier, pay or a health record. Search finds only
+  the staff the person may read in the staff list. Nothing leaves for a third party: the design's web font
+  from Google was not used, and the crest is served from the system itself.
 
 ## 5. Rights of the people concerned
 

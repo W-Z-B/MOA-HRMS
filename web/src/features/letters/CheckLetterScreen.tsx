@@ -3,6 +3,7 @@ import { ApiError, post } from "../../api/client";
 import type { CheckedLetter } from "../../api/types";
 import { dmy } from "../../app/format";
 import { Paper } from "./Paper";
+import { AuthFrame } from "../auth/AuthFrame";
 
 /** The SHA-256 fingerprint of a file, worked out in the browser: the file never leaves the device. */
 async function fingerprintOf(file: File): Promise<string> {
@@ -55,7 +56,7 @@ export function CheckLetterScreen({ onBack }: { onBack: () => void }) {
 
   const genuine = answer?.genuine ? answer : null;
   return (
-    <div className="login">
+    <AuthFrame>
       <section className="card wide" aria-labelledby="check-heading">
         <h1>GSA HRMS</h1>
         <h2 id="check-heading">Check a letter from the School</h2>
@@ -136,6 +137,6 @@ export function CheckLetterScreen({ onBack }: { onBack: () => void }) {
           Go to the sign-in page
         </button>
       </section>
-    </div>
+    </AuthFrame>
   );
 }

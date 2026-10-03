@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { ApiError, post } from "../../api/client";
 import type { Me } from "../../api/types";
+import { AuthFrame } from "./AuthFrame";
 
 interface Props {
   onSignedIn: (me: Me) => void;
@@ -13,10 +14,11 @@ interface Props {
   onCheckLetter?: () => void;
 }
 
-/** Login, then TOTP verification for privileged roles (with first-time enrolment). */
+/** Password first, then the 6-digit code from an authenticator app for roles that need one (with first-time enrolment). */
 export function LoginScreen({ onSignedIn, notice, username: knownUsername = "", onForgotPassword, onCheckLetter }: Props) {
   const [username, setUsername] = useState(knownUsername);
   const [password, setPassword] = useState("");
+  const [shown, setShown] = useState(false);
   const [code, setCode] = useState("");
   const [stage, setStage] = useState<"credentials" | "mfa">("credentials");
   const [provisioning, setProvisioning] = useState<string | null>(null);
@@ -60,11 +62,30 @@ export function LoginScreen({ onSignedIn, notice, username: knownUsername = "", 
     }
   }
 
+  function startAgain() {
+    post("/auth/logout/").catch(() => undefined); // the half-finished sign-in ends here
+    setStage("credentials");
+    setCode("");
+    setPassword("");
+    setProvisioning(null);
+    setError(null);
+  }
+
   return (
-    <div className="login">
+    <AuthFrame>
       <form className="card" onSubmit={stage === "credentials" ? submitCredentials : submitCode}>
-        <h1>GSA HRMS</h1>
-        <p className="muted">Guyana School of Agriculture, Human Resource Management System</p>
+        <h1 className="card-eyebrow">GSA HRMS</h1>
+        {stage === "credentials" ? (
+          <div className="stacked">
+            <h2>Sign in</h2>
+            <p className="muted">Use your GSA staff account.</p>
+          </div>
+        ) : (
+          <div className="stacked">
+            <h2>Enter your code</h2>
+            <p className="muted">Open the authenticator app on your phone and type the 6-digit code it shows for GSA HRMS.</p>
+          </div>
+        )}
         {notice && (
           <p role="status" className="notice">
             {notice}
@@ -85,35 +106,50 @@ export function LoginScreen({ onSignedIn, notice, username: knownUsername = "", 
                 required
               />
             </label>
-            <label>
-              Password
-              <input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </label>
+            {/* The Show button sits outside the label, so the field is named "Password" alone. */}
+            <div className="field">
+              <label htmlFor="password">Password</label>
+              <span className="password-field">
+                <input
+                  id="password"
+                  type={shown ? "text" : "password"}
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  className="reveal"
+                  aria-pressed={shown}
+                  aria-label={shown ? "Hide password" : "Show password"}
+                  onClick={() => setShown(!shown)}
+                >
+                  {shown ? "Hide" : "Show"}
+                </button>
+              </span>
+            </div>
           </>
         ) : (
           <>
             {provisioning && (
               <p className="notice">
-                First sign-in with a privileged role: add this account to your authenticator app, then enter the
-                six-digit code. <code className="wrap">{provisioning}</code>
+                First sign-in with a role that needs a code: add this account to your authenticator app, then enter the
+                6-digit code it shows. <code className="wrap">{provisioning}</code>
               </p>
             )}
             <label>
-              Authenticator code
+              6-digit code
               <input
                 id="mfa-code"
+                className="code-input"
                 autoComplete="one-time-code"
                 inputMode="numeric"
                 pattern="[0-9]*"
+                maxLength={8}
+                placeholder="000000"
                 value={code}
-                onChange={(e) => setCode(e.target.value)}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
                 autoFocus
                 required
               />
@@ -125,20 +161,28 @@ export function LoginScreen({ onSignedIn, notice, username: knownUsername = "", 
             {error}
           </p>
         )}
-        <button type="submit" disabled={busy}>
-          {stage === "credentials" ? "Sign in" : "Verify"}
+        <button type="submit" className="wide" disabled={busy}>
+          Sign in
         </button>
         {stage === "credentials" && onForgotPassword && (
-          <button type="button" className="link" onClick={onForgotPassword}>
+          <button type="button" className="link accent" onClick={onForgotPassword}>
             Forgot your password?
           </button>
         )}
-        {stage === "credentials" && onCheckLetter && (
-          <button type="button" className="link" onClick={onCheckLetter}>
-            Shown a letter from the School? Check it is genuine
+        {stage === "mfa" && (
+          <button type="button" className="link accent" onClick={startAgain}>
+            Use a different account
           </button>
         )}
+        {stage === "credentials" && onCheckLetter && (
+          <p className="card-foot">
+            Shown a letter from the School?{" "}
+            <button type="button" className="link accent" onClick={onCheckLetter}>
+              Check that it is genuine
+            </button>
+          </p>
+        )}
       </form>
-    </div>
+    </AuthFrame>
   );
 }

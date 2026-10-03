@@ -67,8 +67,9 @@ describe("sign-in", () => {
     const user = await signIn("hr.manager", "a-long-pass-phrase");
     expect(onSignedIn).not.toHaveBeenCalled();
     expect(await screen.findByText(/otpauth:\/\/totp/)).toBeInTheDocument();
-    await user.type(screen.getByLabelText("Authenticator code"), "123456");
-    await user.click(screen.getByRole("button", { name: "Verify" }));
+    expect(screen.getByRole("heading", { name: "Enter your code" })).toBeInTheDocument();
+    await user.type(screen.getByLabelText("6-digit code"), "123 456");
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
     expect(onSignedIn).toHaveBeenCalledWith(verified);
     expect(server.calls.at(-1)?.body).toEqual({ code: "123456" });
   });
@@ -82,9 +83,34 @@ describe("sign-in", () => {
     render(<LoginScreen onSignedIn={vi.fn()} />);
     const user = await signIn("finance.officer", "a-long-pass-phrase");
     expect(screen.queryByText(/otpauth/)).not.toBeInTheDocument();
-    await user.type(await screen.findByLabelText("Authenticator code"), "000000");
-    await user.click(screen.getByRole("button", { name: "Verify" }));
+    await user.type(await screen.findByLabelText("6-digit code"), "000000");
+    await user.click(screen.getByRole("button", { name: "Sign in" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("The code is not valid.");
+  });
+
+  it("lets someone at the code step start again with another account, ending the half-made sign-in", async () => {
+    const server = fakeServer({
+      "POST /auth/login/": { body: me({ roles: ["finance"], mfa_required: true, mfa_verified: false }) },
+      "POST /auth/mfa/enrol/": { status: 409, body: { code: "already_enrolled", detail: "A confirmed device exists." } },
+      "POST /auth/logout/": { status: 204 },
+    });
+    render(<LoginScreen onSignedIn={vi.fn()} />);
+    const user = await signIn("finance.officer", "a-long-pass-phrase");
+    await user.click(await screen.findByRole("button", { name: "Use a different account" }));
+    expect(screen.getByRole("heading", { name: "Sign in" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Password")).toHaveValue("");
+    expect(server.calls.some((c) => c.method === "POST" && c.path === "/auth/logout/")).toBe(true);
+  });
+
+  it("shows the password on request, and hides it again", async () => {
+    render(<LoginScreen onSignedIn={vi.fn()} />);
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText("Password"), "secret-words");
+    expect(screen.getByLabelText("Password")).toHaveAttribute("type", "password");
+    await user.click(screen.getByRole("button", { name: "Show password" }));
+    expect(screen.getByLabelText("Password")).toHaveAttribute("type", "text");
+    await user.click(screen.getByRole("button", { name: "Hide password" }));
+    expect(screen.getByLabelText("Password")).toHaveAttribute("type", "password");
   });
 
   it("says why the person is signing in again", () => {
@@ -103,7 +129,8 @@ describe("sign-in", () => {
   it("sends someone shown a letter from the School to the page that checks it", async () => {
     const onCheckLetter = vi.fn();
     render(<LoginScreen onSignedIn={vi.fn()} onCheckLetter={onCheckLetter} />);
-    await userEvent.setup().click(screen.getByRole("button", { name: "Shown a letter from the School? Check it is genuine" }));
+    expect(screen.getByText(/Shown a letter from the School\?/)).toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole("button", { name: "Check that it is genuine" }));
     expect(onCheckLetter).toHaveBeenCalled();
   });
 });

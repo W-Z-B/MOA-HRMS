@@ -14,6 +14,8 @@ async function requestCard(page: Page, who: string) {
 test("employee asks for two days of annual leave", async ({ page }, testInfo) => {
   const { from, to } = leaveDates(testInfo);
   await signIn(page, STAFF.employee.username);
+  // Home leads straight to the form (item 2.30).
+  await page.getByRole("button", { name: "Request leave" }).click();
   await expect(page.getByRole("region", { name: "Days you have left" })).toBeVisible();
 
   await page.getByLabel("Leave type").selectOption({ label: "Annual leave" });
@@ -31,25 +33,26 @@ test("employee asks for two days of annual leave", async ({ page }, testInfo) =>
   await signOut(page);
 });
 
-test("their manager approves it", async ({ page }, testInfo) => {
+test("their manager approves it from Home", async ({ page }, testInfo) => {
+  const { from } = leaveDates(testInfo);
   await signIn(page, STAFF.manager.username);
-  await openSection(page, "Leave");
-  await page.getByRole("tab", { name: /To decide/ }).click();
-  const card = await requestCard(page, STAFF.employee.name);
-  await expect(card).toContainText("With the manager");
-  await expectAccessible(page, testInfo, "leave decisions");
-  await card.getByRole("button", { name: "Approve" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Approved" })).toHaveText(
-    "Approved. It is now with Human Resources.",
-  );
+  // Decided on the spot (item 2.30): the request waits on the manager's Home.
+  const waiting = page.getByRole("region", { name: "Waiting for your decision" });
+  const [year, month, day] = from.split("-");
+  const row = waiting.getByRole("listitem").filter({ hasText: STAFF.employee.name }).filter({ hasText: `${day}/${month}/${year}` });
+  await expect(row).toContainText("Annual leave");
+  await expectAccessible(page, testInfo, "manager home");
+  await row.getByRole("button", { name: `Approve annual leave for ${STAFF.employee.name}` }).click();
+  await expect(row.getByRole("status")).toHaveText("Approved. It is now with Human Resources.");
   await signOut(page);
 });
 
-test("Human Resources gives the final approval", async ({ page }) => {
+test("Human Resources gives the final approval", async ({ page }, testInfo) => {
   await signIn(page, STAFF.hr.username);
   await openSection(page, "Leave");
   await page.getByRole("tab", { name: /To decide/ }).click();
   const card = await requestCard(page, STAFF.employee.name);
+  await expectAccessible(page, testInfo, "leave decisions");
   await expect(card).toContainText("With Human Resources");
   await card.getByRole("button", { name: "Approve" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Approved" })).toHaveText(
@@ -60,6 +63,7 @@ test("Human Resources gives the final approval", async ({ page }) => {
 
 test("the employee opens the receipt with the days left", async ({ page }, testInfo) => {
   await signIn(page, STAFF.employee.username);
+  await openSection(page, "Leave");
   const approved = page.locator("article.request").filter({ hasText: "Approved" }).first();
   await approved.getByRole("button", { name: "View receipt" }).click();
   await expect(page.getByRole("heading", { name: "Leave approved" })).toBeVisible();

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ApiError, post } from "../../api/client";
+import { AuthFrame } from "./AuthFrame";
 
 /**
  * Opened from the link sent to a new sign-in email address (item 1.42). The change is made only when the button
@@ -23,7 +24,7 @@ export function ConfirmEmailScreen({ token, onDone }: { token: string; onDone: (
   }
 
   return (
-    <div className="login">
+    <AuthFrame>
       <section className="card" aria-labelledby="confirm-email-heading">
         <h1>GSA HRMS</h1>
         <h2 id="confirm-email-heading">Confirm your new sign-in email address</h2>
@@ -48,6 +49,6 @@ export function ConfirmEmailScreen({ token, onDone }: { token: string; onDone: (
           Go to the GSA HRMS
         </button>
       </section>
-    </div>
+    </AuthFrame>
   );
 }

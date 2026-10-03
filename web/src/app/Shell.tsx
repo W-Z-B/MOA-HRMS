@@ -1,9 +1,14 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { get, post } from "../api/client";
-import { isOfficeUser, type Campus, type Me, type Paginated } from "../api/types";
-import { initials } from "./format";
+import type { Me, WaitingItem } from "../api/types";
+import { AccountMenu } from "./AccountMenu";
+import { Breadcrumbs } from "./Breadcrumbs";
+import { CampusSwitch } from "./CampusSwitch";
+import { Crest } from "./Crest";
+import { FrameContext, usePhone, type Frame } from "./frame";
 import { NotificationsBell } from "./NotificationsBell";
-import { navFor } from "./router";
+import { usesCampusSwitch } from "./people";
+import { SearchPalette } from "./SearchPalette";
 
 interface Props {
   me: Me;
@@ -15,73 +20,191 @@ interface Props {
   children: ReactNode;
 }
 
-/** Common frame from the wireframes: side navigation, campus switch, search, user menu; bottom bar on phones. */
-export function Shell({ me, path, onNavigate, onLogout, campusId, onCampusChange, children }: Props) {
-  const [campuses, setCampuses] = useState<Campus[]>([]);
-  const office = isOfficeUser(me);
+const POLL_MS = 60_000;
+/** Moving between pages fetches the To do count again, but no more often than this. */
+const FRESH_MS = 10_000;
+
+/** How many decisions wait for this person, from every module, kept fresh as they move about. */
+function useWaitingCount(path: string): [number, () => void] {
+  const [count, setCount] = useState(0);
+  const fetchedAt = useRef(0);
+
+  const load = useCallback((force: boolean) => {
+    if (!force && Date.now() - fetchedAt.current < FRESH_MS) return;
+    fetchedAt.current = Date.now();
+    get<WaitingItem[]>("/approvals/waiting/")
+      .then((items) => setCount(items.length))
+      .catch(() => undefined);
+  }, []);
 
   useEffect(() => {
-    if (!office) return; // the campus switch filters lists an employee does not have
-    get<Paginated<Campus>>("/org/campuses/").then((r) => setCampuses(r.results)).catch(() => setCampuses([]));
-  }, [office]);
+    const handle = setInterval(() => load(true), POLL_MS);
+    return () => clearInterval(handle);
+  }, [load]);
+  useEffect(() => load(false), [path, load]);
 
-  async function logout() {
-    await post("/auth/logout/");
+  return [count, useCallback(() => load(true), [load])];
+}
+
+/**
+ * The frame around every page (item 2.30): the crest's colours, Home, search for everything (Ctrl K), To do,
+ * notifications and the person's own pages. No permanent menu: a breadcrumb leads back to Home. Phones get
+ * four tabs at the bottom (Home, To do, Search, Me) and sheets in place of drop-downs.
+ */
+export function Shell({ me, path, onNavigate, onLogout, campusId, onCampusChange, children }: Props) {
+  const phone = usePhone();
+  const [menu, setMenu] = useState<"bell" | "account" | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [crumb, setCrumb] = useState<string | null>(null);
+  const [waiting, refreshWaiting] = useWaitingCount(path);
+  const opener = useRef<HTMLElement | null>(null);
+  const scroller = useRef<HTMLDivElement>(null);
+  const [shownPath, setShownPath] = useState(path);
+  const switchable = usesCampusSwitch(me);
+
+  // A new page starts with nothing left open over it.
+  if (shownPath !== path) {
+    setShownPath(path);
+    setMenu(null);
+    setSearching(false);
+  }
+
+  const frame: Frame = useMemo(() => ({ setCrumb, decided: refreshWaiting }), [refreshWaiting]);
+
+  const openSearch = useCallback(() => {
+    opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setMenu(null);
+    setSearching(true);
+  }, []);
+
+  const closeSearch = useCallback(() => {
+    setSearching(false);
+    opener.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        openSearch();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [openSearch]);
+
+  // ...and at its top.
+  useEffect(() => {
+    if (scroller.current) scroller.current.scrollTop = 0;
+  }, [path]);
+
+  const go = (to: string) => {
+    setSearching(false);
+    setMenu(null);
+    onNavigate(to);
+  };
+  const link = (to: string) => ({
+    href: `#${to}`,
+    onClick: (e: { preventDefault: () => void }) => {
+      e.preventDefault();
+      go(to);
+    },
+  });
+  const closeMenu = useCallback(() => setMenu(null), []);
+
+  async function signOut() {
+    await post("/auth/logout/").catch(() => undefined);
     onLogout();
   }
 
+  const campusSwitch = switchable ? (
+    <CampusSwitch campuses={me.campuses ?? []} value={campusId} onChange={onCampusChange} />
+  ) : null;
+  const count = waiting > 0 && (
+    <span className="count">
+      {waiting}
+      <span className="sr-only"> waiting</span>
+    </span>
+  );
+
   return (
-    <div className="shell">
-      <header className="topbar">
-        <span className="brand">GSA HRMS</span>
-        {office && (
-          <label className="campus">
-            <span className="sr-only">Campus</span>
-            <select
-              id="campus-switch"
-              value={campusId ?? ""}
-              onChange={(e) => onCampusChange(e.target.value ? Number(e.target.value) : null)}
-            >
-              <option value="">All campuses</option>
-              {campuses.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        <span className="spacer" />
-        <NotificationsBell onNavigate={onNavigate} />
-        <span className="user">
-          <span className="user-full">
-            {me.name} <small>{me.roles.join(", ") || "no role"}</small>
-          </span>
-          {/* Phones show initials only, so the bar never pushes Sign out off the screen. */}
-          <span className="user-initials" role="img" aria-label={`Signed in as ${me.name}`} title={me.name}>
-            {initials(me.name)}
-          </span>
-        </span>
-        <button className="link" onClick={logout}>
-          Sign out
-        </button>
-      </header>
-      <nav className="sidenav" aria-label="Main">
-        {navFor(me).map((item) => (
-          <a
-            key={item.path}
-            href={`#${item.path}`}
-            aria-current={path === item.path || (item.path !== "/" && path.startsWith(item.path)) ? "page" : undefined}
-            onClick={(e) => {
-              e.preventDefault();
-              onNavigate(item.path);
-            }}
-          >
-            {item.label}
+    <FrameContext.Provider value={frame}>
+      <div className={phone ? "frame phone" : "frame"}>
+        <header className="masthead">
+          <a className="home-link" aria-label="GSA HRMS Home" {...link("/")}>
+            <Crest size={phone ? 32 : 40} />
+            <span className="brand">
+              <span className="brand-name">GSA HRMS</span>
+              {!phone && <span className="brand-sub">Guyana School of Agriculture</span>}
+            </span>
           </a>
-        ))}
-      </nav>
-      <main className="content">{children}</main>
-    </div>
+          {!phone && (
+            <button type="button" className="search-bar" aria-haspopup="dialog" aria-keyshortcuts="Control+K" onClick={openSearch}>
+              <span>Search people, pages and actions</span>
+              <kbd aria-hidden="true">Ctrl K</kbd>
+            </button>
+          )}
+          <div className="masthead-tools">
+            {!phone && campusSwitch}
+            {!phone && (
+              <a className="todo-link" aria-current={path === "/to-do" ? "page" : undefined} {...link("/to-do")}>
+                To do
+                {count}
+              </a>
+            )}
+            <NotificationsBell
+              open={menu === "bell"}
+              phone={phone}
+              onToggle={() => setMenu(menu === "bell" ? null : "bell")}
+              onClose={closeMenu}
+              onNavigate={go}
+            />
+            <AccountMenu
+              me={me}
+              open={menu === "account"}
+              phone={phone}
+              onToggle={() => setMenu(menu === "account" ? null : "account")}
+              onClose={closeMenu}
+              onNavigate={go}
+              onSignOut={signOut}
+              campusSwitch={phone ? campusSwitch : null}
+            />
+          </div>
+        </header>
+        <div className="scroller" ref={scroller}>
+          <main className="content">
+            {phone && path === "/" && (
+              <button type="button" className="search-field" aria-haspopup="dialog" onClick={openSearch}>
+                Search people, pages and actions
+              </button>
+            )}
+            <Breadcrumbs path={path} item={crumb} onNavigate={go} />
+            {children}
+          </main>
+        </div>
+        {phone && (
+          <nav className="tabbar" aria-label="Main">
+            <a aria-current={path === "/" && !searching ? "page" : undefined} {...link("/")}>
+              Home
+            </a>
+            <a aria-current={path === "/to-do" && !searching ? "page" : undefined} {...link("/to-do")}>
+              To do
+              {count}
+            </a>
+            <button type="button" aria-haspopup="dialog" aria-pressed={searching} onClick={openSearch}>
+              Search
+            </button>
+            <button
+              type="button"
+              aria-expanded={menu === "account"}
+              onClick={() => setMenu(menu === "account" ? null : "account")}
+            >
+              Me
+            </button>
+          </nav>
+        )}
+        {searching && <SearchPalette me={me} phone={phone} onGo={go} onClose={closeSearch} />}
+      </div>
+    </FrameContext.Provider>
   );
 }

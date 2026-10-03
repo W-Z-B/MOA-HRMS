@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dmy, dmyTime, gyd, inDays, initials, num } from "./format";
+import { dmy, dmyTime, gyd, inDays, initials, longDate, num, since } from "./format";
 
 describe("figures and dates", () => {
   it("reads numbers that arrive as strings or nothing", () => {
@@ -42,5 +42,18 @@ describe("figures and dates", () => {
     expect(gyd("750.5")).toBe("G$750.50");
     expect(gyd(null)).toBe("");
     expect(gyd("")).toBe("");
+  });
+
+  it("writes the day in full, the same on every device, for Home", () => {
+    expect(longDate("2026-10-02")).toBe("Friday 2 October 2026");
+    expect(longDate("2027-01-01T08:00:00Z")).toBe("Friday 1 January 2027");
+  });
+
+  it("says how long someone has been in post", () => {
+    expect(since("2019-09-02", "2026-10-02")).toBe("7 years");
+    expect(since("2025-10-02", "2026-10-02")).toBe("1 year");
+    expect(since("2026-07-01", "2026-10-02")).toBe("3 months");
+    expect(since("2026-09-01", "2026-10-02")).toBe("1 month");
+    expect(since("2026-09-28", "2026-10-02")).toBe("Started this month");
   });
 });

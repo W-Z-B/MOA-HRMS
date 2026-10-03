@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { get, post, SIGNED_OUT_EVENT } from "./api/client";
-import { isOfficeUser, type Me } from "./api/types";
+import type { Me } from "./api/types";
 import { Shell } from "./app/Shell";
 import { useHashRoute } from "./app/router";
 import { AdminScreen } from "./features/admin/AdminScreen";
@@ -9,7 +9,7 @@ import { ForgotPasswordScreen } from "./features/auth/ForgotPasswordScreen";
 import { CheckLetterScreen } from "./features/letters/CheckLetterScreen";
 import { LoginScreen } from "./features/auth/LoginScreen";
 import { SetPasswordScreen } from "./features/auth/SetPasswordScreen";
-import { DashboardScreen } from "./features/dashboard/DashboardScreen";
+import { HomeScreen } from "./features/home/HomeScreen";
 import { LeaveScreen } from "./features/leave/LeaveScreen";
 import { LettersScreen } from "./features/letters/LettersScreen";
 import { ToDoScreen } from "./features/approvals/ToDoScreen";
@@ -123,22 +123,50 @@ export default function App() {
     return m ? Number(m[1]) : null;
   };
 
-  const leave = <LeaveScreen me={me} focusId={idIn("/leave/requests")} onNavigate={navigate} />;
+  // The campus switch only offers campuses the person works with: a choice kept from someone else's
+  // session on this browser falls back to all of them.
+  const campus = me.campuses?.some((c) => c.id === campusId) ? campusId : null;
   let screen;
-  // An employee with no other role opens on their own leave: the dashboard is about the School.
-  if (path === "/") screen = isOfficeUser(me) ? <DashboardScreen campusId={campusId} /> : leave;
+  // Everyone opens on their own Home (item 2.30): what waits for them, and the pages their role uses.
+  if (path === "/") screen = <HomeScreen me={me} campusId={campus} onNavigate={navigate} />;
   else if (path === "/people/scanning") screen = <ScanningScreen onNavigate={navigate} />;
   else if (path.startsWith("/people"))
-    screen = <DirectoryScreen me={me} campusId={campusId} initialId={idIn("/people")} onNavigate={navigate} />;
+    screen = (
+      <DirectoryScreen
+        key={path === "/people/new" ? "new" : "list"}
+        me={me}
+        campusId={campus}
+        initialId={idIn("/people")}
+        creating={path === "/people/new"}
+        onNavigate={navigate}
+      />
+    );
   else if (path.startsWith("/organisation"))
-    screen = <OrganisationScreen me={me} campusId={campusId} path={path} onNavigate={navigate} />;
+    screen = <OrganisationScreen me={me} campusId={campus} path={path} onNavigate={navigate} />;
   else if (path.startsWith("/letters")) screen = <LettersScreen me={me} path={path} onNavigate={navigate} />;
   else if (path === "/to-do") screen = <ToDoScreen me={me} onNavigate={navigate} />;
   else if (path.startsWith("/cases"))
     screen = <CasesScreen me={me} caseId={idIn("/cases")} onNavigate={navigate} />;
   else if (path.startsWith("/incidents"))
-    screen = <IncidentsScreen me={me} incidentId={idIn("/incidents")} onNavigate={navigate} />;
-  else if (path.startsWith("/leave")) screen = leave;
+    screen = (
+      <IncidentsScreen
+        key={path === "/incidents/new" ? "new" : "list"}
+        me={me}
+        incidentId={idIn("/incidents")}
+        reportNow={path === "/incidents/new"}
+        onNavigate={navigate}
+      />
+    );
+  else if (path.startsWith("/leave"))
+    screen = (
+      <LeaveScreen
+        key={path === "/leave/decide" ? "decide" : "mine"}
+        me={me}
+        focusId={idIn("/leave/requests")}
+        deciding={path === "/leave/decide"}
+        onNavigate={navigate}
+      />
+    );
   else if (path === "/me") screen = <MyContractScreen />;
   else if (path === "/my-record") screen = <MyRecordScreen />;
   else if (path === "/account") screen = <AccountScreen />;
@@ -147,9 +175,9 @@ export default function App() {
   else if (path.startsWith("/appraisals"))
     screen = <ComingSoon title="Appraisals" sprint="Release 2" requirement="F08" />;
   else if (path.startsWith("/payroll")) screen = <ComingSoon title="Payroll" sprint="Release 2" requirement="F13" />;
-  else if (path.startsWith("/reports")) screen = <ReportsScreen campusId={campusId} onNavigate={navigate} />;
+  else if (path.startsWith("/reports")) screen = <ReportsScreen campusId={campus} onNavigate={navigate} />;
   else if (path.startsWith("/admin"))
-    screen = <AdminScreen me={me} campusId={campusId} path={path} onNavigate={navigate} />;
+    screen = <AdminScreen me={me} campusId={campus} path={path} onNavigate={navigate} />;
   else screen = <ComingSoon title="Not found" sprint="a later sprint" requirement="unknown route" />;
 
   return (
@@ -158,7 +186,7 @@ export default function App() {
       path={path}
       onNavigate={navigate}
       onLogout={() => setMe(null)}
-      campusId={campusId}
+      campusId={campus}
       onCampusChange={changeCampus}
     >
       {screen}

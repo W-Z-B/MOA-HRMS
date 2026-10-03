@@ -18,6 +18,8 @@ import { RequestForm } from "./RequestForm";
 interface Props {
   me: Me;
   focusId: number | null;
+  /** Opened from Home's "Leave requests" or "All leave requests": the requests to decide come first. */
+  deciding?: boolean;
   onNavigate: (to: string) => void;
 }
 
@@ -27,8 +29,8 @@ type Tab = "mine" | "decide";
  * Wireframe 3, laid out for a phone first: what I have left, a request form that checks as I type,
  * my requests with their progress, and the requests waiting for my decision.
  */
-export function LeaveScreen({ me, focusId, onNavigate }: Props) {
-  const [tab, setTab] = useState<Tab>("mine");
+export function LeaveScreen({ me, focusId, deciding = false, onNavigate }: Props) {
+  const [tab, setTab] = useState<Tab>(deciding ? "decide" : "mine");
   const [mine, setMine] = useState<LeaveRequest[]>([]);
   const [queue, setQueue] = useState<LeaveRequest[]>([]);
   const [elsewhere, setElsewhere] = useState<LeaveRequest[]>([]);

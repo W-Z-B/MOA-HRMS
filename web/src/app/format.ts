@@ -48,3 +48,24 @@ export function gyd(value: number | string | null | undefined): string {
   if (value === null || value === undefined || value === "") return "";
   return `G$${Number(value).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
+
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+/** 2026-10-02 reads as "Friday 2 October 2026", the same on every device. */
+export function longDate(iso: string): string {
+  const [year, month, day] = iso.slice(0, 10).split("-").map(Number);
+  const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+  return `${WEEKDAYS[weekday]} ${day} ${MONTHS[month - 1]} ${year}`;
+}
+
+/** How long since a start date, as of a given day: "3 years", "4 months", "Started this month". */
+export function since(startIso: string, asAtIso: string): string {
+  const [y1, m1, d1] = startIso.slice(0, 10).split("-").map(Number);
+  const [y2, m2, d2] = asAtIso.slice(0, 10).split("-").map(Number);
+  const months = (y2 - y1) * 12 + (m2 - m1) - (d2 < d1 ? 1 : 0);
+  if (months < 1) return "Started this month";
+  if (months < 12) return `${months} ${months === 1 ? "month" : "months"}`;
+  const years = Math.floor(months / 12);
+  return `${years} ${years === 1 ? "year" : "years"}`;
+}

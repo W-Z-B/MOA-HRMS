@@ -30,9 +30,9 @@ from iam.accounts import (
     send_reset,
     user_from_link,
 )
-from iam.models import LoginAttempt, PasswordResetRequest, TotpDevice, UserSession
+from iam.models import LoginAttempt, PasswordResetRequest, Role, TotpDevice, UserSession
 from iam.permissions import MFA_SESSION_KEY
-from iam.services import account_locked, address_blocked, requires_mfa, role_codes
+from iam.services import account_locked, address_blocked, campus_limit, requires_mfa, role_codes
 from iam.sessions import describe_device, end_sessions
 
 
@@ -45,18 +45,36 @@ class CodeSerializer(serializers.Serializer):
     code = serializers.CharField(min_length=6, max_length=8)
 
 
+class MyCampusSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    code = serializers.CharField()
+    name = serializers.CharField()
+
+
 class MeSerializer(serializers.Serializer):
     """Describes _me_payload for the API documentation."""
 
     id = serializers.IntegerField()
     username = serializers.CharField()
     name = serializers.CharField()
-    roles = serializers.ListField(child=serializers.CharField())
+    roles = serializers.ListField(
+        child=serializers.CharField(),
+        help_text="Role codes held; every role for a superuser, as the server treats one",
+    )
     mfa_required = serializers.BooleanField()
     mfa_verified = serializers.BooleanField()
     employee_id = serializers.IntegerField(allow_null=True)
     privacy_notice_due = serializers.IntegerField(
         allow_null=True, help_text="Version of the privacy notice still to read and acknowledge, if any"
+    )
+    position = serializers.CharField(
+        allow_null=True, help_text="Title of the person's own post, if they hold one"
+    )
+    unit = serializers.CharField(allow_null=True, help_text="The unit that post is in")
+    heads = serializers.ListField(child=serializers.CharField(), help_text="Units the person is head of")
+    campus = serializers.CharField(allow_null=True, help_text="The campus of the person's staff record")
+    campuses = MyCampusSerializer(
+        many=True, help_text="Campuses the person works with, for the campus switch"
     )
 
 
@@ -115,18 +133,34 @@ INVALID_LINK = {
 
 
 def _me_payload(user, session) -> dict:
+    from org.models import Campus, OrgUnit
     from privacy.services import notice_due
 
     employee = getattr(user, "employee", None)
+    held = employee.current_assignment if employee else None
+    limit = campus_limit(user)
+    campuses = Campus.objects.order_by("code")
+    # A superuser is allowed everything (iam.services.has_role), so the web app must offer it everything too.
+    roles = {code for code, _ in Role.CODES} if user.is_superuser else role_codes(user)
     return {
         "id": user.id,
         "username": user.get_username(),
         "name": user.get_full_name() or user.get_username(),
-        "roles": sorted(role_codes(user)),
+        "roles": sorted(roles),
         "mfa_required": requires_mfa(user),
         "mfa_verified": bool(session.get(MFA_SESSION_KEY, False)),
         "employee_id": employee.id if employee else None,
         "privacy_notice_due": notice_due(user),
+        "position": held.position.title if held else None,
+        "unit": held.position.org_unit.name if held else None,
+        "heads": list(OrgUnit.objects.filter(head=employee).order_by("name").values_list("name", flat=True))
+        if employee
+        else [],
+        "campus": employee.campus.name if employee else None,
+        "campuses": [
+            {"id": c.id, "code": c.code, "name": c.name}
+            for c in (campuses if limit is None else campuses.filter(pk__in=limit))
+        ],
     }
 
 

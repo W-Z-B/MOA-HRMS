@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import type { Me } from "../api/types";
-import { NAV, navFor, useHashRoute } from "./router";
+import { PAGES, pageOf, pagesFor, useHashRoute } from "./router";
 
 const person = (roles: string[]): Me => ({
   id: 1,
@@ -13,19 +13,34 @@ const person = (roles: string[]): Me => ({
   employee_id: 1,
 });
 
-describe("navigation by role", () => {
-  it("shows an employee their own leave, contract and account, and where to report an incident", () => {
-    const own = ["To do", "Leave", "Incidents", "My contract", "My record", "My account"];
-    expect(navFor(person(["employee"])).map((i) => i.label)).toEqual(own);
-    expect(navFor(person([])).map((i) => i.label)).toEqual(own);
+describe("pages by role", () => {
+  it("gives an employee their Home, their own pages, and where to report an incident", () => {
+    const own = ["Home", "To do", "Leave", "Incidents", "My contract", "My record", "My account"];
+    expect(pagesFor(person(["employee"])).map((p) => p.label)).toEqual(own);
+    expect(pagesFor(person([])).map((p) => p.label)).toEqual(own);
   });
 
-  it("shows staff who work in the system the whole menu, Admin to those who manage accounts, Letters to HR", () => {
-    expect(navFor(person(["employee", "supervisor"]))).toEqual(NAV.filter((i) => !["Admin", "Letters"].includes(i.label)));
-    expect(navFor(person(["finance"])).map((i) => i.label)).not.toContain("Cases");
-    expect(navFor(person(["hr_officer"]))).toEqual(NAV);
-    expect(navFor(person(["auditor"])).map((i) => i.label)).toEqual(expect.arrayContaining(["Admin", "Letters"]));
-    expect(navFor(person(["finance"])).map((i) => i.label)).not.toContain("Letters");
+  it("gives staff who work in the system every page, Admin to those with a tab in it, Letters to HR", () => {
+    expect(pagesFor(person(["employee", "supervisor"]))).toEqual(PAGES.filter((p) => !["Admin", "Letters"].includes(p.label)));
+    expect(pagesFor(person(["finance"])).map((p) => p.label)).not.toContain("Cases");
+    expect(pagesFor(person(["hr_officer"]))).toEqual(PAGES);
+    expect(pagesFor(person(["auditor"])).map((p) => p.label)).toEqual(expect.arrayContaining(["Admin", "Letters"]));
+    expect(pagesFor(person(["finance"])).map((p) => p.label)).not.toContain("Letters");
+  });
+
+  it("keeps the Release 2 placeholders apart, and says what every page is for", () => {
+    expect(PAGES.filter((p) => p.later).map((p) => p.label)).toEqual(["Attendance", "Appraisals", "Payroll"]);
+    expect(PAGES.every((p) => p.desc.length > 0)).toBe(true);
+  });
+
+  it("finds the page an address belongs to, for the breadcrumb", () => {
+    expect(pageOf("/people/12")?.label).toBe("People");
+    expect(pageOf("/people")?.label).toBe("People");
+    expect(pageOf("/my-record")?.label).toBe("My record");
+    expect(pageOf("/me")?.label).toBe("My contract");
+    expect(pageOf("/leave/requests/4?x=1")?.label).toBe("Leave");
+    expect(pageOf("/meeting")).toBeUndefined();
+    expect(pageOf("/")).toBeUndefined();
   });
 });
 
@@ -34,7 +49,7 @@ describe("hash routing", () => {
     window.location.hash = "";
   });
 
-  it("starts on the dashboard and follows the address", async () => {
+  it("starts on Home and follows the address", async () => {
     const { result } = renderHook(() => useHashRoute());
     expect(result.current[0]).toBe("/");
     await act(async () => {

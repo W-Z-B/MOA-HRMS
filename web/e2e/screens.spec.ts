@@ -1,4 +1,4 @@
-import { openSection, signIn, signOut, STAFF, test } from "./support";
+import { openSearch, openSection, signIn, signOut, STAFF, test } from "./support";
 
 /**
  * Screenshots of the main screens for review in a pull request. Off by default; run with
@@ -7,10 +7,29 @@ import { openSection, signIn, signOut, STAFF, test } from "./support";
 test.skip(!process.env.SCREENSHOTS, "screenshots are taken only when SCREENSHOTS=1");
 
 test("main screens", async ({ page }, testInfo) => {
-  const shot = async (name: string) =>
-    page.screenshot({ path: `test-results/screens/${testInfo.project.name}-${name}.png`, fullPage: true });
+  // The page scrolls in its own area, so a whole page is shot by making the window as tall as the page.
+  const shot = async (name: string) => {
+    const size = page.viewportSize()!;
+    const more = await page.evaluate(() => {
+      const area = document.querySelector(".scroller");
+      return area ? area.scrollHeight - area.clientHeight : 0;
+    });
+    if (more > 0) await page.setViewportSize({ width: size.width, height: size.height + more });
+    await page.screenshot({ path: `test-results/screens/${testInfo.project.name}-${name}.png`, fullPage: true });
+    if (more > 0) await page.setViewportSize(size);
+  };
 
   await signIn(page, STAFF.hr.username);
+  await page.getByRole("region", { name: "Waiting for a decision" }).getByRole("listitem").first().waitFor();
+  await shot("hr-home");
+  await openSearch(page);
+  await page.getByRole("dialog", { name: "Search" }).getByRole("combobox").fill("Thomas");
+  await page.getByRole("dialog", { name: "Search" }).getByRole("group", { name: "People" }).waitFor();
+  await shot("search");
+  await page.keyboard.press("Escape");
+  await openSection(page, "To do");
+  await page.getByRole("list", { name: "Waiting for you" }).waitFor();
+  await shot("to-do");
   await openSection(page, "People");
   await page.getByLabel("Search staff").fill("Persaud");
   await page.getByRole("row").filter({ hasText: STAFF.employee.name }).getByRole("link", { name: STAFF.employee.name }).click();
@@ -65,10 +84,15 @@ test("main screens", async ({ page }, testInfo) => {
   await page.getByRole("table").waitFor();
   await shot("admin-leave-types");
   await signOut(page);
+  await shot("sign-in");
   await page.getByRole("button", { name: "Forgot your password?" }).click();
   await shot("forgot-password");
 
   await signIn(page, STAFF.employee.username);
+  await page.getByRole("region", { name: "Your employment" }).getByRole("listitem").first().waitFor();
+  await shot("employee-home");
+  await page.getByRole("button", { name: "Request leave" }).click();
+  await page.getByRole("region", { name: "Days you have left" }).waitFor();
   await shot("employee-leave");
   await openSection(page, "My account");
   await page.getByRole("region", { name: "Where you are signed in" }).getByRole("listitem").first().waitFor();
@@ -76,6 +100,16 @@ test("main screens", async ({ page }, testInfo) => {
   await openSection(page, "My record");
   await page.getByRole("region", { name: "Personal details" }).waitFor();
   await shot("my-record");
+  await signOut(page);
+
+  await signIn(page, STAFF.manager.username);
+  await page.getByRole("region", { name: "Your team" }).getByRole("listitem").first().waitFor();
+  await shot("manager-home");
+  await signOut(page);
+
+  await signIn(page, STAFF.principal.username);
+  await page.getByRole("region", { name: "Establishment by unit" }).getByRole("listitem").first().waitFor();
+  await shot("principal-home");
   await signOut(page);
 
   await signIn(page, STAFF.auditor.username);
