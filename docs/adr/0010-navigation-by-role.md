@@ -42,9 +42,11 @@ The owner chose 1c, and all nine screens were then drawn on it (desktop and phon
    green (#066938) for actions. Every pairing of text and ground meets WCAG AA. The crest is served from
    the app itself.
 8. **Type.** The design names Public Sans. Loading it from Google's servers would send every visitor's
-   address to a third party and break the Content-Security-Policy, so the app asks for Public Sans by name
-   and falls back to the system's own sans-serif. Shipping the font itself (SIL Open Font Licence 1.1)
-   needs a named exception under ADR 0002, and is left for the owner to decide.
+   address to a third party and break the Content-Security-Policy, so the app serves the font itself: one
+   variable Latin file (27 KB) in `web/public/fonts/`, with its licence beside it. It is under the SIL Open
+   Font Licence 1.1, which permits shipping it unmodified with the licence text. The owner approved this on
+   2 October 2026 as a named exception to ADR 0002. It is a font file, not a package, so the licence gates
+   do not see it; this record is its entry. The system sans-serif remains the fallback.
 
 ## Consequences
 
