@@ -256,6 +256,13 @@ class LeaveLedgerViewSet(viewsets.ReadOnlyModelViewSet):
         own = getattr(request.user, "employee", None)
         if employee_id and has_role(request.user, *HR, Role.PRINCIPAL, Role.FINANCE, Role.SUPERVISOR):
             employee = scope_queryset(request.user, Employee.objects.all()).filter(pk=employee_id).first()
+        elif employee_id and (own is None or str(own.pk) != employee_id):
+            # Asked for someone else by a role that may not read their balances: refused, never answered
+            # with the caller's own figures under the other person's name (found while building item 2.30).
+            return Response(
+                {"code": "forbidden", "detail": "Your role does not read other people's leave balances."},
+                status=403,
+            )
         else:
             employee = own
         if employee is None:

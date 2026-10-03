@@ -12,13 +12,22 @@ test("HR finds an employee, opens the file, and sees identifiers masked until re
   // Keyboard users open a file the same way: the name is a link.
   await row.getByRole("link", { name: STAFF.employee.name }).click();
 
-  await expect(page.getByRole("heading", { name: STAFF.employee.name, level: 2 })).toBeVisible();
+  // The file is a page of its own (item 2.30), with the way back above it.
+  await expect(page.getByRole("heading", { name: STAFF.employee.name, level: 1 })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Breadcrumb" }).getByRole("listitem")).toHaveText([
+    "Home",
+    "People",
+    STAFF.employee.name,
+  ]);
+  await expect(page.locator(".facts")).toContainText("Manager");
   const nis = page.locator("dt", { hasText: "NIS number" }).locator("xpath=following-sibling::dd[1]");
   await expect(nis).toContainText("•");
   await expectAccessible(page, testInfo, "employee file");
 
-  await page.getByRole("button", { name: "Reveal identifiers (audited)" }).click();
+  await page.getByRole("button", { name: "Show identifiers" }).click();
   await expect(nis).toHaveText(/^DEMO-NIS-/);
+  await page.getByRole("button", { name: "Hide identifiers" }).click();
+  await expect(nis).toContainText("•");
 
   await page.getByRole("tab", { name: "Contract" }).click();
   const hours = page.locator("dt", { hasText: "Hours a week" }).locator("xpath=following-sibling::dd[1]");
@@ -45,10 +54,13 @@ test("HR keeps a file complete: an emergency contact, a change with its reason, 
   await expect(contacts.getByText("Marcia Charles").first()).toBeVisible();
   await expectAccessible(page, testInfo, "employee contacts");
 
-  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.getByRole("button", { name: "Edit details" }).click();
+  await expect(page.getByRole("heading", { name: "Edit details", level: 1 })).toBeVisible();
   await page.getByLabel("Phone", { exact: true }).fill(phone);
   await page.getByLabel("Reason for the change").fill("Number given on the form of 01/10/2026");
+  await expectAccessible(page, testInfo, "editing a staff file");
   await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByRole("heading", { name: "Devon Charles", level: 1 })).toBeVisible();
 
   await page.getByRole("tab", { name: "History" }).click();
   await expect(page.getByText("Reason: Number given on the form of 01/10/2026").first()).toBeVisible();

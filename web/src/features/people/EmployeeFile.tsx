@@ -12,7 +12,8 @@ import {
   type Position,
   type Reveal,
 } from "../../api/types";
-import { dmy, inDays } from "../../app/format";
+import { dmy, dmyTime, inDays, initials, localToday, num, since } from "../../app/format";
+import { useCrumb } from "../../app/frame";
 import { WriteLetter } from "../letters/WriteLetter";
 import { SigningPanel } from "../signing/SigningPanel";
 import { BackgroundTab } from "./BackgroundTab";
@@ -24,233 +25,382 @@ import { DocumentUpload } from "./DocumentUpload";
 import { LeavingSection } from "./LeavingSection";
 import { HistoryTab } from "./HistoryTab";
 import { ItemsTab } from "./ItemsTab";
+import { STATUS_LABEL } from "./labels";
 
 type FileTab =
   | "personal"
-  | "assignments"
+  | "appointments"
   | "contract"
-  | "background"
-  | "contacts"
-  | "bank"
-  | "documents"
-  | "items"
   | "leave"
+  | "documents"
+  | "contacts"
+  | "background"
+  | "bank"
+  | "items"
   | "history";
 
-const TAB_LABEL: Record<FileTab, string> = {
-  personal: "Personal",
-  assignments: "Appointments",
-  contract: "Contract",
-  background: "Background",
-  contacts: "Contacts",
-  bank: "Bank",
-  documents: "Documents",
-  items: "Items issued",
-  leave: "Leave",
-  history: "History",
-};
+/** The tabs in the design's order, with the heading each tab's panel carries. */
+const TABS: [FileTab, string, string][] = [
+  ["personal", "Personal", "Personal details"],
+  ["appointments", "Appointments", "Appointments"],
+  ["contract", "Contract", "Contract"],
+  ["leave", "Leave", "Leave"],
+  ["documents", "Documents", "Documents"],
+  ["contacts", "Contacts", "Contacts"],
+  ["background", "Background", "Background"],
+  ["bank", "Bank", "Bank details"],
+  ["items", "Items issued", "Items issued"],
+  ["history", "History", "History"],
+];
 // Who sees which tab: the server enforces the same rules; this only hides what would be refused.
 const BANK_ROLES = ["hr_officer", "hr_manager", "administrator", "finance", "auditor"];
 const HISTORY_ROLES = ["hr_officer", "hr_manager", "administrator", "principal", "auditor"];
 const DEPENDANT_ROLES = ["hr_officer", "hr_manager", "administrator", "finance", "auditor"];
-
-const STATUS_LABEL: Record<Employee["status"], string> = {
-  active: "Active",
-  on_leave: "On leave",
-  suspended: "Suspended",
-  separated: "Separated",
-};
+// Whose leave balances may be read on someone else's file (leave.views: HR, the Principal, Finance, supervisors).
+const BALANCE_ROLES = ["hr_officer", "hr_manager", "administrator", "principal", "finance", "supervisor"];
 
 interface Props {
-  employee: Employee;
+  employeeId: number;
   me: Me;
-  onEdit: () => void;
+  /** The tab the address names, as /people/12/bank. */
+  initialTab: string | null;
+  onNavigate: (to: string) => void;
 }
 
-/** Tabbed employee file: personal details (with audited reveal), appointments, contract, background,
- * contacts, bank details, documents, leave and the history of every change. */
-export function EmployeeFile({ employee, me, onEdit }: Props) {
-  const [tab, setTab] = useState<FileTab>("personal");
+/**
+ * One staff file as a page of its own (item 2.30): who the person is and the facts that matter most above
+ * the tabs; each tab a panel below. The tab is kept in the address, so To do can open the Bank tab directly.
+ */
+export function EmployeeFile({ employeeId, me, initialTab, onNavigate }: Props) {
+  const isHr = hasAnyRole(me, HR_ROLES);
+  const readsBalances = hasAnyRole(me, BALANCE_ROLES);
+  const tabs = TABS.filter(
+    ([t]) =>
+      (t !== "bank" || hasAnyRole(me, BANK_ROLES)) &&
+      (t !== "history" || hasAnyRole(me, HISTORY_ROLES)) &&
+      (t !== "leave" || readsBalances),
+  );
+  const [tab, setTab] = useState<FileTab>(() => tabs.find(([t]) => t === initialTab)?.[0] ?? "personal");
+  const [employee, setEmployee] = useState<Employee | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [documents, setDocuments] = useState<EmployeeDocument[]>([]);
-  const [balances, setBalances] = useState<LeaveBalance[]>([]);
-  const [reveal, setReveal] = useState<Reveal | null>(null);
+  const [balances, setBalances] = useState<LeaveBalance[] | null>(null);
+  const [reveal, setReveal] = useState<{ ids: Reveal; at: string } | null>(null);
+  const [writing, setWriting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
-  const isHr = hasAnyRole(me, HR_ROLES);
-  const tabs = (Object.keys(TAB_LABEL) as FileTab[]).filter(
-    (t) => (t !== "bank" || hasAnyRole(me, BANK_ROLES)) && (t !== "history" || hasAnyRole(me, HISTORY_ROLES)),
-  );
+  useCrumb(employee?.full_name);
+
+  useEffect(() => {
+    let current = true;
+    get<Employee>(`/employees/${employeeId}/`)
+      .then((e) => current && setEmployee(e))
+      .catch((err) => current && setLoadError(errorMessage(err, "Could not open this file.")));
+    return () => {
+      current = false;
+    };
+  }, [employeeId, version]);
+
+  // Days left show above the tabs and on the Leave tab, for the roles that may read them.
+  useEffect(() => {
+    if (!readsBalances) return;
+    let current = true;
+    get<{ balances: LeaveBalance[] }>(`/leave/ledger/balances/?employee=${employeeId}`)
+      .then((r) => current && setBalances(r.balances))
+      .catch(() => current && setBalances([]));
+    return () => {
+      current = false;
+    };
+  }, [employeeId, readsBalances, version]);
 
   useEffect(() => {
     const ok = <T,>(set: (v: T) => void) => (v: T) => {
       set(v);
       setError(null);
     };
-    if (tab === "assignments") {
-      get<Paginated<Assignment>>(`/assignments/?employee=${employee.id}`)
+    if (tab === "appointments") {
+      get<Paginated<Assignment>>(`/assignments/?employee=${employeeId}`)
         .then((r) => ok(setAssignments)(r.results))
-        .catch(() => setError("Could not load assignments."));
+        .catch(() => setError("Could not load the appointments."));
     } else if (tab === "documents") {
-      get<Paginated<EmployeeDocument>>(`/documents/?employee=${employee.id}`)
+      get<Paginated<EmployeeDocument>>(`/documents/?employee=${employeeId}`)
         .then((r) => ok(setDocuments)(r.results))
-        .catch(() => setError("Could not load documents."));
-    } else if (tab === "leave") {
-      get<{ balances: LeaveBalance[] }>(`/leave/ledger/balances/?employee=${employee.id}`)
-        .then((r) => ok(setBalances)(r.balances))
-        .catch(() => setError("Could not load balances."));
+        .catch(() => setError("Could not load the documents."));
     }
-  }, [tab, employee.id, version]);
+  }, [tab, employeeId, version]);
 
-  async function doReveal() {
+  function choose(next: FileTab) {
+    setTab(next);
+    setError(null);
+    // The address follows the tab, without a new page: a link or a reload opens the same tab.
+    window.history.replaceState(null, "", `#/people/${employeeId}/${next}`);
+  }
+
+  async function showIdentifiers() {
     try {
-      setReveal(await post<Reveal>(`/employees/${employee.id}/reveal/`));
+      const ids = await post<Reveal>(`/employees/${employeeId}/reveal/`);
+      setReveal({ ids, at: new Date().toISOString() });
     } catch (err) {
-      setError(errorMessage(err, "Reveal failed."));
+      setError(errorMessage(err, "The identifiers could not be shown."));
     }
   }
 
+  if (!employee)
+    return loadError ? (
+      <>
+        <h1>Staff file</h1>
+        <p role="alert" className="error">
+          {loadError}
+        </p>
+      </>
+    ) : (
+      <p className="loading">Loading…</p>
+    );
+
+  const changed = () => setVersion((v) => v + 1);
+  const annual = balances?.find((b) => b.code === "ANN");
+  const heading = TABS.find(([t]) => t === tab)![2];
+  const identifier = (masked: string | null, full: string | null | undefined) =>
+    (reveal ? full : masked) || "Not recorded";
+  const field = (value: string | null | undefined) => value || "Not recorded";
+
   return (
-    <>
-      <div className="panel-head">
-        <div>
-          <h2>{employee.full_name}</h2>
-          <p className="muted">
-            {employee.employee_no} · {employee.campus_name} · {STATUS_LABEL[employee.status]}
-          </p>
+    <div className="file">
+      <section className="file-head" aria-labelledby="file-name">
+        <div className="file-who">
+          <span className="initials big" aria-hidden="true">
+            {initials(employee.full_name)}
+          </span>
+          <div className="stacked grow">
+            <div className="file-title">
+              <h1 id="file-name">{employee.full_name}</h1>
+              <span className={employee.status === "active" ? "chip chip-approved" : "chip"}>
+                {STATUS_LABEL[employee.status]}
+              </span>
+              {employee.appointment_type && <span className="chip">{employee.appointment_type}</span>}
+            </div>
+            <span className="muted">
+              {[employee.employee_no, employee.position_title, employee.unit_name, employee.campus_name]
+                .filter(Boolean)
+                .join(" · ")}
+            </span>
+          </div>
+          {isHr && (
+            <div className="actions">
+              {tab !== "documents" && (
+                <button
+                  className="secondary"
+                  onClick={() => {
+                    setWriting(true);
+                    choose("documents");
+                  }}
+                >
+                  Write a letter
+                </button>
+              )}
+              <button onClick={() => onNavigate(`/people/${employee.id}/edit`)}>Edit details</button>
+            </div>
+          )}
         </div>
-        {isHr && (
-          <button className="secondary" onClick={onEdit}>
-            Edit
-          </button>
-        )}
-      </div>
+        <dl className="facts">
+          <div>
+            <dt>Started</dt>
+            <dd>{employee.started ? dmy(employee.started) : "Not appointed"}</dd>
+            {employee.started && <dd className="fact-sub">{since(employee.started, localToday())}</dd>}
+          </div>
+          <div>
+            <dt>Manager</dt>
+            <dd>{employee.manager_name ?? (employee.started ? "Campus supervisors" : "None yet")}</dd>
+            {employee.unit_name && <dd className="fact-sub">{employee.unit_name}</dd>}
+          </div>
+          {readsBalances && (
+            <div>
+              <dt>Annual leave left</dt>
+              <dd>{annual ? inDays(Math.max(num(annual.available), 0)) : "None recorded"}</dd>
+              {annual && (
+                <dd className="fact-sub">
+                  {num(annual.pending) > 0 ? `${inDays(annual.pending)} awaiting a decision` : "Nothing awaiting a decision"}
+                </dd>
+              )}
+            </div>
+          )}
+          <div>
+            <dt>Contract</dt>
+            <dd>{employee.contract_type ?? "None on file"}</dd>
+            {employee.started && <dd className="fact-sub">{employee.ends ? `Ends ${dmy(employee.ends)}` : "No end date"}</dd>}
+          </div>
+          {employee.probation_end && (
+            <div>
+              <dt>Probation ends</dt>
+              <dd>{dmy(employee.probation_end)}</dd>
+            </div>
+          )}
+        </dl>
+      </section>
+
       {employee.restricted && employee.restricted.length > 0 && (
         <div className="notice restricted" role="note" aria-label="Held back from use">
           <strong>Held back from use at the person&apos;s request:</strong> {employee.restricted.join("; ")}. It is kept and
           may be corrected, but letters, changes to the appointment and the other systems wait until it is lifted.
         </div>
       )}
-      <div className="tabs" role="tablist">
-        {tabs.map((t) => (
-          <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? "tab active" : "tab"} onClick={() => setTab(t)}>
-            {TAB_LABEL[t]}
+
+      <div className="tabs" role="tablist" aria-label="Employee file">
+        {tabs.map(([t, label]) => (
+          <button
+            key={t}
+            role="tab"
+            id={`file-tab-${t}`}
+            aria-selected={tab === t}
+            aria-controls="file-panel"
+            className={tab === t ? "tab active" : "tab"}
+            onClick={() => choose(t)}
+          >
+            {label}
           </button>
         ))}
       </div>
-      {error && (
-        <p role="alert" className="error">
-          {error}
-        </p>
-      )}
 
-      {tab === "personal" && (
-        <dl>
-          <dt>Position</dt>
-          <dd>{employee.position_title ?? "Unassigned"}</dd>
-          <dt>Date of birth</dt>
-          <dd>{dmy(employee.date_of_birth)}</dd>
-          <dt>Email</dt>
-          <dd>{employee.email || "not recorded"}</dd>
-          <dt>Phone</dt>
-          <dd>{employee.phone || "not recorded"}</dd>
-          <dt>Address</dt>
-          <dd>{employee.address || "not recorded"}</dd>
-          <dt>National ID</dt>
-          <dd>{reveal?.national_id ?? employee.national_id_masked ?? "not recorded"}</dd>
-          <dt>NIS number</dt>
-          <dd>{reveal?.nis_no ?? employee.nis_no_masked ?? "not recorded"}</dd>
-          <dt>TIN</dt>
-          <dd>{reveal?.tin ?? employee.tin_masked ?? "not recorded"}</dd>
-          {isHr && !reveal && (
-            <dd>
-              <button className="secondary" onClick={doReveal}>
-                Reveal identifiers (audited)
-              </button>
-            </dd>
+      <section className="file-panel" role="tabpanel" id="file-panel" aria-labelledby={`file-tab-${tab}`}>
+        <div className="spread file-panel-head">
+          <h2>{heading}</h2>
+          {tab === "personal" && isHr && (
+            <button className="secondary" onClick={() => (reveal ? setReveal(null) : showIdentifiers())}>
+              {reveal ? "Hide identifiers" : "Show identifiers"}
+            </button>
           )}
-        </dl>
-      )}
+        </div>
+        {error && (
+          <p role="alert" className="error">
+            {error}
+          </p>
+        )}
 
-      {tab === "assignments" && (
-        <>
-          {assignments.length === 0 ? (
-            <p className="muted">No assignments.</p>
-          ) : (
-            <ul className="plain">
-              {assignments.map((a) => (
-                <li key={a.id}>
-                  <strong>{a.position_title}</strong> {a.is_acting && <em>(acting)</em>}
-                  <br />
-                  <span className="muted small">
-                    {a.appointment_type}, from {dmy(a.start_date)}
-                    {a.end_date ? ` to ${dmy(a.end_date)}` : ""}
-                    {a.probation_end ? `, probation ends ${dmy(a.probation_end)}` : ""}
-                    {a.confirmed_on ? `, confirmed ${dmy(a.confirmed_on)}` : ""} · {a.pay_grade_name} · {a.status}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-          <CareerSection employee={employee} me={me} onChanged={() => setVersion((v) => v + 1)} />
-          <LeavingSection employee={employee} me={me} onChanged={() => setVersion((v) => v + 1)} />
-          {isHr && <AssignmentForm employee={employee} onSaved={() => setVersion((v) => v + 1)} />}
-        </>
-      )}
-
-      {tab === "contract" && <ContractTab employee={employee} isHr={isHr} />}
-
-      {tab === "background" && <BackgroundTab employeeId={employee.id} canEdit={isHr} />}
-
-      {tab === "contacts" && (
-        <ContactsTab employeeId={employee.id} canEdit={isHr} canSeeDependants={hasAnyRole(me, DEPENDANT_ROLES)} />
-      )}
-
-      {tab === "bank" && <BankTab employeeId={employee.id} me={me} />}
-
-      {tab === "history" && <HistoryTab key={version} employeeId={employee.id} />}
-
-      {tab === "documents" && (
-        <>
-          {documents.length === 0 ? (
-            <p className="muted">No documents on file.</p>
-          ) : (
-            <ul className="plain">
-              {documents.map((d) => (
-                <li key={d.id}>
-                  <a href={d.download_url}>{d.title}</a>{" "}
-                  <span className="muted small">
-                    {d.filename} · v{d.version} · {d.doc_type} · {d.classification}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-          <SigningPanel employee={employee} documents={documents} me={me} version={version} />
-          {isHr && <WriteLetter employee={employee} onIssued={() => setVersion((v) => v + 1)} />}
-          {isHr && <DocumentUpload employee={employee} onSaved={() => setVersion((v) => v + 1)} />}
-        </>
-      )}
-
-      {tab === "items" && <ItemsTab employee={employee} me={me} />}
-
-      {tab === "leave" &&
-        (balances.length === 0 ? (
-          <p className="muted">No leave ledger entries.</p>
-        ) : (
-          <dl>
-            {balances.map((b) => (
-              <div key={b.leave_type}>
-                <dt>{b.name}</dt>
-                <dd className="num">
-                  {inDays(b.balance)}
-                  {Number(b.pending) > 0 && ` (${inDays(b.pending)} awaiting a decision)`}
-                </dd>
+        {tab === "personal" && (
+          <>
+            <dl className="fields">
+              <div>
+                <dt>Date of birth</dt>
+                <dd>{dmy(employee.date_of_birth)}</dd>
               </div>
-            ))}
-          </dl>
-        ))}
-    </>
+              <div>
+                <dt>Email</dt>
+                <dd>{field(employee.email)}</dd>
+              </div>
+              <div>
+                <dt>Phone</dt>
+                <dd>{field(employee.phone)}</dd>
+              </div>
+              <div>
+                <dt>Address</dt>
+                <dd>{field(employee.address)}</dd>
+              </div>
+              <div>
+                <dt>National ID</dt>
+                <dd>{identifier(employee.national_id_masked, reveal?.ids.national_id)}</dd>
+              </div>
+              <div>
+                <dt>NIS number</dt>
+                <dd>{identifier(employee.nis_no_masked, reveal?.ids.nis_no)}</dd>
+              </div>
+              <div>
+                <dt>TIN</dt>
+                <dd>{identifier(employee.tin_masked, reveal?.ids.tin)}</dd>
+              </div>
+            </dl>
+            {isHr && (
+              <p className="muted small">
+                {reveal
+                  ? `Shown at ${dmyTime(reveal.at).slice(-5)} by ${me.name}. Showing identifiers is recorded in the audit log.`
+                  : "Identifiers stay hidden until you show them. Each time is recorded in the audit log."}
+              </p>
+            )}
+          </>
+        )}
+
+        {tab === "appointments" && (
+          <>
+            {assignments.length === 0 ? (
+              <p className="muted">No appointments.</p>
+            ) : (
+              <ul className="plain">
+                {assignments.map((a) => (
+                  <li key={a.id}>
+                    <strong>{a.position_title}</strong> {a.is_acting && <em>(acting)</em>}
+                    <br />
+                    <span className="muted small">
+                      {a.appointment_type}, from {dmy(a.start_date)}
+                      {a.end_date ? ` to ${dmy(a.end_date)}` : ""}
+                      {a.probation_end ? `, probation ends ${dmy(a.probation_end)}` : ""}
+                      {a.confirmed_on ? `, confirmed ${dmy(a.confirmed_on)}` : ""} · {a.pay_grade_name} · {a.status}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <CareerSection employee={employee} me={me} onChanged={changed} />
+            <LeavingSection employee={employee} me={me} onChanged={changed} />
+            {isHr && <AssignmentForm employee={employee} onSaved={changed} />}
+          </>
+        )}
+
+        {tab === "contract" && <ContractTab employee={employee} isHr={isHr} />}
+
+        {tab === "leave" &&
+          (balances === null ? (
+            <p className="loading">Loading…</p>
+          ) : balances.length === 0 ? (
+            <p className="muted">No leave ledger entries.</p>
+          ) : (
+            <dl className="fields">
+              {balances.map((b) => (
+                <div key={b.leave_type}>
+                  <dt>{b.name} left</dt>
+                  <dd className="num">
+                    {inDays(Math.max(num(b.available), 0))}
+                    {num(b.pending) > 0 && ` (${inDays(b.pending)} awaiting a decision)`}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          ))}
+
+        {tab === "documents" && (
+          <>
+            {documents.length === 0 ? (
+              <p className="muted">No documents on file yet.</p>
+            ) : (
+              <ul className="plain">
+                {documents.map((d) => (
+                  <li key={d.id}>
+                    <a href={d.download_url}>{d.title}</a>{" "}
+                    <span className="muted small">
+                      {d.filename} · v{d.version} · {d.doc_type} · {d.classification}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <SigningPanel employee={employee} documents={documents} me={me} version={version} />
+            {isHr && <WriteLetter key={writing ? "writing" : "closed"} employee={employee} onIssued={changed} startOpen={writing} />}
+            {isHr && <DocumentUpload employee={employee} onSaved={changed} />}
+          </>
+        )}
+
+        {tab === "contacts" && (
+          <ContactsTab employeeId={employee.id} canEdit={isHr} canSeeDependants={hasAnyRole(me, DEPENDANT_ROLES)} />
+        )}
+
+        {tab === "background" && <BackgroundTab employeeId={employee.id} canEdit={isHr} />}
+
+        {tab === "bank" && <BankTab employeeId={employee.id} me={me} />}
+
+        {tab === "items" && <ItemsTab employee={employee} me={me} />}
+
+        {tab === "history" && <HistoryTab key={version} employeeId={employee.id} />}
+      </section>
+    </div>
   );
 }
 
@@ -294,7 +444,7 @@ function AssignmentForm({ employee, onSaved }: { employee: Employee; onSaved: ()
   }
 
   return (
-    <form className="stack sub-form" onSubmit={submit}>
+    <form className="stack sub-form" onSubmit={submit} aria-label="Add an appointment">
       <h3>Add an appointment</h3>
       <p className="muted small">
         For someone joining, or a second appointment. To move someone, raise their step, have them act or confirm them,

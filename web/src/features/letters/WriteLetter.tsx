@@ -22,11 +22,13 @@ interface Props {
   onIssued: () => void;
   preset?: LetterPreset;
   onClose?: () => void;
+  /** Opened from the file's own "Write a letter" (item 2.30): the form is open from the start. */
+  startOpen?: boolean;
 }
 
 /** Write a letter to one member of staff from a template: read it, see what it lacks, then issue it (item 1.19). */
-export function WriteLetter({ employee, onIssued, preset, onClose }: Props) {
-  const [open, setOpen] = useState(preset !== undefined);
+export function WriteLetter({ employee, onIssued, preset, onClose, startOpen = false }: Props) {
+  const [open, setOpen] = useState(preset !== undefined || startOpen);
   const [templates, setTemplates] = useState<LetterTemplate[] | null>(null);
   const [templateId, setTemplateId] = useState("");
   const [answers, setAnswers] = useState<Record<string, string>>({});

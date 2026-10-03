@@ -18,7 +18,9 @@ import { IncidentsScreen } from "./features/incidents/IncidentsScreen";
 import { AccountScreen } from "./features/me/AccountScreen";
 import { MyContractScreen } from "./features/me/MyContractScreen";
 import { OrganisationScreen } from "./features/organisation/OrganisationScreen";
-import { DirectoryScreen } from "./features/people/DirectoryScreen";
+import { EmployeeFile } from "./features/people/EmployeeFile";
+import { EmployeeFormPage } from "./features/people/EmployeeFormPage";
+import { PeopleScreen } from "./features/people/PeopleScreen";
 import { ScanningScreen } from "./features/people/ScanningScreen";
 import { ComingSoon } from "./features/placeholder/ComingSoon";
 import { MyRecordScreen } from "./features/privacy/MyRecordScreen";
@@ -118,6 +120,7 @@ export default function App() {
   // The privacy notice in force is read once, after sign-in, before anything else (item 1.31).
   if (me.privacy_notice_due) return <PrivacyNoticeScreen onAcknowledged={noticeRead} onSignOut={signOutFromNotice} />;
 
+  const file = path.match(/^\/people\/(\d+)(?:\/([a-z-]+))?$/);
   const idIn = (prefix: string) => {
     const m = path.match(new RegExp(`^${prefix}/(\\d+)`));
     return m ? Number(m[1]) : null;
@@ -130,17 +133,14 @@ export default function App() {
   // Everyone opens on their own Home (item 2.30): what waits for them, and the pages their role uses.
   if (path === "/") screen = <HomeScreen me={me} campusId={campus} onNavigate={navigate} />;
   else if (path === "/people/scanning") screen = <ScanningScreen onNavigate={navigate} />;
-  else if (path.startsWith("/people"))
-    screen = (
-      <DirectoryScreen
-        key={path === "/people/new" ? "new" : "list"}
-        me={me}
-        campusId={campus}
-        initialId={idIn("/people")}
-        creating={path === "/people/new"}
-        onNavigate={navigate}
-      />
-    );
+  else if (path === "/people/new")
+    screen = <EmployeeFormPage me={me} employeeId={null} campusId={campus} onNavigate={navigate} />;
+  else if (file?.[2] === "edit")
+    screen = <EmployeeFormPage key={path} me={me} employeeId={Number(file[1])} campusId={campus} onNavigate={navigate} />;
+  else if (file)
+    // A file opens as a page of its own (item 2.30); the address can name its tab, as /people/12/bank.
+    screen = <EmployeeFile key={path} employeeId={Number(file[1])} me={me} initialTab={file[2] ?? null} onNavigate={navigate} />;
+  else if (path.startsWith("/people")) screen = <PeopleScreen me={me} campusId={campus} onNavigate={navigate} />;
   else if (path.startsWith("/organisation"))
     screen = <OrganisationScreen me={me} campusId={campus} path={path} onNavigate={navigate} />;
   else if (path.startsWith("/letters")) screen = <LettersScreen me={me} path={path} onNavigate={navigate} />;

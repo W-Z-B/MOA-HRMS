@@ -255,7 +255,7 @@ def test_everything_waiting_for_hr_is_in_one_list(team, make_user):
         "career",
     }  # bank details: HR officers do not decide
     career = next(item for item in items if item["kind"] == "career")
-    assert career["link"] == f"/people/{asha.id}" and "held by someone else" in career["title"]
+    assert career["link"] == f"/people/{asha.id}/appointments" and "held by someone else" in career["title"]
 
     hr_manager = make_user("hr.head", "hr_manager")
     session = APIClient()

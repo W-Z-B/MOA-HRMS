@@ -74,8 +74,7 @@ export function EmployeeForm({ existing, defaultCampus, onSaved, onCancel }: Pro
   }
 
   return (
-    <form className="stack" onSubmit={submit}>
-      <h2>{existing ? `Edit ${existing.full_name}` : "New employee"}</h2>
+    <form className="stack" onSubmit={submit} aria-label={existing ? `Edit ${existing.full_name}` : "New employee"}>
       <div className="grid2">
         <label>
           Employee number

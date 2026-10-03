@@ -1,7 +1,7 @@
 # Threat model
 
-**Version 1.21, 2 October 2026.** Method: STRIDE over the data flows in section 3, against the code on
-branch `feature/phase-2-navigation`. Version 1.1 records the four gaps closed by pull request 16
+**Version 1.22, 2 October 2026.** Method: STRIDE over the data flows in section 3, against the code on
+branch `feature/phase-2-people`. Version 1.1 records the four gaps closed by pull request 16
 (items 1.28, 1.35, 1.36, 1.37) and one weakness found while closing them (forged addresses). Version 1.2
 records two weaknesses found while building the staff record (pull request 17): writes across campuses,
 and a leave balance disclosed in a refusal. Version 1.3 records accounts and access (pull request 18:
@@ -26,7 +26,9 @@ records the audited change of a sign-in email address (pull request 34, item 1.4
 scanned papers filed in bulk (pull request 35, item 1.21). Version 1.20 records restriction and objection
 (pull request 36, item 1.46) and the Data Protection Officer role. Version 1.21 records navigation by role
 (pull request 37, item 2.30): each role's Home and its figures from one request, search for people, pages
-and actions, and a superuser offered every role in the web app.
+and actions, and a superuser offered every role in the web app. Version 1.22 records the staff file as a page
+of its own (pull request 38), and a fix found while building it: leave balances asked for by a role that may
+not read them came back as the caller's own.
 Reviewed at every release gate and whenever a data flow, role or integration is added. Gaps
 point to items in the Gold Standard Plan checklist.
 
@@ -153,6 +155,7 @@ with the other document files.
 | A refusal describing someone on another campus | **Fixed in pull request 17:** asking for leave for an employee on another campus was refused with that employee's leave balance in the message. Fields that name an employee, appointment, contract, document or post now accept only records in the caller's scope, before any other check, so an id on another campus reads as unknown | |
 | A report naming staff on every campus | **Fixed in pull request 17 (found while building pull request 18):** a campus HR officer could run the staff-records-to-check report for every campus, because the report took its campus from the address and, given none, ran over all of them. Reports whose rows name people now run only over the campuses the person works with, and asking for another is refused | |
 | Home or search naming people the reader may not see | Home's figures and lists come from one request (`/home/`), counted inside the campuses the person works with by the same rules as the lists they lead to. Only HR, the Principal and other staff-list readers see figures. A head of unit sees only the units they head, and the units under them. Contract and probation ends, and new starters with no account, name people, posts, campuses and dates, never identifiers, pay or health. Search finds people through the staff list, so only staff the person may read, and offers only the pages and actions their roles open. The server still refuses anything else (pull request 37) | |
+| Leave balances shown under the wrong name | **Fixed in pull request 38:** asked for another person's balances, the server answered a role that may not read them (the auditor, say) with the caller's own. A file could then have shown the reader's own figures as the other person's. Such a request is now refused. The file asks only for the roles that read balances: HR, the Principal, Finance and supervisors | |
 | Visitors' addresses sent to a third party | The design's web font from Google was not used: the page asks for it by name and falls back to the system font. The crest is served from the app, and the Content-Security-Policy is unchanged (pull request 37) | Shipping the font itself needs a named licence exception (ADR 0010) |
 | Script injection stealing data | React escapes output; no user HTML is rendered; `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`; **a Content-Security-Policy that allows only the app's own scripts, styles and data, checked on every screen of every browser journey**; **the API documentation is for signed-in people only outside development** (pull request 16) | The development server runs without the policy (hot reload needs inline scripts) |
 | Real data on staging abroad | Staging holds fictional data only; `seed_demo` refuses to run without `--fictional` and marks every record | Production hosting in Guyana (item 7.04) |

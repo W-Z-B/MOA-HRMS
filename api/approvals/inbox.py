@@ -91,7 +91,7 @@ def _bank(user) -> list[dict]:
             "Bank details to approve",
             f"{account.employee.full_name}: new bank details, ending {account.account_number_last4}",
             account.created_at,
-            f"/people/{account.employee_id}",
+            f"/people/{account.employee_id}/bank",
         )
         for account in pending.select_related("employee")
     ]
@@ -154,7 +154,7 @@ def _hr_followups(user) -> list[dict]:
                 "Career change held up",
                 f"{event.employee.full_name}: {event.get_kind_display().lower()}. {event.problem}",
                 event.updated_at,
-                f"/people/{event.employee_id}",
+                f"/people/{event.employee_id}/appointments",
             )
         )
     left = scope_queryset(user, Separation.objects.filter(state=Separation.State.LEFT), "employee__campus")
@@ -166,7 +166,7 @@ def _hr_followups(user) -> list[dict]:
                 "Clearance not finished",
                 f"{separation.employee.full_name}: left on {separation.last_day:%d/%m/%Y}",
                 separation.completed_at or separation.updated_at,
-                f"/people/{separation.employee_id}",
+                f"/people/{separation.employee_id}/appointments",
             )
         )
     return items

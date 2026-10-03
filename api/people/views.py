@@ -120,13 +120,19 @@ class EmployeeViewSet(AuditedModelViewSet):
     # Changes to the personal record say why (item 1.08); the reason is kept on the audit row.
     reason_required_for = ("update", "partial_update")
 
+    def get_serializer_class(self):
+        # A list stays light; one file adds the facts shown above its tabs (item 2.30).
+        return serializers.EmployeeSerializer if self.action == "list" else serializers.EmployeeFileSerializer
+
     def get_queryset(self):
         from privacy.models import Restriction
 
         held = Prefetch(
             "restrictions", queryset=Restriction.objects.filter(lifted_at__isnull=True), to_attr="held_back"
         )
-        qs = Employee.objects.select_related("campus").prefetch_related("assignments__position", held)
+        qs = Employee.objects.select_related("campus").prefetch_related(
+            "assignments__position__org_unit", held
+        )
         qs = scope_queryset(self.request.user, qs)
         params = self.request.query_params
         if params.get("q"):
