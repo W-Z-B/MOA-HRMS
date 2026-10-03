@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { plainMessage, post } from "../../api/client";
 import type { LeaveCheck, LeaveRequest, LeaveType } from "../../api/types";
 import { inDays, num } from "../../app/format";
+import { usePhone } from "../../app/frame";
 import { enqueueLeave, isNetworkError } from "../../app/offlineQueue";
 
 interface Props {
@@ -20,6 +21,7 @@ export function RequestForm({ employeeId, types, onSaved }: Props) {
   const [to, setTo] = useState("");
   const [reason, setReason] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const phone = usePhone();
   const [answer, setAnswer] = useState<{ key: string; check: LeaveCheck } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -105,8 +107,8 @@ export function RequestForm({ employeeId, types, onSaved }: Props) {
   }
 
   return (
-    <form className="card-block stack" onSubmit={(e) => save(e, true)}>
-      <h2>Request leave</h2>
+    <form className="card-block stack leave-request" onSubmit={(e) => save(e, true)} aria-label="Ask for leave">
+      <h2>Ask for leave</h2>
       <label>
         Leave type
         <select id="leave-type" value={leaveType} onChange={(e) => setLeaveType(e.target.value)} required>
@@ -133,8 +135,13 @@ export function RequestForm({ employeeId, types, onSaved }: Props) {
         <input id="leave-reason" value={reason} onChange={(e) => setReason(e.target.value)} maxLength={300} />
       </label>
 
+      {!check && (
+        <div className="check tone-neutral" role="status">
+          <p>{key ? "Checking those days…" : "Choose the type of leave, then the first and last day."}</p>
+        </div>
+      )}
       {check && (
-        <div className={blocked ? "check bad" : "check"} role="status">
+        <div className={`check ${blocked ? "bad tone-bad" : needsNote && !file ? "tone-warn" : "tone-good"}`} role="status">
           {blocked ? (
             check.problems.map((p) => <p key={p.code}>{p.detail}</p>)
           ) : (
@@ -190,6 +197,9 @@ export function RequestForm({ employeeId, types, onSaved }: Props) {
           Save draft
         </button>
       </div>
+      {phone && (
+        <p className="muted small">No signal? The request waits on this phone and is sent when you are back online.</p>
+      )}
     </form>
   );
 }

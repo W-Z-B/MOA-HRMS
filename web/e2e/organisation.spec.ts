@@ -3,6 +3,9 @@ import { expect, expectAccessible, openSection, signIn, signOut, STAFF, test } f
 test("HR reads the establishment: posts and who holds them, units, salary scales and campuses", async ({ page }, testInfo) => {
   await signIn(page, STAFF.hr.username);
   await openSection(page, "Organisation");
+  // The chart comes first (item 2.30); the posts are a tab away.
+  await expect(page.getByRole("tab", { name: "Chart" })).toHaveAttribute("aria-selected", "true");
+  await page.getByRole("tab", { name: "Posts" }).click();
   const posts = page.getByRole("table", { name: "Posts" });
   // By the cell's own text: on a phone each cell also shows its column's name.
   const post = (number: string) => posts.locator("tr").filter({ has: page.locator("td", { hasText: new RegExp(`^${number}$`) }) });
@@ -28,7 +31,6 @@ test("HR reads the establishment: posts and who holds them, units, salary scales
 test("the organisation chart draws units as they nest, finds a person, and prints without its controls", async ({ page }, testInfo) => {
   await signIn(page, STAFF.hr.username);
   await openSection(page, "Organisation");
-  await page.getByRole("tab", { name: "Chart" }).click();
   await expect(page.getByRole("list", { name: "Units under Department of Agriculture", exact: true })).toContainText("Livestock Unit");
   await expect(page.getByRole("list", { name: "Posts in Department of Agriculture", exact: true })).toContainText(STAFF.employee.name);
   await expect(page.getByRole("list", { name: "Posts in Administration" })).toContainText("Frozen");

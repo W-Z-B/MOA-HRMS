@@ -1,4 +1,4 @@
-import type { Me } from "../../api/types";
+import { ORG_WRITE_ROLES, hasAnyRole, type Me } from "../../api/types";
 import { CampusesTab } from "./CampusesTab";
 import { ChartTab } from "./ChartTab";
 import { GradesTab } from "./GradesTab";
@@ -12,10 +12,11 @@ interface Props {
   onNavigate: (to: string) => void;
 }
 
+// The chart comes first (item 2.30): the establishment as people picture it, units within units.
 const TABS = [
-  { key: "posts", path: "/organisation", label: "Posts" },
+  { key: "chart", path: "/organisation", label: "Chart" },
   { key: "units", path: "/organisation/units", label: "Units" },
-  { key: "chart", path: "/organisation/chart", label: "Chart" },
+  { key: "posts", path: "/organisation/posts", label: "Posts" },
   { key: "grades", path: "/organisation/grades", label: "Salary scales" },
   { key: "campuses", path: "/organisation/campuses", label: "Campuses" },
 ] as const;
@@ -23,10 +24,20 @@ const TABS = [
 /** The establishment: posts, the units they sit in, the chart they make (item 1.10), the grades they are paid on,
  * and the campuses (item 1.25). */
 export function OrganisationScreen({ me, campusId, path, onNavigate }: Props) {
+  // Any other address, the chart's older one included, opens the chart.
   const current = TABS.find((t) => t.path === path) ?? TABS[0];
+  const keeps = hasAnyRole(me, ORG_WRITE_ROLES);
   return (
     <>
-      <h1>Organisation</h1>
+      <div className="page-head">
+        <div className="stacked">
+          <h1>Organisation</h1>
+          <p className="muted lead">
+            Campuses, units, posts and salary scales.
+            {keeps ? "" : " Changes are made by the HR Manager or an administrator."}
+          </p>
+        </div>
+      </div>
       <div className="tabs no-print" role="tablist" aria-label="Organisation">
         {TABS.map((t) => (
           <button

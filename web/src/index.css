@@ -1605,32 +1605,6 @@ dl.terms dd {
   margin-bottom: 16px;
 }
 
-/* Reports: one button per report, then the table. */
-.report-list {
-  display: grid;
-  gap: 8px;
-  margin-bottom: 20px;
-}
-.report-list li {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 12px;
-}
-button.report {
-  background: var(--card);
-  color: var(--accent);
-  border: 1px solid var(--rule);
-}
-button.report:hover {
-  background: var(--hover-row);
-}
-button.report.active,
-button.report.active:hover {
-  background: var(--accent);
-  color: var(--accent-ink);
-}
-
 /* Admin: one card per account (or member of staff), its roles, and what may be done to it. */
 .accounts > li {
   display: flex;
@@ -2643,5 +2617,304 @@ table.people td.who a:hover {
   }
   .file-who .actions button {
     flex: 1 1 140px;
+  }
+}
+
+/* Admin (item 2.30): sections grouped by purpose, beside the section open. */
+.admin {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-start;
+}
+.admin-nav {
+  flex: 0 1 250px;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px 10px;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-card);
+}
+.admin-group ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.admin-group-label {
+  margin: 0;
+  padding: 2px 10px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.admin-nav a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: var(--ink);
+  font-size: 14px;
+  text-decoration: none;
+}
+.admin-nav a:hover {
+  background: #f0f4ee;
+  color: var(--ink);
+}
+.admin-nav a[aria-current="page"] {
+  background: var(--accent);
+  color: #ffffff;
+  font-weight: 700;
+}
+.admin-section {
+  flex: 1 1 520px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.admin-section-head h2 {
+  margin: 0;
+  font-size: 20px;
+}
+.admin-section-head p {
+  margin: 2px 0 0;
+}
+
+/* Reports (item 2.30): each report a card to choose; headcount and the establishment drawn as bars. */
+.report-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+button.report-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 0;
+  padding: 15px 19px;
+  border: 1px solid #d9e0d4;
+  border-radius: var(--radius-card);
+  background: var(--card);
+  color: var(--ink);
+  font-weight: 400;
+  text-align: left;
+}
+button.report-card:hover {
+  border-color: var(--accent);
+  background: var(--card);
+}
+button.report-card.active,
+button.report-card.active:hover {
+  padding: 14px 18px;
+  border: 2px solid var(--accent);
+  background: #f3f8f1;
+}
+.report-title {
+  font-size: 15.5px;
+  font-weight: 700;
+}
+.report-card.active .report-title {
+  color: var(--accent);
+}
+.report-desc {
+  font-size: 13px;
+  color: var(--muted);
+}
+.report {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.report h2 {
+  margin: 0;
+  font-size: 19px;
+}
+.report > .stacked p {
+  margin: 2px 0 0;
+}
+.chart {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+.tone-1 {
+  background: var(--accent);
+}
+.tone-2 {
+  background: #6fae86;
+}
+.tone-3 {
+  background: var(--amber);
+}
+.tone-4 {
+  background: #b9c2b5;
+}
+.chart-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.stack-bar {
+  display: flex;
+  height: 22px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #f0f3ec;
+}
+.stack-bar span {
+  height: 100%;
+}
+tr.total td {
+  font-weight: 700;
+  background: var(--head-row);
+}
+
+/* Leave (item 2.30): the days left, then the form beside the person's own requests; the check coloured by
+   what it found. */
+.leave-columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-start;
+}
+.leave-form {
+  flex: 1 1 380px;
+  min-width: 0;
+}
+.leave-mine {
+  flex: 1 1 380px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.leave-mine h2 {
+  margin: 0;
+  font-size: 17px;
+}
+.leave-mine .request {
+  max-width: none;
+  margin-bottom: 0;
+}
+.card-block.leave-request {
+  max-width: none;
+  margin: 0;
+  padding: 20px;
+}
+.leave-request h2 {
+  font-size: 17px;
+}
+.empty-note {
+  margin: 0;
+  padding: 16px 18px;
+  border: 1px dashed var(--field);
+  border-radius: var(--radius-card);
+  color: var(--muted);
+}
+.check {
+  border-left: 0;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.check.tone-neutral {
+  background: #f0f3ec;
+  color: var(--ink-2);
+}
+.check.tone-good {
+  background: var(--tint);
+  color: var(--tint-ink);
+}
+.check.tone-warn {
+  background: var(--warn-bg);
+  color: var(--amber-text);
+}
+.check.tone-bad {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+.request .reject-form {
+  margin-top: 4px;
+}
+
+/* The organisation chart (item 2.30): each unit a card that folds, its posts as rows, vacant posts in amber. */
+.org-unit {
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+.org-unit > summary {
+  padding: 14px 18px;
+  border: 0;
+  border-radius: 0;
+}
+.org-unit[open] > summary {
+  border-bottom: 1px solid var(--rule-soft);
+}
+.org-name {
+  font-size: 15.5px;
+  font-weight: 700;
+}
+ul.org-posts {
+  margin: 0;
+}
+ul.org-posts > li {
+  padding: 10px 18px 10px 44px;
+  border-bottom: 1px solid #f1f4ee;
+}
+ul.org-posts > li:last-child {
+  border-bottom: 0;
+}
+.org-unit > ul.org-chart {
+  margin: 10px 14px 14px 22px;
+}
+.chip-vacant {
+  background: var(--warn-bg);
+}
+
+@media (max-width: 760px) {
+  .admin-nav,
+  .admin-section {
+    flex-basis: 100%;
+  }
+  .leave-form,
+  .leave-mine {
+    flex-basis: 100%;
+  }
+  ul.org-posts > li {
+    padding-left: 18px;
   }
 }

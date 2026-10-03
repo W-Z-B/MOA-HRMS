@@ -4,6 +4,7 @@ import {
   linkSentTo,
   mailbox,
   newStarter,
+  openAdmin,
   openSection,
   passNotice,
   signIn,
@@ -22,7 +23,7 @@ test.describe.serial("accounts", () => {
     const starter = newStarter(testInfo);
     await signIn(page, STAFF.hr.username);
     await openSection(page, "Admin");
-    await page.getByRole("tab", { name: "Staff without an account" }).click();
+    await openAdmin(page, "Staff without an account");
     await expect(page.getByText(starter.name)).toBeVisible();
     await expectAccessible(page, testInfo, "staff without an account");
 

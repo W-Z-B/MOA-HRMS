@@ -44,7 +44,7 @@ export function StaffTab({ campusId, onNavigate }: Props) {
       setNotice(
         account.emailed
           ? `Account opened for ${employee.full_name}, username ${account.username}. The invitation to choose a password was sent to ${account.email}.`
-          : `Account opened for ${employee.full_name}, username ${account.username}, but the invitation could not be sent. Send it again from the Accounts tab.`,
+          : `Account opened for ${employee.full_name}, username ${account.username}, but the invitation could not be sent. Send it again from Accounts, in Admin.`,
       );
       setVersion((v) => v + 1);
     } catch (err) {
@@ -66,7 +66,7 @@ export function StaffTab({ campusId, onNavigate }: Props) {
       </h2>
       <p className="muted">
         Opening an account emails the person a link to choose their own password. They sign in with the employee role
-        on their campus; give any other role from the Accounts tab.
+        on their campus; give any other role from Accounts.
       </p>
       <form className="filters" role="search" onSubmit={searchFor}>
         <label className="grow">

@@ -20,15 +20,22 @@ from people.models import Assignment, Employee
 
 
 def establishment_vs_actual(campus_id: int | None = None) -> list[dict]:
-    """Approved positions against substantive holders, per campus and unit."""
-    positions = Position.objects.filter(status=Position.Status.APPROVED)
+    """Posts against their substantive holders, per campus and unit. Approved posts are filled or vacant;
+    frozen posts (nobody holds them, and none may be appointed until they are released) are counted apart,
+    as the organisation chart counts them. Each post counts once, however many appointments it has had."""
+    positions = Position.objects.exclude(status=Position.Status.ABOLISHED)
     if campus_id:
         positions = positions.filter(org_unit__campus_id=campus_id)
+    approved = Q(status=Position.Status.APPROVED)
+    frozen = Q(status=Position.Status.FROZEN)
+    held = Q(assignments__status="active", assignments__is_acting=False)
     rows = (
         positions.values("org_unit__campus__name", "org_unit__name")
         .annotate(
-            approved=Count("id"),
-            filled=Count("id", filter=Q(assignments__status="active", assignments__is_acting=False)),
+            approved=Count("id", filter=approved, distinct=True),
+            filled=Count("id", filter=approved & held, distinct=True),
+            frozen_all=Count("id", filter=frozen, distinct=True),
+            frozen_held=Count("id", filter=frozen & held, distinct=True),
         )
         .order_by("org_unit__campus__name", "org_unit__name")
     )
@@ -39,17 +46,44 @@ def establishment_vs_actual(campus_id: int | None = None) -> list[dict]:
             "approved": r["approved"],
             "filled": r["filled"],
             "vacant": r["approved"] - r["filled"],
+            "frozen": r["frozen_all"] - r["frozen_held"],
         }
         for r in rows
     ]
 
 
-def headcount_by_campus() -> list[dict]:
-    rows = Campus.objects.annotate(
-        active=Count("employees", filter=Q(employees__status=Employee.Status.ACTIVE)),
-        total=Count("employees"),
-    ).order_by("code")
-    return [{"campus": c.name, "active": c.active, "total": c.total} for c in rows]
+# Kinds of appointment the headcount names; the rest (sessional, seasonal, none recorded) count as other.
+NAMED_APPOINTMENTS = ("permanent", "temporary", "contract")
+
+
+def headcount_by_campus(campus_id: int | None = None) -> list[dict]:
+    """Active staff on each campus by the kind of their own appointment, and everyone on its staff list."""
+    campuses = Campus.objects.order_by("code")
+    if campus_id:
+        campuses = campuses.filter(pk=campus_id)
+    kind = {}
+    holdings = Assignment.objects.filter(status=Assignment.Status.ACTIVE, is_acting=False).order_by(
+        "start_date"
+    )
+    for employee_id, appointment in holdings.values_list("employee_id", "appointment_type"):
+        kind[employee_id] = appointment  # the latest appointment is the one kept
+    staff = defaultdict(list)
+    for employee_id, campus, state in Employee.objects.values_list("id", "campus_id", "status"):
+        staff[campus].append((employee_id, state))
+    rows = []
+    for campus in campuses:
+        active = [e for e, state in staff[campus.id] if state == Employee.Status.ACTIVE]
+        named = {name: sum(kind.get(e) == name for e in active) for name in NAMED_APPOINTMENTS}
+        rows.append(
+            {
+                "campus": campus.name,
+                **named,
+                "other": len(active) - sum(named.values()),
+                "active": len(active),
+                "total": len(staff[campus.id]),
+            }
+        )
+    return rows
 
 
 IDENTIFIERS = (("nis_no", "NIS number"), ("tin", "TIN"), ("national_id", "National ID"))

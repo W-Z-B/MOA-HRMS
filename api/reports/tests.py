@@ -19,8 +19,100 @@ def test_establishment_vs_actual_counts_filled_and_vacant(api, employee, unit):
     report = api.get("/api/v1/reports/establishment-vs-actual/")
     assert report.status_code == 200
     row = next(r for r in report.json()["rows"] if r["unit"] == "Livestock Unit")
-    assert (row["approved"], row["filled"], row["vacant"]) == (2, 1, 1)
+    assert (row["approved"], row["filled"], row["vacant"], row["frozen"]) == (2, 1, 1, 0)
     assert api.get("/api/v1/reports/establishment-vs-actual/?output=pdf").status_code == 501
+
+
+@pytest.mark.django_db
+def test_each_post_counts_once_and_frozen_posts_apart(api, employee, unit, campus):
+    """Item 2.30: a post with an ended and a current appointment counted twice; frozen posts were left out."""
+    from org.models import Position
+    from people.models import Assignment, Employee
+
+    post = Position.objects.get(number="LIV-001")
+    Assignment.objects.create(
+        employee=employee,
+        position=post,
+        appointment_type="temporary",
+        start_date=date(2020, 1, 6),
+        end_date=date(2020, 12, 31),
+        status="ended",
+    )
+    other = Employee.objects.create(
+        employee_no="E0002",
+        first_name="Kwame",
+        last_name="Adams",
+        date_of_birth=date(1982, 2, 18),
+        campus=campus,
+    )
+    Assignment.objects.create(
+        employee=other, position=post, appointment_type="permanent", start_date=date(2021, 1, 4)
+    )
+    Position.objects.create(
+        number="LIV-009", title="Old post", grade=post.grade, org_unit=unit, status="frozen"
+    )
+
+    rows = api.get(f"/api/v1/reports/establishment-vs-actual/?campus={campus.id}").json()["rows"]
+
+    assert rows == [
+        {
+            "campus": "Mon Repos Campus",
+            "unit": "Livestock Unit",
+            "approved": 2,
+            "filled": 1,
+            "vacant": 1,
+            "frozen": 1,
+        }
+    ]
+
+
+@pytest.mark.django_db
+def test_headcount_counts_active_staff_by_their_appointment(api, employee, unit, campus):
+    from org.models import Campus, Position
+    from people.models import Assignment, Employee
+
+    Assignment.objects.create(
+        employee=employee,
+        position=Position.objects.get(number="LIV-001"),
+        appointment_type="contract",
+        start_date=date(2025, 11, 17),
+    )
+    seasonal = Employee.objects.create(
+        employee_no="E0002",
+        first_name="Kemal",
+        last_name="Bacchus",
+        date_of_birth=date(1999, 1, 19),
+        campus=campus,
+    )
+    Assignment.objects.create(
+        employee=seasonal,
+        position=Position.objects.get(number="LIV-002"),
+        appointment_type="seasonal",
+        start_date=date(2026, 9, 28),
+    )
+    Employee.objects.create(
+        employee_no="E0003",
+        first_name="Former",
+        last_name="Member",
+        date_of_birth=date(1970, 1, 1),
+        campus=campus,
+        status="separated",
+    )
+    esq = Campus.objects.get(code="ESQ")
+
+    every = {r["campus"]: r for r in api.get("/api/v1/reports/headcount-by-campus/").json()["rows"]}
+    one = api.get(f"/api/v1/reports/headcount-by-campus/?campus={esq.id}").json()["rows"]
+
+    assert every["Mon Repos Campus"] == {
+        "campus": "Mon Repos Campus",
+        "permanent": 0,
+        "temporary": 0,
+        "contract": 1,
+        "other": 1,
+        "active": 2,
+        "total": 3,
+    }
+    assert [r["campus"] for r in one] == ["Essequibo Campus"] and one[0]["active"] == 0
 
 
 @pytest.mark.django_db

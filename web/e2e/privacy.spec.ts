@@ -1,4 +1,4 @@
-import { expect, expectAccessible, openSection, privacyPerson, signIn, signOut, STAFF, test } from "./support";
+import { expect, expectAccessible, openSection, privacyPerson, signIn, signOut, STAFF, test, openAdmin } from "./support";
 
 // The person asks; HR answers; the person sees the answer.
 test.describe.serial("privacy rights", () => {
@@ -36,7 +36,7 @@ test.describe.serial("privacy rights", () => {
     const person = privacyPerson(testInfo);
     await signIn(page, STAFF.hr.username);
     await openSection(page, "Admin");
-    await page.getByRole("tab", { name: "Correction requests" }).click();
+    await openAdmin(page, "Correction requests");
     const request = page
       .getByRole("list", { name: "Correction requests" })
       .getByRole("listitem")

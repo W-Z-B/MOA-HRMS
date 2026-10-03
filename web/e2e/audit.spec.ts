@@ -1,9 +1,9 @@
-import { expect, expectAccessible, openSection, signIn, signOut, STAFF, test } from "./support";
+import { expect, expectAccessible, openSection, signIn, signOut, STAFF, test, openAdmin } from "./support";
 
 test("the auditor checks the audit log, finds what happened to a file, and downloads it", async ({ page }, testInfo) => {
   await signIn(page, STAFF.auditor.username);
   await openSection(page, "Admin");
-  await page.getByRole("tab", { name: "Audit log" }).click();
+  await openAdmin(page, "Audit log");
   await expect(page.getByRole("list", { name: "Audit entries" })).toBeVisible();
 
   await page.getByRole("button", { name: "Check every entry now" }).click();
@@ -21,23 +21,23 @@ test("the auditor checks the audit log, finds what happened to a file, and downl
   expect(download.suggestedFilename()).toMatch(/^gsa-hrms-audit-\d{8}-\d{4}\.csv$/);
 
   // The auditor also reads the retention schedule and the breach register, and changes neither.
-  await page.getByRole("tab", { name: "Retention" }).click();
+  await openAdmin(page, "Retention");
   const schedule = page.getByRole("table", { name: "The retention schedule" });
   await expect(schedule.locator("tbody").getByRole("row")).toHaveCount(6); // the heading row is hidden on phones
   await expect(schedule).toContainText("Checks of letters on the public checking page");
   await expect(schedule.getByRole("button")).toHaveCount(0);
   await expectAccessible(page, testInfo, "retention schedule");
-  await page.getByRole("tab", { name: "Breaches" }).click();
+  await openAdmin(page, "Breaches");
   await expect(page.getByText("No breaches recorded.")).toBeVisible();
   await expectAccessible(page, testInfo, "breach register");
 
   // And the holidays, with Labour Day on file, and the leave types, without changing either.
-  await page.getByRole("tab", { name: "Holidays" }).click();
+  await openAdmin(page, "Holidays");
   const year = new Date().getFullYear();
   const holidays = page.getByRole("table", { name: `Guyana's public holidays in ${year}` });
   await expect(holidays.getByRole("row").filter({ hasText: "Labour Day" })).toContainText(`01/05/${year}`);
   await expectAccessible(page, testInfo, "holidays");
-  await page.getByRole("tab", { name: "Leave types" }).click();
+  await openAdmin(page, "Leave types");
   await expect(page.getByRole("table", { name: "Leave types and their rules" })).toContainText("Annual leave");
   await expect(page.getByRole("button", { name: /^Change / })).toHaveCount(0);
   await expectAccessible(page, testInfo, "leave types");
