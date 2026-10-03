@@ -57,6 +57,7 @@ function steps(r: LeaveRequest): { label: string; mark: Mark; detail: string }[]
 /** One request as a card: readable on a phone, with the actions this person may take on it. */
 export function RequestCard({ request: r, view, canOpenNote, highlighted, onAction, onAttach, onReceipt }: Props) {
   const [comment, setComment] = useState("");
+  const [rejecting, setRejecting] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const open = ["draft", "submitted", "supervisor_approved"].includes(r.state);
@@ -139,23 +140,42 @@ export function RequestCard({ request: r, view, canOpenNote, highlighted, onActi
         </div>
       )}
 
-      {r.allowed_actions.includes("reject") && (
-        <label>
-          Comment (needed to reject)
-          <input value={comment} onChange={(e) => setComment(e.target.value)} maxLength={300} />
-        </label>
+      {rejecting && (
+        <form
+          className="reject-form"
+          aria-label={`Reject ${r.leave_type_name.toLowerCase()} for ${r.employee_name}`}
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (comment.trim()) run(() => onAction(r, "reject", comment.trim()));
+          }}
+        >
+          <label>
+            Reason for rejecting. {r.employee_name.split(" ")[0]} will see it.
+            <input value={comment} onChange={(e) => setComment(e.target.value)} maxLength={300} autoFocus />
+          </label>
+          <div className="actions">
+            <button type="button" className="secondary" onClick={() => setRejecting(false)}>
+              Back
+            </button>
+            <button type="submit" className="danger" disabled={busy || !comment.trim()}>
+              Reject request
+            </button>
+          </div>
+        </form>
       )}
       <div className="actions">
-        {r.allowed_actions.map((action) => (
-          <button
-            key={action}
-            className={action === "reject" || action === "cancel" ? "secondary" : ""}
-            disabled={busy || (action === "submit" && missingNote) || (action === "reject" && !comment.trim())}
-            onClick={() => run(() => onAction(r, action, comment))}
-          >
-            {ACTION[action] ?? action}
-          </button>
-        ))}
+        {r.allowed_actions
+          .filter((action) => !(rejecting && action === "reject"))
+          .map((action) => (
+            <button
+              key={action}
+              className={action === "reject" || action === "cancel" ? "secondary" : ""}
+              disabled={busy || (action === "submit" && missingNote)}
+              onClick={() => (action === "reject" ? setRejecting(true) : run(() => onAction(r, action, comment)))}
+            >
+              {ACTION[action] ?? action}
+            </button>
+          ))}
         {r.receipt && (
           <button className="secondary" onClick={() => onReceipt(r)}>
             View receipt

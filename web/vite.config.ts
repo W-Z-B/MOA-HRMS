@@ -57,6 +57,7 @@ export default defineConfig({
         "src/features/me/EmailSection.tsx",
         "src/features/leave/Receipt.tsx",
         "src/features/leave/RequestForm.tsx",
+        "src/features/leave/RequestCard.tsx",
         "src/features/people/PeopleScreen.tsx",
         "src/features/people/EmployeeFile.tsx",
         "src/features/people/EmployeeFormPage.tsx",

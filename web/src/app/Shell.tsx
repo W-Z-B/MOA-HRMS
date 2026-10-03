@@ -122,8 +122,7 @@ export function Shell({ me, path, onNavigate, onLogout, campusId, onCampusChange
   ) : null;
   const count = waiting > 0 && (
     <span className="count">
-      {waiting}
-      <span className="sr-only"> waiting</span>
+      {waiting} <span className="sr-only">waiting</span>
     </span>
   );
 
@@ -148,7 +147,7 @@ export function Shell({ me, path, onNavigate, onLogout, campusId, onCampusChange
             {!phone && campusSwitch}
             {!phone && (
               <a className="todo-link" aria-current={path === "/to-do" ? "page" : undefined} {...link("/to-do")}>
-                To do
+                To do{" "}
                 {count}
               </a>
             )}
@@ -188,7 +187,7 @@ export function Shell({ me, path, onNavigate, onLogout, campusId, onCampusChange
               Home
             </a>
             <a aria-current={path === "/to-do" && !searching ? "page" : undefined} {...link("/to-do")}>
-              To do
+              To do{" "}
               {count}
             </a>
             <button type="button" aria-haspopup="dialog" aria-pressed={searching} onClick={openSearch}>

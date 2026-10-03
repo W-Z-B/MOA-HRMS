@@ -103,7 +103,7 @@ describe("the frame", () => {
     expect(screen.getByRole("link", { name: "GSA HRMS Home" })).toHaveAttribute("href", "#/");
     const todo = screen.getByRole("link", { name: /^To do/ });
     expect(await within(todo).findByText("3")).toBeInTheDocument();
-    expect(todo).toHaveTextContent("To do3 waiting");
+    expect(todo).toHaveTextContent("To do 3 waiting");
     await userEvent.setup().click(todo);
     expect(props.onNavigate).toHaveBeenCalledWith("/to-do");
     expect(screen.queryByText(/hr_officer/)).not.toBeInTheDocument();

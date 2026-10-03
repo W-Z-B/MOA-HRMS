@@ -132,26 +132,19 @@ export function LeaveScreen({ me, focusId, deciding = false, onNavigate }: Props
 
   return (
     <>
-      <h1>Leave</h1>
-      {balances.length > 0 && (
-        <section className="tiles" aria-label="Days you have left">
-          {balances
-            .filter((b) => b.limited)
-            .map((b) => (
-              <div className="tile" key={b.leave_type}>
-                <span className="num">{parseFloat(Math.max(num(b.available), 0).toFixed(2))}</span>
-                <span>{b.name} left</span>
-                <span className="muted small">
-                  {inDays(b.entitlement)} a year
-                  {num(b.pending) > 0 && ` · ${inDays(b.pending)} awaiting a decision`}
-                </span>
-              </div>
-            ))}
-        </section>
-      )}
+      <div className="page-head">
+        <div className="stacked">
+          <h1>Leave</h1>
+          <p className="muted lead">
+            {canDecide
+              ? "Your own leave, and requests from the people you approve."
+              : "Days left, your requests and how far each one has gone."}
+          </p>
+        </div>
+      </div>
 
       {canDecide && (
-        <div className="tabs" role="tablist">
+        <div className="tabs" role="tablist" aria-label="Leave">
           <button role="tab" aria-selected={tab === "mine"} className={tab === "mine" ? "tab active" : "tab"} onClick={() => setTab("mine")}>
             My leave
           </button>
@@ -189,26 +182,55 @@ export function LeaveScreen({ me, focusId, deciding = false, onNavigate }: Props
               </button>
             </p>
           )}
-          {me.employee_id ? (
-            <RequestForm
-              employeeId={me.employee_id}
-              types={types}
-              onSaved={(message) => {
-                setNotice(message);
-                load();
-              }}
-            />
-          ) : (
-            <p className="muted">Your account is not linked to an employee record, so you cannot request leave here.</p>
+          {balances.some((b) => b.limited) && (
+            <section className="figures" aria-label="Days you have left">
+              {balances
+                .filter((b) => b.limited)
+                .map((b) => (
+                  <div className="figure" key={b.leave_type}>
+                    <span className="figure-label">{b.name} left</span>
+                    <span className="figure-value">{inDays(Math.max(num(b.available), 0))}</span>
+                    <span className="figure-note">
+                      {num(b.pending) > 0
+                        ? `${inDays(b.pending)} awaiting a decision`
+                        : `${inDays(b.entitlement)} a year · nothing awaiting a decision`}
+                    </span>
+                  </div>
+                ))}
+            </section>
           )}
-          <h2>My requests</h2>
-          {mine.length === 0 ? <p className="muted">You have made no requests.</p> : mine.map((r) => card(r, "mine"))}
+          <div className="leave-columns">
+            <div className="leave-form">
+              {me.employee_id ? (
+                <RequestForm
+                  employeeId={me.employee_id}
+                  types={types}
+                  onSaved={(message) => {
+                    setNotice(message);
+                    load();
+                  }}
+                />
+              ) : (
+                <p className="panel-card padded muted">
+                  Your account is not linked to an employee record, so you cannot ask for leave here.
+                </p>
+              )}
+            </div>
+            <section className="leave-mine" aria-labelledby="mine-heading">
+              <h2 id="mine-heading">Your requests</h2>
+              {mine.length === 0 ? (
+                <p className="empty-note">You have not asked for leave this year.</p>
+              ) : (
+                mine.map((r) => card(r, "mine"))
+              )}
+            </section>
+          </div>
         </>
       )}
       {tab === "decide" && canDecide && (
         <>
           {queue.length === 0 ? (
-            <p className="muted">Nothing is waiting for your decision.</p>
+            <p className="panel-card padded">Nothing is waiting for your decision.</p>
           ) : (
             queue.map((r) => card(r, "decide"))
           )}

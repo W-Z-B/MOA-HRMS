@@ -103,25 +103,47 @@ describe("access review", () => {
 });
 
 describe("the Admin screen", () => {
-  it("shows each person only the tabs their roles may use, and opens the one in the address", async () => {
+  it("groups the sections each person may open by purpose, and opens the one in the address", async () => {
     fakeServer({ "GET /reports/access-review/": report, "GET /access-reviews/": reviews([]) });
     const onNavigate = vi.fn();
     render(<AdminScreen me={person(["auditor"])} campusId={null} path="/admin/review" onNavigate={onNavigate} />);
-    const tabs = screen.getAllByRole("tab");
-    expect(tabs.map((t) => t.textContent)).toEqual([
+    const nav = screen.getByRole("navigation", { name: "Admin sections" });
+    expect(within(nav).getAllByRole("heading").map((h) => h.textContent)).toEqual(["People and access", "Privacy", "Records", "Setup"]);
+    expect(within(nav).getAllByRole("link").map((a) => a.textContent)).toEqual([
       "Accounts",
       "Access review",
-      "Audit log",
       "Privacy notice",
       "Retention",
       "Breaches",
+      "Audit log",
       "Holidays",
       "Leave types",
     ]);
-    expect(screen.getByRole("tab", { name: "Access review" })).toHaveAttribute("aria-selected", "true");
+    expect(within(nav).getByRole("link", { name: "Access review" })).toHaveAttribute("aria-current", "page");
+    expect(document.getElementById("admin-section-title")).toHaveTextContent("Access review");
+    expect(screen.getByText("Every role of every account, signed off every three months.")).toBeInTheDocument();
     await screen.findByRole("table");
-    await userEvent.setup().click(screen.getByRole("tab", { name: "Accounts" }));
+    await userEvent.setup().click(within(nav).getByRole("link", { name: "Accounts" }));
     expect(onNavigate).toHaveBeenCalledWith("/admin");
+  });
+
+  it("counts what waits in a section, where the role may look", async () => {
+    const page = (count: number) => ({ body: { count, next: null, previous: null, results: [] } });
+    const server = fakeServer({
+      "GET /employees/": page(2),
+      "GET /privacy/corrections/": page(1),
+      "GET /accounts/": page(0),
+    });
+    render(<AdminScreen me={person(["hr_officer"])} campusId={null} path="/admin" onNavigate={vi.fn()} />);
+    const nav = screen.getByRole("navigation", { name: "Admin sections" });
+    expect(await within(nav).findByRole("link", { name: "Staff without an account 2 waiting" })).toBeInTheDocument();
+    expect(await within(nav).findByRole("link", { name: "Correction requests 1 waiting" })).toBeInTheDocument();
+    expect(server.calls.map((c) => c.path)).toEqual(
+      expect.arrayContaining(["/employees/?has_account=0&status=active", "/privacy/corrections/?state=open"]),
+    );
+    // The HR officer does not decide objections, so they are neither shown nor counted.
+    expect(within(nav).queryByRole("link", { name: /Objections/ })).not.toBeInTheDocument();
+    expect(server.calls.some((c) => c.path.startsWith("/privacy/objections/"))).toBe(false);
   });
 
   it("tells someone with no accounts to look after", () => {

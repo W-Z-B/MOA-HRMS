@@ -172,6 +172,16 @@ export async function openSection(page: Page, label: string) {
   await expect(dialog).toBeHidden();
 }
 
+/** Open one of Admin's sections, from the list of sections grouped by purpose (item 2.30). */
+export async function openAdmin(page: Page, label: string) {
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  await page
+    .getByRole("navigation", { name: "Admin sections" })
+    .getByRole("link", { name: new RegExp(`^${escaped}( \\d+ waiting)?$`) })
+    .click();
+  await expect(page.locator("#admin-section-title")).toHaveText(label);
+}
+
 /**
  * WCAG 2.2 AA rules, as the gold standard requires. Serious and critical findings fail the test; every
  * finding is attached to the report so the minor ones can be worked through too. The page must also

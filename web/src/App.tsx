@@ -175,7 +175,7 @@ export default function App() {
   else if (path.startsWith("/appraisals"))
     screen = <ComingSoon title="Appraisals" sprint="Release 2" requirement="F08" />;
   else if (path.startsWith("/payroll")) screen = <ComingSoon title="Payroll" sprint="Release 2" requirement="F13" />;
-  else if (path.startsWith("/reports")) screen = <ReportsScreen campusId={campus} onNavigate={navigate} />;
+  else if (path.startsWith("/reports")) screen = <ReportsScreen me={me} campusId={campus} onNavigate={navigate} />;
   else if (path.startsWith("/admin"))
     screen = <AdminScreen me={me} campusId={campus} path={path} onNavigate={navigate} />;
   else screen = <ComingSoon title="Not found" sprint="a later sprint" requirement="unknown route" />;

@@ -32,6 +32,28 @@ async function fill(type: string, from: string, to: string) {
 }
 
 describe("leave request form", () => {
+  it("says what to choose first, then colours the check by what it found (item 2.30)", async () => {
+    fakeServer({ "POST /leave/requests/check/": [{ body: check() }, { body: check({ problems: [{ code: "overlap", field: "from_date", detail: "It overlaps your request for 02/11/2026." }] }) }] });
+    render(<RequestForm employeeId={1} types={TYPES} onSaved={vi.fn()} />);
+    expect(screen.getByRole("form", { name: "Ask for leave" })).toBeInTheDocument();
+    const prompt = screen.getByRole("status");
+    expect(prompt).toHaveTextContent("Choose the type of leave, then the first and last day.");
+    expect(prompt).toHaveClass("tone-neutral");
+    await fill("Annual leave", "2026-11-02", "2026-11-03");
+    await screen.findByText("2 days");
+    expect(screen.getByRole("status")).toHaveClass("tone-good");
+    fireEvent.change(screen.getByLabelText("Last day"), { target: { value: "2026-11-04" } });
+    expect(await screen.findByText("It overlaps your request for 02/11/2026.")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveClass("tone-bad");
+    expect(screen.queryByText(/No signal\?/)).not.toBeInTheDocument();
+  });
+
+  it("tells a phone that a request waits for a signal", () => {
+    vi.stubGlobal("matchMedia", (media: string) => ({ matches: true, media, addEventListener: () => undefined, removeEventListener: () => undefined }));
+    render(<RequestForm employeeId={1} types={TYPES} onSaved={vi.fn()} />);
+    expect(screen.getByText("No signal? The request waits on this phone and is sent when you are back online.")).toBeInTheDocument();
+  });
+
   it("shows the days and what will be left before anything is sent", async () => {
     const server = fakeServer({ "POST /leave/requests/check/": { body: check() } });
     render(<RequestForm employeeId={1} types={TYPES} onSaved={vi.fn()} />);

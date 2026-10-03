@@ -73,8 +73,11 @@ describe("posts", () => {
       "GET /org/units/": page([agriculture]),
       "GET /org/grades/": page([grade]),
     });
-    const onNavigate = render_("/organisation", ["hr_officer"]);
+    const onNavigate = render_("/organisation/posts", ["hr_officer"]);
     const table = await screen.findByRole("table", { name: "Posts" });
+    // The Chart comes first, and says who keeps the establishment (item 2.30).
+    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Chart", "Units", "Posts", "Salary scales", "Campuses"]);
+    expect(screen.getByText(/Changes are made by the HR Manager or an administrator\./)).toBeInTheDocument();
     expect(within(table).getByText("Asha Persaud")).toBeInTheDocument();
     expect(within(table).getByText("Vacant")).toBeInTheDocument();
     expect(screen.getByText("2 posts, 1 approved and vacant")).toBeInTheDocument();
@@ -92,7 +95,8 @@ describe("posts", () => {
       "POST /org/positions/": { status: 201, body: vacant },
       "DELETE /org/positions/11/": { status: 204 },
     });
-    render_("/organisation", ["hr_manager"], 1);
+    render_("/organisation/posts", ["hr_manager"], 1);
+    expect(screen.queryByText(/Changes are made by/)).not.toBeInTheDocument();
     const user = userEvent.setup();
     await user.selectOptions(await screen.findByLabelText("Unit"), "1");
     await user.click(screen.getByRole("button", { name: "Add a post" }));
@@ -116,7 +120,7 @@ describe("posts", () => {
       "GET /org/grades/": page([grade]),
       "PATCH /org/positions/10/": { status: 409, body: { code: "in_use", detail: "It cannot be removed while 1 assignment still refers to it." } },
     });
-    render_("/organisation", ["administrator"]);
+    render_("/organisation/posts", ["administrator"]);
     const user = userEvent.setup();
     expect(await screen.findByRole("button", { name: "Change post AGR-002" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Remove post AGR-002" })).not.toBeInTheDocument();

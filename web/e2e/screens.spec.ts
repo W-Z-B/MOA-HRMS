@@ -1,4 +1,4 @@
-import { openSearch, openSection, signIn, signOut, STAFF, test } from "./support";
+import { openSearch, openSection, signIn, signOut, STAFF, test, openAdmin } from "./support";
 
 /**
  * Screenshots of the main screens for review in a pull request. Off by default; run with
@@ -59,18 +59,18 @@ test("main screens", async ({ page }, testInfo) => {
   await page.getByRole("list", { name: "Letter templates" }).waitFor();
   await shot("letter-templates");
   await openSection(page, "Reports");
-  await page.getByRole("button", { name: "Staff records to check" }).click();
+  await page.getByRole("radio", { name: /^Staff records to check/ }).click();
   await page.getByRole("table").waitFor();
   await shot("report-data-quality");
   await openSection(page, "Organisation");
+  await page.getByRole("list", { name: "Units on Mon Repos Campus" }).waitFor();
+  await shot("organisation-chart");
+  await page.getByRole("tab", { name: "Posts" }).click();
   await page.getByRole("table", { name: "Posts" }).waitFor();
   await shot("organisation-posts");
   await page.getByRole("tab", { name: "Units" }).click();
   await page.getByRole("list", { name: "Units" }).waitFor();
   await shot("organisation-units");
-  await page.getByRole("tab", { name: "Chart" }).click();
-  await page.getByRole("list", { name: "Units on Mon Repos Campus" }).waitFor();
-  await shot("organisation-chart");
   await openSection(page, "Incidents");
   await page.getByRole("table", { name: "Incidents" }).getByRole("button", { name: "IN-2026-002" }).click();
   await page.getByRole("list", { name: "People hurt" }).waitFor();
@@ -78,13 +78,13 @@ test("main screens", async ({ page }, testInfo) => {
   await openSection(page, "Admin");
   await page.getByRole("list", { name: "Accounts" }).waitFor();
   await shot("admin-accounts");
-  await page.getByRole("tab", { name: "Staff without an account" }).click();
+  await openAdmin(page, "Staff without an account");
   await page.waitForTimeout(300);
   await shot("admin-staff");
-  await page.getByRole("tab", { name: "Holidays" }).click();
+  await openAdmin(page, "Holidays");
   await page.getByRole("table").waitFor();
   await shot("admin-holidays");
-  await page.getByRole("tab", { name: "Leave types" }).click();
+  await openAdmin(page, "Leave types");
   await page.getByRole("table").waitFor();
   await shot("admin-leave-types");
   await signOut(page);
@@ -118,13 +118,13 @@ test("main screens", async ({ page }, testInfo) => {
 
   await signIn(page, STAFF.auditor.username);
   await openSection(page, "Admin");
-  await page.getByRole("tab", { name: "Access review" }).click();
+  await openAdmin(page, "Access review");
   await page.getByRole("table").waitFor();
   await shot("admin-access-review");
-  await page.getByRole("tab", { name: "Audit log" }).click();
+  await openAdmin(page, "Audit log");
   await page.getByRole("list", { name: "Audit entries" }).waitFor();
   await shot("admin-audit");
-  await page.getByRole("tab", { name: "Retention" }).click();
+  await openAdmin(page, "Retention");
   await page.getByRole("table", { name: "The retention schedule" }).waitFor();
   await shot("admin-retention");
   await signOut(page);

@@ -3,7 +3,7 @@ import { expect, expectAccessible, openSection, signIn, signOut, STAFF, test } f
 test("HR runs the data-quality report and opens a file from it", async ({ page }, testInfo) => {
   await signIn(page, STAFF.hr.username);
   await openSection(page, "Reports");
-  await page.getByRole("button", { name: "Staff records to check" }).click();
+  await page.getByRole("radio", { name: /^Staff records to check/ }).click();
   const table = page.getByRole("table");
   await expect(table).toBeVisible();
   // The fictional staff carry demonstration identifiers, so the report has things for HR to check.
