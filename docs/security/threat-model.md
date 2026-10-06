@@ -55,7 +55,7 @@ point to items in the Gold Standard Plan checklist.
 | HR officer | Campus-scoped writes, reveal of identifiers, medical evidence for leave; opens staff accounts on their campus and gives the employee and supervisor roles there |
 | HR manager, Finance, Administrator | Broad access; authenticator code required. The HR Manager also appoints HR officers; only an administrator gives the roles that see every campus, handle money, audit, answer to the Ministry or administer |
 | Principal, Auditor, Ministry liaison | Broad read |
-| SRMS and LMS | Service keys with scopes `staff:read`, `org:read`, `training:write` |
+| SRMS and LMS | Service keys with scopes `staff:read`, `org:read`, `training:write`, `training:read` |
 | Operators | Shell and database access on the host (Railway now, GSA's server later) |
 
 Threat sources: an attacker on the internet; a current or former member of staff misusing access; a lost

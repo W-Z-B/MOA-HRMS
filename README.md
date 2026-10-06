@@ -113,18 +113,33 @@ LMS (`LMS/gsa-lms`) delivers courses.
 ```bash
 docker network create gsa-ecosystem                       # once per host
 docker compose exec api python manage.py create_service_client --name srms --scopes staff:read org:read
-docker compose exec api python manage.py create_service_client --name lms --scopes staff:read org:read training:write
+docker compose exec api python manage.py create_service_client --name lms \
+  --scopes staff:read org:read training:write training:read
 docker compose -f compose.yml -f compose.ecosystem.yml up -d
 ```
 
 | Endpoint (header `Authorization: Api-Key <key>`) | Scope | Used by |
 |---|---|---|
-| `GET /api/v1/integration/staff/` | `staff:read` | SRMS and LMS resolve lecturers by employee number |
+| `GET /api/v1/integration/staff/` | `staff:read` | SRMS and LMS resolve lecturers by employee number; the LMS sends staff-development approvals to `supervisor_employee_no` |
 | `GET /api/v1/integration/org/` | `org:read` | SRMS and LMS share campus and unit codes |
 | `POST /api/v1/integration/training-completions/` | `training:write` | LMS reports staff training, idempotent on `external_ref` |
+| `GET /api/v1/integration/training-requirements/` | `training:read` | LMS reads required training by post, unit and campus (item 5.24) |
 
 Keys are stored hashed, shown once, scoped, rotatable, and every call is written to the audit log against
 the calling client. No integration endpoint exposes NIS number, TIN, national ID, date of birth or address.
+
+**Who supervises whom.** `supervisor_employee_no` in the staff directory is the head of the unit of the
+person's substantive post; when that unit has no head, or the person heads it, it is the head of the
+nearest unit above. A head who has left is passed over; unlike approvals inside the HRMS, a head without
+an HRMS account still counts, since the other systems hold their own accounts. It is empty when nobody
+qualifies or the person holds no post, and held back with the rest of the appointment while that part of
+the record is restricted (item 1.46). The rule is `people.services.reporting_head`.
+
+**Required training (item 5.24).** The HR Manager and administrators keep the list under Organisation,
+Required training: a course (title, and its LMS code when it has one) required of staff holding a post
+title, in a unit, on a campus, or any mix of these (each left empty applies to everyone), due within so many
+days and renewed every so many months. A requirement is retired, never deleted; the integration list sends
+only those in force, all of them each time.
 
 ## Hosted staging (Railway)
 

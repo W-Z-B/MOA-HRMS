@@ -1,6 +1,6 @@
 import { expect, expectAccessible, openSection, signIn, signOut, STAFF, test } from "./support";
 
-test("HR reads the establishment: posts and who holds them, units, salary scales and campuses", async ({ page }, testInfo) => {
+test("HR reads the establishment: posts and who holds them, units, salary scales, campuses and required training", async ({ page }, testInfo) => {
   await signIn(page, STAFF.hr.username);
   await openSection(page, "Organisation");
   // The chart comes first (item 2.30); the posts are a tab away.
@@ -25,6 +25,13 @@ test("HR reads the establishment: posts and who holds them, units, salary scales
   await page.getByRole("tab", { name: "Campuses" }).click();
   await expect(page.getByRole("list", { name: "Campuses" })).toContainText("Essequibo Campus");
   await expectAccessible(page, testInfo, "campuses");
+
+  // Required training by post (item 5.24): the list the LMS reads, kept by the HR Manager.
+  await page.getByRole("tab", { name: "Required training" }).click();
+  const required = page.getByRole("list", { name: "Required training" });
+  await expect(required).toContainText("First aid at work");
+  await expect(required.getByRole("listitem").filter({ hasText: "Safe handling of livestock" })).toContainText("post Farm Attendant");
+  await expectAccessible(page, testInfo, "required training");
   await signOut(page);
 });
 

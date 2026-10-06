@@ -275,6 +275,25 @@ export interface CampusDetail extends Campus {
   region: string;
 }
 
+/** Training staff must take, by post, unit and campus (item 5.24); read by the LMS. */
+export interface TrainingRequirement {
+  id: number;
+  course_code: string;
+  title: string;
+  post_title: string;
+  org_unit: number | null;
+  org_unit_code: string | null;
+  org_unit_name: string | null;
+  campus: number | null;
+  campus_code: string | null;
+  campus_name: string | null;
+  applies_to: string;
+  due_days: number;
+  renewal_months: number | null;
+  is_active: boolean;
+  notes: string;
+}
+
 export interface Assignment {
   id: number;
   employee: number;

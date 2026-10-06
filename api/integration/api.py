@@ -18,7 +18,8 @@ from core.serializers import ErrorSerializer
 from integration.auth import ServiceKeyAuthentication, scope
 from org.models import Campus, OrgUnit
 from people.models import Employee
-from training.models import TrainingRecord
+from people.services import reporting_head
+from training.models import TrainingRecord, TrainingRequirement
 
 
 class Pager(PageNumberPagination):
@@ -37,13 +38,20 @@ def _audit(request, action: str, detail: dict) -> None:
     )
 
 
-def _staff_row(employee: Employee, held: set[str] | None = None) -> dict:
+def _staff_row(employee: Employee, held: set[str] | None = None, units: dict | None = None) -> dict:
     """One member of staff for the sibling systems, without the parts of the record that are restricted
-    (item 1.46): the employee number and name always go, so the other systems know who is who."""
+    (item 1.46): the employee number and name always go, so the other systems know who is who.
+
+    supervisor_employee_no is who they report to (people.services.reporting_head): the head of the unit of
+    their substantive post, or of the nearest unit above when that unit has no head or they head it; a
+    head who has left is passed over. Empty when nobody qualifies or they hold no post."""
     from privacy.restrictions import FEED_FIELDS
 
     current = employee.current_assignment
     unit = current.position.org_unit if current else None
+    if unit is not None and units is not None:
+        unit = units.get(unit.pk, unit)
+    supervisor = reporting_head(employee, unit, units=units) if unit is not None else None
     row = {
         "employee_no": employee.employee_no,
         "first_name": employee.first_name,
@@ -57,6 +65,7 @@ def _staff_row(employee: Employee, held: set[str] | None = None) -> dict:
         "appointment_type": current.appointment_type if current else None,
         "unit_code": unit.code if unit else None,
         "unit_name": unit.name if unit else None,
+        "supervisor_employee_no": supervisor.employee_no if supervisor else None,
         "updated_at": employee.updated_at.isoformat(),
         "restricted": sorted(held or ()),
     }
@@ -81,6 +90,14 @@ class StaffRowSerializer(serializers.Serializer):
     appointment_type = serializers.CharField(allow_null=True)
     unit_code = serializers.CharField(allow_null=True)
     unit_name = serializers.CharField(allow_null=True)
+    supervisor_employee_no = serializers.CharField(
+        allow_null=True,
+        help_text=(
+            "Employee number of the person they report to: the head of the unit of their substantive post, "
+            "or of the nearest unit above when that unit has no head or they head it; a head who has left "
+            "is passed over. Empty when nobody qualifies"
+        ),
+    )
     updated_at = serializers.DateTimeField()
     restricted = serializers.ListField(
         child=serializers.CharField(),
@@ -162,7 +179,8 @@ def staff(request):
     held: dict[int, set[str]] = {}
     for employee_id, part in in_force().filter(employee__in=page).values_list("employee_id", "part"):
         held.setdefault(employee_id, set()).add(part)
-    return pager.get_paginated_response([_staff_row(e, held.get(e.pk)) for e in page])
+    units = {u.pk: u for u in OrgUnit.objects.select_related("head")}  # the chart, walked in memory
+    return pager.get_paginated_response([_staff_row(e, held.get(e.pk), units) for e in page])
 
 
 @extend_schema(responses=OrgSerializer, summary="Campus and unit codes (scope org:read)")
@@ -225,8 +243,69 @@ def training_completions(request):
     )
 
 
+class RequirementRowSerializer(serializers.Serializer):
+    id = serializers.IntegerField(help_text="The HRMS's own number for the requirement")
+    course_code = serializers.CharField(allow_null=True, help_text="The LMS course code, when it has one")
+    title = serializers.CharField()
+    post_title = serializers.CharField(allow_null=True, help_text="Staff holding a post with this title")
+    unit_code = serializers.CharField(allow_null=True, help_text="Staff whose post is in this unit")
+    campus_code = serializers.CharField(allow_null=True, help_text="Staff of this campus")
+    due_days = serializers.IntegerField(help_text="Days from assignment to the due date")
+    renewal_months = serializers.IntegerField(allow_null=True, help_text="Taken again this often; null: once")
+    updated_at = serializers.DateTimeField()
+
+
+class RequirementPageSerializer(serializers.Serializer):
+    count = serializers.IntegerField()
+    next = serializers.URLField(allow_null=True)
+    previous = serializers.URLField(allow_null=True)
+    results = RequirementRowSerializer(many=True)
+
+
+@extend_schema(
+    parameters=[
+        OpenApiParameter("page", OpenApiTypes.INT),
+        OpenApiParameter("page_size", OpenApiTypes.INT, description="At most 500"),
+    ],
+    responses={200: RequirementPageSerializer},
+    summary="Required training by post, unit and campus (scope training:read)",
+    description=(
+        "Every requirement in force (item 5.24). A condition that is null applies to everyone; those given "
+        "must all hold, with post_title compared without regard to case. The whole list is sent each time: "
+        "a requirement no longer listed has been retired."
+    ),
+)
+@api_view(["GET"])
+@authentication_classes([ServiceKeyAuthentication])
+@permission_classes([scope("training:read")])
+def training_requirements(request):
+    qs = (
+        TrainingRequirement.objects.filter(is_active=True).select_related("org_unit", "campus").order_by("id")
+    )
+    pager = Pager()
+    page = pager.paginate_queryset(qs, request)
+    _audit(request, "training_requirements.read", {"count": len(page)})
+    return pager.get_paginated_response(
+        [
+            {
+                "id": r.id,
+                "course_code": r.course_code or None,
+                "title": r.title,
+                "post_title": r.post_title or None,
+                "unit_code": r.org_unit.code if r.org_unit_id else None,
+                "campus_code": r.campus.code if r.campus_id else None,
+                "due_days": r.due_days,
+                "renewal_months": r.renewal_months,
+                "updated_at": r.updated_at.isoformat(),
+            }
+            for r in page
+        ]
+    )
+
+
 urlpatterns = [
     path("staff/", staff, name="integration-staff"),
     path("org/", org, name="integration-org"),
     path("training-completions/", training_completions, name="integration-training"),
+    path("training-requirements/", training_requirements, name="integration-training-requirements"),
 ]

@@ -31,7 +31,13 @@ CAREER_PARTS = frozenset({Part.APPOINTMENT})
 # the other systems need them to know who is who.
 FEED_FIELDS = {
     Part.CONTACT: ("email",),
-    Part.APPOINTMENT: ("position_title", "appointment_type", "unit_code", "unit_name"),
+    Part.APPOINTMENT: (
+        "position_title",
+        "appointment_type",
+        "unit_code",
+        "unit_name",
+        "supervisor_employee_no",
+    ),
     Part.PERSONAL: ("other_names",),
 }
 

@@ -25,7 +25,7 @@ if [ -n "${SERVICE_KEY_SRMS:-}" ]; then
   python manage.py create_service_client --name srms --scopes staff:read org:read --key-env SERVICE_KEY_SRMS
 fi
 if [ -n "${SERVICE_KEY_LMS:-}" ]; then
-  python manage.py create_service_client --name lms --scopes staff:read org:read training:write \
+  python manage.py create_service_client --name lms --scopes staff:read org:read training:write training:read \
     --key-env SERVICE_KEY_LMS
 fi
 

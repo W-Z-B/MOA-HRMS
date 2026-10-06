@@ -17,6 +17,18 @@ def manager_of(employee: Employee) -> Employee | None:
     """
     assignment = employee.current_assignment
     unit = assignment.position.org_unit if assignment else None
+    return reporting_head(employee, unit, needs_account=True)
+
+
+def reporting_head(employee: Employee, unit, *, units: dict | None = None, needs_account: bool = False):
+    """Who the employee reports to: the head of their unit (the unit of their substantive post), or, when
+    that unit has no head or they head it themselves, the head of the nearest unit above it.
+
+    A head who has left is skipped. needs_account also skips a head who cannot sign in to the HRMS, for
+    work decided here (manager_of); the staff directory sent to the sibling systems leaves it off, since
+    they hold their own accounts. `units` maps unit ids to units with their heads loaded, so a page of
+    the directory walks the chart without a query per step.
+    """
     seen: set[int] = set()
     while unit is not None and unit.pk not in seen:
         seen.add(unit.pk)
@@ -25,11 +37,13 @@ def manager_of(employee: Employee) -> Employee | None:
             head is not None
             and head.pk != employee.pk
             and head.status != Employee.Status.SEPARATED
-            and head.user is not None
-            and head.user.is_active
+            and (not needs_account or (head.user is not None and head.user.is_active))
         ):
             return head
-        unit = unit.parent
+        if units is None:
+            unit = unit.parent
+        else:
+            unit = units.get(unit.parent_id)
     return None
 
 
