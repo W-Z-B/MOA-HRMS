@@ -76,7 +76,14 @@ describe("posts", () => {
     const onNavigate = render_("/organisation/posts", ["hr_officer"]);
     const table = await screen.findByRole("table", { name: "Posts" });
     // The Chart comes first, and says who keeps the establishment (item 2.30).
-    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Chart", "Units", "Posts", "Salary scales", "Campuses"]);
+    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual([
+      "Chart",
+      "Units",
+      "Posts",
+      "Salary scales",
+      "Campuses",
+      "Required training",
+    ]);
     expect(screen.getByText(/Changes are made by the HR Manager or an administrator\./)).toBeInTheDocument();
     expect(within(table).getByText("Asha Persaud")).toBeInTheDocument();
     expect(within(table).getByText("Vacant")).toBeInTheDocument();

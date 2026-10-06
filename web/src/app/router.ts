@@ -36,7 +36,7 @@ export const PAGES: readonly Page[] = [
   { path: "/", label: "Home", desc: "Your work and your shortcuts", office: false },
   { path: "/to-do", label: "To do", desc: "Decisions waiting for you", office: false },
   { path: "/people", label: "People", desc: "Staff files, appointments and documents", office: true },
-  { path: "/organisation", label: "Organisation", desc: "Campuses, units, posts and grades", office: true },
+  { path: "/organisation", label: "Organisation", desc: "Campuses, units, posts, grades and required training", office: true },
   { path: "/leave", label: "Leave", desc: "Days left, requests and decisions", office: false },
   {
     path: "/letters",

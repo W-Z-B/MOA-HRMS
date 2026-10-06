@@ -3,6 +3,7 @@ import { CampusesTab } from "./CampusesTab";
 import { ChartTab } from "./ChartTab";
 import { GradesTab } from "./GradesTab";
 import { PostsTab } from "./PostsTab";
+import { TrainingTab } from "./TrainingTab";
 import { UnitsTab } from "./UnitsTab";
 
 interface Props {
@@ -19,10 +20,11 @@ const TABS = [
   { key: "posts", path: "/organisation/posts", label: "Posts" },
   { key: "grades", path: "/organisation/grades", label: "Salary scales" },
   { key: "campuses", path: "/organisation/campuses", label: "Campuses" },
+  { key: "training", path: "/organisation/training", label: "Required training" },
 ] as const;
 
 /** The establishment: posts, the units they sit in, the chart they make (item 1.10), the grades they are paid on,
- * and the campuses (item 1.25). */
+ * the campuses (item 1.25), and the training each post requires (item 5.24). */
 export function OrganisationScreen({ me, campusId, path, onNavigate }: Props) {
   // Any other address, the chart's older one included, opens the chart.
   const current = TABS.find((t) => t.path === path) ?? TABS[0];
@@ -33,7 +35,7 @@ export function OrganisationScreen({ me, campusId, path, onNavigate }: Props) {
         <div className="stacked">
           <h1>Organisation</h1>
           <p className="muted lead">
-            Campuses, units, posts and salary scales.
+            Campuses, units, posts, salary scales and the training posts require.
             {keeps ? "" : " Changes are made by the HR Manager or an administrator."}
           </p>
         </div>
@@ -59,6 +61,7 @@ export function OrganisationScreen({ me, campusId, path, onNavigate }: Props) {
         {current.key === "chart" && <ChartTab campusId={campusId} />}
         {current.key === "grades" && <GradesTab me={me} />}
         {current.key === "campuses" && <CampusesTab me={me} />}
+        {current.key === "training" && <TrainingTab me={me} />}
       </div>
     </>
   );
