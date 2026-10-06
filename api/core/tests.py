@@ -95,6 +95,10 @@ def test_demonstration_staff_have_contracts_and_managers(seeded, monkeypatch):
     call_command("seed_demo", fictional=True, verbosity=0)
     call_command("seed_demo", fictional=True, verbosity=0)
     assert Contract.objects.count() == 11
+    from training.models import TrainingRequirement
+
+    # Required training by post (item 5.24), once however often the data is loaded.
+    assert TrainingRequirement.objects.count() == 2
 
     staff = {e.employee_no: e for e in Employee.objects.all()}
     # Paid by the hour, and paid on grade GS7 at 250,000 a month over 40 hours a week.

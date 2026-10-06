@@ -27,7 +27,7 @@ from org.models import Campus, Grade, OrgUnit, Position, SalaryScale
 from people.models import Assignment, Contract, Employee, IssuedItem
 from people.services import manager_of
 from privacy.models import PrivacyNotice
-from training.models import TrainingRecord
+from training.models import TrainingRecord, TrainingRequirement
 
 FICTIONAL = "Demonstration record (fictional person)"
 EMAIL_DOMAIN = "gsa.example"
@@ -221,6 +221,12 @@ TRAINING = [
     ("E0004", "Artificial insemination techniques: refresher", date(2026, 6, 8), date(2026, 6, 12)),
 ]
 
+REQUIRED_TRAINING = [
+    # title, LMS course code, post title, campus, due days, renewal months (item 5.24)
+    ("First aid at work", "SD-FA-01", "", "MRP", 60, 24),
+    ("Safe handling of livestock", "SD-LS-01", "Farm Attendant", "", 30, None),
+]
+
 
 class Command(BaseCommand):
     help = "Load fictional demonstration data (staging and development only). Requires --fictional."
@@ -324,6 +330,19 @@ class Command(BaseCommand):
                     "provider": "External provider (fictional)",
                     "ends": ends,
                     "certification": "Certificate of attendance",
+                },
+            )
+
+        for title, code, post_title, campus, due_days, renewal in REQUIRED_TRAINING:
+            TrainingRequirement.objects.get_or_create(
+                title=title,
+                defaults={
+                    "course_code": code,
+                    "post_title": post_title,
+                    "campus": campuses.get(campus),
+                    "due_days": due_days,
+                    "renewal_months": renewal,
+                    "notes": FICTIONAL,
                 },
             )
 

@@ -64,3 +64,19 @@ def test_hr_officer_cannot_reach_other_campus_records(make_user, seeded):
     client.force_login(officer)
     assert client.get(f"/api/v1/employees/{other.id}/").status_code == 404
     assert client.post(f"/api/v1/employees/{other.id}/reveal/").status_code == 404
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("role", [row[0] for row in MATRIX])
+def test_required_training_matrix(make_user, campus, seeded, role):
+    """Everyone signed in reads required training (item 5.24); the HR Manager and administrators keep it."""
+    user = make_user(f"training.{role}", role, campus=campus)
+    client = APIClient()
+    client.force_login(user)
+    session = client.session
+    session["mfa_verified"] = True
+    session.save()
+
+    assert client.get("/api/v1/training/requirements/").status_code == 200
+    created = client.post("/api/v1/training/requirements/", {"title": f"Induction {role}"}, format="json")
+    assert (created.status_code == 201) is (role in ("administrator", "hr_manager"))
