@@ -52,7 +52,7 @@ export const PAGES: readonly Page[] = [
   { path: "/me", label: "My contract", desc: "Your appointment and its terms", office: false },
   { path: "/my-record", label: "My record", desc: "What the School holds about you", office: false },
   { path: "/account", label: "My account", desc: "Password, sign-in email and devices", office: false },
-  { path: "/attendance", label: "Attendance", desc: "Shift patterns and attendance records", office: true, later: true },
+  { path: "/attendance", label: "Attendance", desc: "Check in and out, and your attendance record", office: false },
   { path: "/appraisals", label: "Appraisals", desc: "Appraisal cycles and appraisals", office: true, later: true },
   { path: "/payroll", label: "Payroll", desc: "Payroll periods and the payroll interface", office: true, later: true },
 ];

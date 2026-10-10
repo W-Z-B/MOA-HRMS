@@ -9,6 +9,7 @@ import { ForgotPasswordScreen } from "./features/auth/ForgotPasswordScreen";
 import { CheckLetterScreen } from "./features/letters/CheckLetterScreen";
 import { LoginScreen } from "./features/auth/LoginScreen";
 import { SetPasswordScreen } from "./features/auth/SetPasswordScreen";
+import { AttendanceScreen } from "./features/attendance/AttendanceScreen";
 import { HomeScreen } from "./features/home/HomeScreen";
 import { LeaveScreen } from "./features/leave/LeaveScreen";
 import { LettersScreen } from "./features/letters/LettersScreen";
@@ -170,8 +171,7 @@ export default function App() {
   else if (path === "/me") screen = <MyContractScreen />;
   else if (path === "/my-record") screen = <MyRecordScreen />;
   else if (path === "/account") screen = <AccountScreen />;
-  else if (path.startsWith("/attendance"))
-    screen = <ComingSoon title="Attendance" sprint="Release 2" requirement="F07" />;
+  else if (path.startsWith("/attendance")) screen = <AttendanceScreen me={me} path={path} onNavigate={navigate} />;
   else if (path.startsWith("/appraisals"))
     screen = <ComingSoon title="Appraisals" sprint="Release 2" requirement="F08" />;
   else if (path.startsWith("/payroll")) screen = <ComingSoon title="Payroll" sprint="Release 2" requirement="F13" />;

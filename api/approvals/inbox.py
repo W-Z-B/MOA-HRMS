@@ -217,6 +217,27 @@ def _signatures(user) -> list[dict]:
     ]
 
 
+def _attendance(user) -> list[dict]:
+    """Attendance exceptions the nightly sweep found (H-M02): late, absent or a missing checkout."""
+    from attendance.models import AttendanceRecord
+    from attendance.services import open_exceptions_for_campus_scope
+    from iam.models import Role
+
+    if not has_role(user, Role.HR_OFFICER, Role.HR_MANAGER, Role.SUPERVISOR, Role.ADMINISTRATOR):
+        return []
+    open_ = scope_queryset(user, open_exceptions_for_campus_scope(), campus_field="employee__campus")
+    return [
+        _item(
+            "attendance",
+            "Attendance to look into",
+            f"{r.employee.full_name}: {r.get_status_display().lower()}, {r.date:%d/%m/%Y}",
+            r.updated_at,
+            "/attendance?tab=exceptions",
+        )
+        for r in open_.exclude(status=AttendanceRecord.Status.CORRECTED)
+    ]
+
+
 def waiting_for(user) -> list[dict]:
     employee = getattr(user, "employee", None)
     items = [
@@ -227,5 +248,6 @@ def waiting_for(user) -> list[dict]:
         *_hr_followups(user),
         *_incidents(user),
         *_signatures(user),
+        *_attendance(user),
     ]
     return sorted(items, key=lambda item: item["since"])

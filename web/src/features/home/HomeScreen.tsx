@@ -49,7 +49,7 @@ interface Item {
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 const first = (name: string) => name.split(" ")[0];
-const OWN = new Set(["/", "/to-do", "/me", "/my-record", "/account", "/leave", "/incidents"]);
+const OWN = new Set(["/", "/to-do", "/me", "/my-record", "/account", "/leave", "/incidents", "/attendance"]);
 
 function Shortcuts({ items, onNavigate }: { items: Shortcut[]; onNavigate: (to: string) => void }) {
   return (
@@ -380,7 +380,10 @@ export function HomeScreen({ me, campusId, onNavigate }: Props) {
     const annual = own.balances.find((b) => b.code === "ANN");
     shortcuts = [
       ...(me.employee_id !== null
-        ? [{ title: "My leave", sub: annual ? `${inDays(Math.max(num(annual.available), 0))} of annual leave left` : "Days left and your requests", to: "/leave" }]
+        ? [
+            { title: "My leave", sub: annual ? `${inDays(Math.max(num(annual.available), 0))} of annual leave left` : "Days left and your requests", to: "/leave" },
+            { title: "Attendance", sub: "Check in and out", to: "/attendance" },
+          ]
         : []),
       { title: "My contract", sub: "Your appointment and its terms", to: "/me" },
       { title: "My record", sub: "What the School holds about you", to: "/my-record" },

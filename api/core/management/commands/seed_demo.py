@@ -19,6 +19,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
+from attendance.models import EmployeeShift, ShiftPattern
 from iam.models import Role, RoleScope
 from incidents.models import Action, Incident, Person
 from leave.models import Entitlement, LeaveLedger, LeaveRequest, LeaveType
@@ -134,6 +135,9 @@ HOURS_PER_WEEK = Decimal("40")
 NOTICE_DAYS = 30
 HOURLY_RATES = {"E0005": Decimal("750.00")}  # paid by the hour; the others by their grade
 ENTITLEMENTS = {"E0009": {"ANN": Decimal("14"), "SIC": Decimal("10")}}
+# A seven-day shift for the two staff the attendance browser journey checks in as (item H-M02), so that
+# journey passes whatever day of the week it runs on, rather than only Monday to Friday.
+SEVEN_DAY_SHIFT = {"E0004": True, "E0007": True}
 
 # Things handed out to staff (item 1.17): employee, kind, description, tag, issued on.
 ISSUED = [
@@ -354,6 +358,21 @@ class Command(BaseCommand):
             )
 
         self._incidents(staff, units)
+
+        if SEVEN_DAY_SHIFT:
+            shift, _ = ShiftPattern.objects.update_or_create(
+                code="DEMO-7DAY",
+                defaults={
+                    "name": "Demonstration: every day",
+                    "starts": datetime.min.time().replace(hour=8),
+                    "ends": datetime.min.time().replace(hour=16, minute=30),
+                    "working_days": [1, 2, 3, 4, 5, 6, 7],
+                },
+            )
+            for number in SEVEN_DAY_SHIFT:
+                EmployeeShift.objects.get_or_create(
+                    employee=staff[number], effective_from=SCALE_FROM, defaults={"shift": shift}
+                )
 
         vacant = sum(1 for p in Position.objects.filter(number__in=positions) if p.is_vacant)
         self.stdout.write(

@@ -76,6 +76,14 @@ const LEAVERS = {
 } as const;
 export const leaver = (testInfo: TestInfo) => LEAVERS[testInfo.project.name as keyof typeof LEAVERS];
 
+/** Staff who check themselves in and out, one for each browser project, so the two never share a day's record. */
+const ATTENDANCE_PEOPLE = {
+  desktop: { username: "kwame.adams", name: "Kwame Adams" },
+  phone: { username: "devon.charles", name: "Devon Charles" },
+} as const;
+export const attendancePerson = (testInfo: TestInfo) =>
+  ATTENDANCE_PEOPLE[testInfo.project.name as keyof typeof ATTENDANCE_PEOPLE];
+
 /** Heads of unit who name a stand-in, one for each browser project, and the colleague they name. */
 const STAND_INS = {
   desktop: { username: "michael.thomas", delegate: "Shanta Ramdeen" },

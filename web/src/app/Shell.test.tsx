@@ -208,6 +208,7 @@ describe("search", () => {
       "My contract",
       "My record",
       "My account",
+      "Attendance",
     ]);
     const actions = within(dialog).getByRole("group", { name: "Actions" });
     expect(within(actions).getAllByRole("option").map((o) => o.querySelector(".search-title")?.textContent)).toEqual([
