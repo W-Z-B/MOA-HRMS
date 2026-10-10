@@ -1436,3 +1436,98 @@ export interface LeaveTypeRules {
   appointment_types: string[];
   term_time_restricted: boolean;
 }
+
+// -- Recruitment (item H-W01, Phase B) --
+
+/** Who posts vacancies and decides applications (recruitment.api.HR); mirrors HR_ROLES exactly. */
+export const RECRUITMENT_WRITE_ROLES = ["hr_officer", "hr_manager", "administrator"];
+/** Who reads vacancies, applications, interviews and hires without deciding them (recruitment.api.BROAD_READ). */
+export const RECRUITMENT_READ_ROLES = ["hr_officer", "hr_manager", "administrator", "supervisor", "principal"];
+
+export type ApplicationState =
+  | "submitted"
+  | "shortlisted"
+  | "interview_scheduled"
+  | "interviewed"
+  | "offered"
+  | "accepted"
+  | "declined"
+  | "rejected"
+  | "withdrawn";
+
+export interface Vacancy {
+  id: number;
+  position: number;
+  grade_label: string;
+  campus_name: string;
+  title: string;
+  description: string;
+  opens_on: string;
+  closes_on: string;
+  state: "open" | "closed";
+  is_open: boolean;
+}
+
+export interface Candidate {
+  id: number;
+  first_name: string;
+  last_name: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  address: string;
+  national_id?: string; // write-only: never present in a response
+  national_id_masked: string | null;
+  cv?: File; // write-only
+  cv_filename: string | null;
+}
+
+export interface Application {
+  id: number;
+  vacancy: number;
+  vacancy_title: string;
+  candidate: Candidate;
+  source: string;
+  state: ApplicationState;
+  decision_comment: string;
+  notes: string;
+  reference: string;
+  allowed_actions: string[];
+  has_interview: boolean;
+  created_at: string;
+}
+
+export interface Interview {
+  id: number;
+  application: number;
+  candidate_name: string;
+  interviewer: number;
+  interviewer_name: string;
+  starts_at: string;
+  ends_at: string;
+  location: string;
+  state: "scheduled" | "cancelled" | "completed";
+}
+
+export interface Hire {
+  id: number;
+  application: number;
+  vacancy: number;
+  vacancy_title: string;
+  candidate: number;
+  candidate_name: string;
+  start_date: string | null;
+  employee: number | null;
+  notes: string;
+}
+
+/** The answer to a reference-and-code check (item 1.47's own pattern), signed in or not. */
+export interface CheckedApplication {
+  found: boolean;
+  detail: string;
+  reference: string | null;
+  vacancy: string | null;
+  state: ApplicationState | null;
+  state_label: string | null;
+  submitted_at: string | null;
+}

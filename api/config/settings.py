@@ -60,6 +60,8 @@ INSTALLED_APPS = [
     "performance",
     "training",
     "payroll",
+    # Phase B
+    "recruitment",
 ]
 
 MIDDLEWARE = [
@@ -271,6 +273,14 @@ ATTENDANCE_DEFAULT_START = env("ATTENDANCE_DEFAULT_START", "08:00")
 ATTENDANCE_DEFAULT_END = env("ATTENDANCE_DEFAULT_END", "16:30")
 ATTENDANCE_DEFAULT_WORKING_DAYS = [1, 2, 3, 4, 5]  # ISO weekdays: Monday to Friday
 ATTENDANCE_GRACE_MINUTES = int(env("ATTENDANCE_GRACE_MINUTES", "10"))
+
+# Recruitment (item H-W01, Phase B). An interview with no end time given is this long; checking an
+# application's progress (mirrors LETTER_CHECK_FAILURES) shares the sign-in lockout window; a decided,
+# unsuccessful application's data is kept this long (Data Protection Act 2023) before it may be anonymised —
+# no job does that yet in this phase (see the pull request).
+RECRUITMENT_DEFAULT_INTERVIEW_MINUTES = int(env("RECRUITMENT_DEFAULT_INTERVIEW_MINUTES", "45"))
+RECRUITMENT_CHECK_FAILURES = int(env("RECRUITMENT_CHECK_FAILURES", "10"))
+RECRUITMENT_RETENTION_DAYS = int(env("RECRUITMENT_RETENTION_DAYS", "365"))
 
 LOGGING = {
     "version": 1,

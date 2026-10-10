@@ -36,6 +36,8 @@ urlpatterns = [
     path("api/v1/performance/", include("performance.api")),
     path("api/v1/training/", include("training.api")),
     path("api/v1/payroll/", include("payroll.api")),
+    # Phase B
+    path("api/v1/recruitment/", include("recruitment.api")),
 ]
 
 # Personnel documents are never served from MEDIA_URL; use the audited /documents/{id}/download/ endpoint.
