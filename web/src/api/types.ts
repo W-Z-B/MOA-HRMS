@@ -787,6 +787,39 @@ export interface LeaveCheck {
   problems: { code: string; field: string; detail: string }[];
 }
 
+export type AttendanceStatus =
+  | "present"
+  | "late"
+  | "absent"
+  | "on_leave"
+  | "holiday"
+  | "not_scheduled"
+  | "missing_checkout"
+  | "corrected";
+
+export interface AttendanceRecord {
+  id: number;
+  employee: number;
+  employee_name: string;
+  campus_name: string;
+  date: string;
+  shift: number | null;
+  scheduled_in: string | null;
+  scheduled_out: string | null;
+  time_in: string | null;
+  time_out: string | null;
+  hours: Days;
+  overtime_hours: Days;
+  source: "self" | "manual" | "import" | "device" | "system";
+  source_display: string;
+  status: AttendanceStatus;
+  status_display: string;
+  leave_request: number | null;
+  note: string;
+  resolved: boolean;
+  is_mine: boolean;
+}
+
 export interface Contract {
   id: number;
   assignment: number;
@@ -856,6 +889,8 @@ export interface Notification {
 }
 
 export const HR_ROLES = ["hr_officer", "hr_manager", "administrator"];
+/** Who corrects someone else's attendance day (attendance.api.HR_AND_SUPERVISOR). */
+export const ATTENDANCE_CORRECT_ROLES = ["hr_officer", "hr_manager", "administrator", "supervisor"];
 /** Who reads the staff list, and so finds people from search (people.views.STAFF_READ). */
 export const STAFF_READ_ROLES = ["hr_officer", "hr_manager", "administrator", "principal", "finance", "supervisor", "auditor"];
 /** Who works with accounts (the server enforces the same rules; these only hide what would be refused). */

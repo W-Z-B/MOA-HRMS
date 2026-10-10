@@ -44,6 +44,11 @@ export function initials(name: string): string {
   return (first + last).toUpperCase();
 }
 
+/** "08:02:00" (as the API sends a time field) reads as "08:02". */
+export function hm(value: string | null | undefined): string {
+  return value ? value.slice(0, 5) : "";
+}
+
 export function gyd(value: number | string | null | undefined): string {
   if (value === null || value === undefined || value === "") return "";
   return `G$${Number(value).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

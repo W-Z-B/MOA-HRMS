@@ -262,6 +262,16 @@ LETTER_REFERENCE_PREFIX = env("LETTER_REFERENCE_PREFIX", "GSA/HR")
 LETTER_CHECK_URL = env("LETTER_CHECK_URL", f"{PUBLIC_URL}/#/check-letter")
 LETTER_CHECK_FAILURES = int(env("LETTER_CHECK_FAILURES", "10"))
 
+# Attendance (item H-M02, Phase A). An employee with no shift pattern assigned (attendance.EmployeeShift) is
+# expected on these default hours, Monday to Friday; a check-in later than the scheduled start by more than
+# the grace period is "late"; a check-in with no check-out by the time the nightly job runs for that day is a
+# "missing checkout". These are build-time assumptions (no client answer yet to decision D3) and are easy to
+# retune here without a migration.
+ATTENDANCE_DEFAULT_START = env("ATTENDANCE_DEFAULT_START", "08:00")
+ATTENDANCE_DEFAULT_END = env("ATTENDANCE_DEFAULT_END", "16:30")
+ATTENDANCE_DEFAULT_WORKING_DAYS = [1, 2, 3, 4, 5]  # ISO weekdays: Monday to Friday
+ATTENDANCE_GRACE_MINUTES = int(env("ATTENDANCE_GRACE_MINUTES", "10"))
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
