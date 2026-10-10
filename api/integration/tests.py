@@ -56,6 +56,35 @@ def test_staff_endpoint_requires_key_and_scope_and_hides_identifiers(employee, u
 
 
 @pytest.mark.django_db
+def test_headcount_endpoint_requires_scope_and_counts_active_staff(employee, unit):
+    from org.models import Position
+    from people.models import Assignment
+
+    Assignment.objects.create(
+        employee=employee,
+        position=Position.objects.get(number="LIV-001"),
+        appointment_type="permanent",
+        start_date=date(2026, 1, 1),
+    )
+    _, headcount_key = ServiceClient.issue("insights", ["headcount:read"])
+    _, other_key = ServiceClient.issue("srms", ["staff:read"])
+
+    assert _client(other_key).get("/api/v1/integration/headcount/").status_code == 403
+
+    response = _client(headcount_key).get("/api/v1/integration/headcount/")
+    assert response.status_code == 200
+    rows = response.json()
+    campus_total = next(r for r in rows if r["campus_code"] == "MRP" and r["unit_code"] == "")
+    assert campus_total["headcount"] == 1
+    unit_row = next(r for r in rows if r["unit_code"] == "LIV")
+    assert unit_row["campus_code"] == "MRP"
+    assert unit_row["headcount"] == 1
+    assert unit_row["unit_name"] == "Livestock Unit"
+    assert not any({"employee_no", "name", "first_name"} & set(r) for r in rows)
+    assert AuditLog.objects.filter(action="integration:headcount.read").exists()
+
+
+@pytest.mark.django_db
 def test_training_completion_is_idempotent(employee):
     _, key = ServiceClient.issue("lms", ["training:write"])
     payload = {
