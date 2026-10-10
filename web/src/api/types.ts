@@ -1531,3 +1531,43 @@ export interface CheckedApplication {
   state_label: string | null;
   submitted_at: string | null;
 }
+
+// -- Onboarding (item H-W02, Phase C) --
+
+/** Who starts, decides and closes steps of onboarding; held to the same readers as the confidential
+ * staff file (people.onboarding_views.ONBOARDING_READ). A new hire also reads their own record. */
+export const ONBOARDING_ROLES = ["hr_officer", "hr_manager", "administrator", "principal", "auditor"];
+export const ONBOARDING_WRITE_ROLES = ["hr_officer", "hr_manager", "administrator"];
+
+export type OnboardingStepCode = "documents" | "account" | "equipment" | "induction";
+
+export interface OnboardingStep {
+  id: number;
+  code: OnboardingStepCode;
+  label: string;
+  who: string;
+  state: "open" | "done" | "not_needed";
+  state_name: string;
+  note: string;
+  cleared_at: string | null;
+  cleared_by_name: string | null;
+}
+
+export type OnboardingState = "in_progress" | "documents_submitted" | "completed" | "cancelled";
+
+/** Joining the School (item H-W02): the mirror of Separation, from an accepted hire to full staff. */
+export interface Onboarding {
+  id: number;
+  hire: number;
+  employee: number;
+  employee_name: string;
+  state: OnboardingState;
+  state_name: string;
+  started_on: string;
+  completed_at: string | null;
+  note: string;
+  decision_comment: string;
+  steps: OnboardingStep[];
+  allowed_actions: string[];
+  created_at: string;
+}

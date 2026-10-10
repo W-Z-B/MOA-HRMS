@@ -5,6 +5,7 @@ import {
   ADMIN_ROLES,
   CASE_ROLES,
   LETTER_ROLES,
+  ONBOARDING_ROLES,
   RECRUITMENT_READ_ROLES,
   hasAnyRole,
   isOfficeUser,
@@ -69,6 +70,13 @@ export const PAGES: readonly Page[] = [
     desc: "Vacancies, applications and interviews",
     office: true,
     roles: RECRUITMENT_READ_ROLES,
+  },
+  {
+    path: "/onboarding",
+    label: "Onboarding",
+    desc: "Joining staff: the checklist from an accepted hire to active",
+    office: true,
+    roles: ONBOARDING_ROLES,
   },
 ];
 

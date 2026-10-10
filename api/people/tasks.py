@@ -99,3 +99,8 @@ def complete_separations(timestamp: int | None = None) -> int:
     done = complete_due(date.today())
     log.info("people.complete_separations completed %s", done)
     return done
+
+
+# H-W02's own alert lives in its own module (people.onboarding_tasks); imported here, not alongside it,
+# so procrastinate's autodiscovery (which scans each app's "tasks" module by name) also registers it.
+from people import onboarding_tasks  # noqa: E402,F401
