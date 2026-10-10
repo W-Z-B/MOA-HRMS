@@ -20,6 +20,7 @@ class Employee(TimeStampedModel):
         OTHER = "X", "Other or not stated"
 
     class Status(models.TextChoices):
+        ONBOARDING = "onboarding", "Onboarding"
         ACTIVE = "active", "Active"
         ON_LEAVE = "on_leave", "On leave"
         SUSPENDED = "suspended", "Suspended"
@@ -570,6 +571,85 @@ class ExitInterview(TimeStampedModel):
 
     def __str__(self) -> str:
         return f"Exit interview with {self.separation.employee} on {self.held_on:%d/%m/%Y}"
+
+
+class Onboarding(TimeStampedModel):
+    """Joining the School (item H-W02): the mirror of leaving (``Separation``), run from an accepted hire
+    (``recruitment.Hire``) through to a full member of staff.
+
+    The staff record and the first appointment are created at the start, not the end (``people.onboarding.
+    start_onboarding``): equipment cannot be issued and documents cannot be filed against nobody. Until HR
+    completes it the employee's status stays "onboarding" (``Employee.Status.ONBOARDING``), not "active",
+    which is why every screen and job that already counts active staff by status alone (the home dashboard,
+    the leave accrual job, the payroll run, attendance eligibility) leaves an onboarding appointee out with
+    no change of its own.
+
+    The record is driven by ``people.onboarding_workflow.ONBOARDING``, the approvals engine (item 1.33):
+    the new hire (its ``OWNER``) submits the documents asked for; HR confirms them, finishes the other
+    steps, and completes it, or cancels it if the hire falls through.
+    """
+
+    class State(models.TextChoices):
+        IN_PROGRESS = "in_progress", "In progress"
+        DOCUMENTS_SUBMITTED = "documents_submitted", "Documents submitted, awaiting HR"
+        COMPLETED = "completed", "Completed"
+        CANCELLED = "cancelled", "Cancelled"
+
+    hire = models.OneToOneField("recruitment.Hire", on_delete=models.PROTECT, related_name="onboarding")
+    employee = models.ForeignKey(Employee, on_delete=models.PROTECT, related_name="onboarding")
+    state = models.CharField(max_length=20, choices=State.choices, default=State.IN_PROGRESS)
+    previous_state = models.CharField(max_length=20, blank=True)  # read by approvals.engine
+    decision_comment = models.TextField(blank=True)
+    waiting_since = models.DateTimeField(null=True, blank=True)
+    started_on = models.DateField()
+    completed_at = models.DateTimeField(null=True, blank=True)
+    note = models.CharField(max_length=300, blank=True, help_text="Why, for a cancelled onboarding")
+
+    class Meta:
+        ordering = ["-started_on", "-id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["employee"],
+                condition=Q(state__in=["in_progress", "documents_submitted"]),
+                name="one_onboarding_in_progress",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"Onboarding of {self.employee} ({self.get_state_display()})"
+
+
+class OnboardingStep(TimeStampedModel):
+    """One step of onboarding someone who has just joined (item H-W02): done, not needed, or still open.
+
+    The shape mirrors ``ClearanceStep`` exactly, for the same reason that record exists on the way out.
+    """
+
+    class State(models.TextChoices):
+        OPEN = "open", "To do"
+        DONE = "done", "Done"
+        NOT_NEEDED = "not_needed", "Not needed"
+
+    onboarding = models.ForeignKey(Onboarding, on_delete=models.CASCADE, related_name="steps")
+    code = models.SlugField(max_length=30)
+    label = models.CharField(max_length=160)
+    who = models.CharField(max_length=120, help_text="Who confirms it")
+    state = models.CharField(max_length=12, choices=State.choices, default=State.OPEN)
+    note = models.CharField(max_length=300, blank=True)
+    cleared_at = models.DateTimeField(null=True, blank=True)
+    cleared_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    position = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["onboarding", "position"]
+        constraints = [
+            models.UniqueConstraint(fields=["onboarding", "code"], name="one_onboarding_step_of_each_kind")
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.label} ({self.get_state_display()})"
 
 
 class ScanBatch(TimeStampedModel):

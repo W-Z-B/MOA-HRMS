@@ -21,6 +21,8 @@ import { CasesScreen } from "./features/cases/CasesScreen";
 import { IncidentsScreen } from "./features/incidents/IncidentsScreen";
 import { AccountScreen } from "./features/me/AccountScreen";
 import { MyContractScreen } from "./features/me/MyContractScreen";
+import { MyOnboardingScreen } from "./features/onboarding/MyOnboardingScreen";
+import { OnboardingScreen } from "./features/onboarding/OnboardingScreen";
 import { OrganisationScreen } from "./features/organisation/OrganisationScreen";
 import { EmployeeFile } from "./features/people/EmployeeFile";
 import { EmployeeFormPage } from "./features/people/EmployeeFormPage";
@@ -175,6 +177,8 @@ export default function App() {
       />
     );
   else if (path === "/me") screen = <MyContractScreen />;
+  else if (path === "/me/onboarding") screen = <MyOnboardingScreen />;
+  else if (path.startsWith("/onboarding")) screen = <OnboardingScreen me={me} onNavigate={navigate} />;
   else if (path === "/my-record") screen = <MyRecordScreen />;
   else if (path === "/account") screen = <AccountScreen />;
   else if (path.startsWith("/attendance")) screen = <AttendanceScreen me={me} path={path} onNavigate={navigate} />;

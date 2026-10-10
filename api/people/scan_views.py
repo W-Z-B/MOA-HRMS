@@ -52,7 +52,7 @@ class ScanItemSerializer(serializers.ModelSerializer):
 
 
 class ScanBatchSerializer(serializers.ModelSerializer):
-    doc_type = serializers.ChoiceField(choices=list(scanning.DOC_TYPES.items()))
+    doc_type = serializers.ChoiceField(choices=scanning.DOC_TYPE_CHOICES)
     doc_type_name = serializers.SerializerMethodField()
     classification = serializers.ChoiceField(choices=Document.Classification.choices, required=False)
     created_by_name = serializers.SerializerMethodField()

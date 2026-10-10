@@ -258,6 +258,47 @@ def _payroll(user) -> list[dict]:
     ]
 
 
+def _onboarding(user) -> list[dict]:
+    """Onboarding waiting for a decision (H-W02): HR to confirm documents, or a new hire to submit them."""
+    from people.models import Onboarding, OnboardingStep
+    from people.views import HR_WRITE
+
+    items = []
+    if has_role(user, *HR_WRITE):
+        waiting = scope_queryset(
+            user, Onboarding.objects.filter(state=Onboarding.State.DOCUMENTS_SUBMITTED), "employee__campus"
+        )
+        for record in waiting.select_related("employee"):
+            items.append(
+                _item(
+                    "onboarding_documents",
+                    "Onboarding documents to confirm",
+                    f"{record.employee.full_name}: documents submitted",
+                    record.waiting_since or record.updated_at,
+                    "/onboarding",
+                )
+            )
+    employee = getattr(user, "employee", None)
+    if employee is not None:
+        mine = Onboarding.objects.filter(
+            employee=employee,
+            state=Onboarding.State.IN_PROGRESS,
+            steps__code="documents",
+            steps__state=OnboardingStep.State.OPEN,
+        )
+        for record in mine:
+            items.append(
+                _item(
+                    "onboarding_self",
+                    "Finish your onboarding",
+                    "Upload the documents Human Resources asked for",
+                    record.created_at,
+                    "/me/onboarding",
+                )
+            )
+    return items
+
+
 def waiting_for(user) -> list[dict]:
     employee = getattr(user, "employee", None)
     items = [
@@ -270,5 +311,6 @@ def waiting_for(user) -> list[dict]:
         *_signatures(user),
         *_attendance(user),
         *_payroll(user),
+        *_onboarding(user),
     ]
     return sorted(items, key=lambda item: item["since"])

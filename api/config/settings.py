@@ -157,6 +157,10 @@ SPECTACULAR_SETTINGS = {
         "SafetyNoticeDutyEnum": "incidents.models.Notice.Duty",
         "SafetyNoticeRecipientEnum": "incidents.models.Notice.Recipient",
         "RecordPartEnum": "privacy.models.CorrectionRequest.Subject",
+        "OnboardingStateEnum": "people.models.Onboarding.State",
+        "OnboardingStepStateEnum": "people.models.OnboardingStep.State",
+        "OnboardingDocTypeEnum": "people.onboarding_views.ONBOARDING_DOC_TYPES",
+        "ScanDocTypeEnum": "people.scanning.DOC_TYPE_CHOICES",
     },
 }
 

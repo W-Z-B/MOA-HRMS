@@ -28,6 +28,10 @@ DOC_TYPES = {
     "medical": "Medical",
     "other": "Other",
 }
+# As (value, label) pairs, for ScanItemSerializer.doc_type's ChoiceField and config.settings'
+# ENUM_NAME_OVERRIDES: H-W02 added a second, differently-scoped "doc_type" field (people.onboarding_views),
+# and the override needs pairs, not the dict above, to hash the same way the field itself does.
+DOC_TYPE_CHOICES = tuple(DOC_TYPES.items())
 # Up to four letters then up to eight digits, at the very start, followed by a space, _ - . or nothing.
 LEADING_NUMBER = re.compile(r"^\s*([A-Za-z]{0,4}\d{1,8})(?=[\s_.\-]|$)")
 

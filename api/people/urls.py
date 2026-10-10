@@ -1,9 +1,10 @@
 from rest_framework.routers import DefaultRouter
 
-from people import career_views, item_views, leaving_views, scan_views, views
+from people import career_views, item_views, leaving_views, onboarding_views, scan_views, views
 
 router = DefaultRouter()
 router.register("employees", views.EmployeeViewSet, basename="employee")
+router.register("onboarding", onboarding_views.OnboardingViewSet, basename="onboarding")
 router.register("assignments", views.AssignmentViewSet, basename="assignment")
 router.register("contracts", views.ContractViewSet, basename="contract")
 router.register("documents", views.DocumentViewSet, basename="document")

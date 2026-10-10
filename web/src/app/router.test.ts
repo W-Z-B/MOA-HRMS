@@ -21,7 +21,9 @@ describe("pages by role", () => {
   });
 
   it("gives staff who work in the system every page, Admin to those with a tab in it, Letters to HR", () => {
-    expect(pagesFor(person(["employee", "supervisor"]))).toEqual(PAGES.filter((p) => !["Admin", "Letters"].includes(p.label)));
+    expect(pagesFor(person(["employee", "supervisor"]))).toEqual(
+      PAGES.filter((p) => !["Admin", "Letters", "Onboarding"].includes(p.label)),
+    );
     expect(pagesFor(person(["finance"])).map((p) => p.label)).not.toContain("Cases");
     expect(pagesFor(person(["hr_officer"]))).toEqual(PAGES);
     expect(pagesFor(person(["auditor"])).map((p) => p.label)).toEqual(expect.arrayContaining(["Admin", "Letters"]));
