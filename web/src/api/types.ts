@@ -820,6 +820,50 @@ export interface AttendanceRecord {
   is_mine: boolean;
 }
 
+export type PayRunState = "draft" | "calculated" | "approved" | "disbursed";
+
+export interface PayRun {
+  id: number;
+  period: string;
+  state: PayRunState;
+  calculated_at: string | null;
+  approved_at: string | null;
+  disbursed_at: string | null;
+  total_gross: Days;
+  total_nis_employee: Days;
+  total_nis_employer: Days;
+  total_paye: Days;
+  total_net: Days;
+  allowed_actions: string[];
+}
+
+export interface Payslip {
+  id: number;
+  pay_run: number;
+  period: string;
+  pay_run_state: PayRunState;
+  employee: number;
+  employee_name: string;
+  employee_no: string;
+  gross: Days;
+  unpaid_days: Days;
+  unpaid_deduction: Days;
+  nis_employee: Days;
+  nis_employer: Days;
+  paye: Days;
+  net: Days;
+  breakdown: Record<string, string>;
+  has_document: boolean;
+}
+
+export interface StatutoryRate {
+  id: number;
+  kind: string;
+  value: Days;
+  effective_from: string;
+  source_reference: string;
+}
+
 export interface Contract {
   id: number;
   assignment: number;
@@ -891,6 +935,10 @@ export interface Notification {
 export const HR_ROLES = ["hr_officer", "hr_manager", "administrator"];
 /** Who corrects someone else's attendance day (attendance.api.HR_AND_SUPERVISOR). */
 export const ATTENDANCE_CORRECT_ROLES = ["hr_officer", "hr_manager", "administrator", "supervisor"];
+/** Who prepares, approves and disburses a pay run (payroll.api.FINANCE); never the same person twice. */
+export const PAYROLL_WRITE_ROLES = ["finance", "administrator"];
+/** Who reads pay runs and statutory rates without being able to change them (payroll.api.BROAD_READ). */
+export const PAYROLL_READ_ROLES = ["finance", "administrator", "hr_manager", "principal", "auditor"];
 /** Who reads the staff list, and so finds people from search (people.views.STAFF_READ). */
 export const STAFF_READ_ROLES = ["hr_officer", "hr_manager", "administrator", "principal", "finance", "supervisor", "auditor"];
 /** Who works with accounts (the server enforces the same rules; these only hide what would be refused). */

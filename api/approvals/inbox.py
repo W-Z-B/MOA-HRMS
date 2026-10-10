@@ -238,6 +238,26 @@ def _attendance(user) -> list[dict]:
     ]
 
 
+def _payroll(user) -> list[dict]:
+    """Pay runs calculated and ready to approve (H-M01), never shown to whoever calculated the figures."""
+    from iam.models import Role
+    from payroll.models import PayRun
+
+    if not has_role(user, Role.FINANCE, Role.ADMINISTRATOR):
+        return []
+    waiting = PayRun.objects.filter(state=PayRun.State.CALCULATED).exclude(updated_by=user)
+    return [
+        _item(
+            "payroll",
+            "Pay run to approve",
+            f"{run.period}: net pay {run.total_net}",
+            run.calculated_at or run.updated_at,
+            "/payroll?tab=runs",
+        )
+        for run in waiting
+    ]
+
+
 def waiting_for(user) -> list[dict]:
     employee = getattr(user, "employee", None)
     items = [
@@ -249,5 +269,6 @@ def waiting_for(user) -> list[dict]:
         *_incidents(user),
         *_signatures(user),
         *_attendance(user),
+        *_payroll(user),
     ]
     return sorted(items, key=lambda item: item["since"])

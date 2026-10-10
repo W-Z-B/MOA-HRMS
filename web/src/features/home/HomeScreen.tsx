@@ -4,6 +4,7 @@ import {
   ADMIN_ROLES,
   CASE_ROLES,
   LETTER_ROLES,
+  PAYROLL_READ_ROLES,
   hasAnyRole,
   type HomeSummary,
   type LeaveBalance,
@@ -49,7 +50,7 @@ interface Item {
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 const first = (name: string) => name.split(" ")[0];
-const OWN = new Set(["/", "/to-do", "/me", "/my-record", "/account", "/leave", "/incidents", "/attendance"]);
+const OWN = new Set(["/", "/to-do", "/me", "/my-record", "/account", "/leave", "/incidents", "/attendance", "/payroll"]);
 
 function Shortcuts({ items, onNavigate }: { items: Shortcut[]; onNavigate: (to: string) => void }) {
   return (
@@ -333,6 +334,7 @@ export function HomeScreen({ me, campusId, onNavigate }: Props) {
       ...(hasAnyRole(me, LETTER_ROLES) ? [{ title: "Letters", sub: "Write and issue letters", to: "/letters" }] : []),
       { title: "Organisation", sub: "Units, posts and grades", to: "/organisation" },
       { title: "Reports", sub: "Headcount and establishment", to: "/reports" },
+      ...(hasAnyRole(me, PAYROLL_READ_ROLES) ? [{ title: "Payroll", sub: "Pay runs and statutory rates", to: "/payroll" }] : []),
       ...(hasAnyRole(me, ADMIN_ROLES) ? [{ title: "Admin", sub: "Accounts, audit and setup", to: "/admin" }] : []),
     ];
     figures = [
@@ -383,6 +385,7 @@ export function HomeScreen({ me, campusId, onNavigate }: Props) {
         ? [
             { title: "My leave", sub: annual ? `${inDays(Math.max(num(annual.available), 0))} of annual leave left` : "Days left and your requests", to: "/leave" },
             { title: "Attendance", sub: "Check in and out", to: "/attendance" },
+            { title: "My payslips", sub: "Payslips once a pay run is disbursed", to: "/payroll" },
           ]
         : []),
       { title: "My contract", sub: "Your appointment and its terms", to: "/me" },

@@ -25,6 +25,7 @@ from incidents.models import Action, Incident, Person
 from leave.models import Entitlement, LeaveLedger, LeaveRequest, LeaveType
 from leave.services import debit_for_request, working_days
 from org.models import Campus, Grade, OrgUnit, Position, SalaryScale
+from payroll.models import StatutoryRate
 from people.models import Assignment, Contract, Employee, IssuedItem
 from people.services import manager_of
 from privacy.models import PrivacyNotice
@@ -140,6 +141,32 @@ ENTITLEMENTS = {"E0009": {"ANN": Decimal("14"), "SIC": Decimal("10")}}
 # (E0002) and Roxanne Williams (E0005): neither is a subject of the privacy, session or leaving journeys,
 # which each need their own first-sign-in, session count or active account undisturbed by another one.
 SEVEN_DAY_SHIFT = {"E0002": True, "E0005": True}
+# Every payroll write (calculate, approve, disburse) needs Finance or an administrator, and every role
+# that may act there needs MFA verified, which no browser journey automates for any role (item H-M01).
+# The demonstration data disburses one payslip directly, so the "My payslips" journey can view and
+# download a real one by signing in as the employee it belongs to, with no MFA step of its own.
+DEMO_PAYSLIP_FOR = "E0001"  # Asha Persaud
+DEMO_PAYSLIP_PERIOD = "2026-09"
+
+# The verified 2026 PAYE and NIS figures (item H-M01). `seed` deliberately does not enter these: Finance
+# enters them from the official schedules with a source reference. seed_demo seeds them anyway, so the
+# demonstration environment and its browser journey can run a real pay calculation without that manual
+# step; a real deployment still goes through Finance and the StatutoryRate screen, as `seed` intends.
+STATUTORY_RATES_2026 = [
+    # kind, value, source
+    (StatutoryRate.Kind.NIS_EMPLOYEE_PCT, Decimal("5.6"), "nis.org.gy, read 2 Oct 2026"),
+    (StatutoryRate.Kind.NIS_EMPLOYER_PCT, Decimal("8.4"), "nis.org.gy, read 2 Oct 2026"),
+    (StatutoryRate.Kind.NIS_CEILING_MONTHLY, Decimal("280000"), "nis.org.gy, read 2 Oct 2026"),
+    (
+        StatutoryRate.Kind.PAYE_ALLOWANCE_MONTHLY,
+        Decimal("140000"),
+        "GRA notice 26 Feb 2026, Income Tax (Amendment) Act No. 3 of 2026",
+    ),
+    (StatutoryRate.Kind.PAYE_RATE_PCT, Decimal("25"), "GRA notice 26 Feb 2026"),
+    (StatutoryRate.Kind.PAYE_BAND2_THRESHOLD_MONTHLY, Decimal("280000"), "GRA notice 26 Feb 2026"),
+    (StatutoryRate.Kind.PAYE_RATE_BAND2_PCT, Decimal("35"), "GRA notice 26 Feb 2026"),
+]
+STATUTORY_RATES_FROM = date(2026, 1, 1)
 
 # Things handed out to staff (item 1.17): employee, kind, description, tag, issued on.
 ISSUED = [
@@ -376,6 +403,15 @@ class Command(BaseCommand):
                     employee=staff[number], effective_from=SCALE_FROM, defaults={"shift": shift}
                 )
 
+        for kind, value, source in STATUTORY_RATES_2026:
+            StatutoryRate.objects.get_or_create(
+                kind=kind,
+                effective_from=STATUTORY_RATES_FROM,
+                defaults={"value": value, "source_reference": source},
+            )
+        if accounts is not None:
+            self._demo_payslip(staff[DEMO_PAYSLIP_FOR])
+
         vacant = sum(1 for p in Position.objects.filter(number__in=positions) if p.is_vacant)
         self.stdout.write(
             self.style.SUCCESS(
@@ -389,6 +425,36 @@ class Command(BaseCommand):
             self.stdout.write(
                 f"Accounts: {accounts} created. {len(NEW_STARTERS)} new starters have none, for HR to invite."
             )
+
+    def _demo_payslip(self, employee) -> None:
+        """A disbursed pay run and one payslip, with its PDF: see DEMO_PAYSLIP_FOR above."""
+        from django.http import HttpRequest
+
+        from payroll.models import PayRun, Payslip
+        from payroll.payslip import issue_payslips
+        from payroll.services import compute_payslip
+
+        if employee.user is None:
+            return
+        run, _ = PayRun.objects.get_or_create(period=DEMO_PAYSLIP_PERIOD)
+        if run.state == PayRun.State.DISBURSED:
+            return
+        figures = compute_payslip(employee, run.period)
+        if figures is None:
+            return
+        Payslip.objects.update_or_create(pay_run=run, employee=employee, defaults=figures)
+        now = timezone.now()
+        run.state = PayRun.State.DISBURSED
+        run.calculated_at = run.approved_at = run.disbursed_at = now
+        run.total_gross = figures["gross"]
+        run.total_nis_employee = figures["nis_employee"]
+        run.total_nis_employer = figures["nis_employer"]
+        run.total_paye = figures["paye"]
+        run.total_net = figures["net"]
+        run.save()
+        request = HttpRequest()
+        request.user = employee.user
+        issue_payslips(run, request)
 
     def _incidents(self, staff, units) -> None:
         keeper = staff[HR_OFFICER].user  # None when no accounts were created

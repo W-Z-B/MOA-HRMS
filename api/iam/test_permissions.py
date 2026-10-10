@@ -3,7 +3,7 @@
 import pytest
 from rest_framework.test import APIClient
 
-# (role, may read employees, may write employees, may read payroll periods, may write leave types)
+# (role, may read employees, may write employees, may read pay runs, may write leave types)
 MATRIX = [
     ("administrator", True, True, True, True),
     ("hr_manager", True, True, True, True),
@@ -37,7 +37,7 @@ def test_role_matrix(make_user, campus, seeded, role, read_emp, write_emp, read_
         "campus": campus.id,
     }
     assert (client.post("/api/v1/employees/", payload, format="json").status_code == 201) is write_emp
-    assert (client.get("/api/v1/payroll/periods/").status_code == 200) is read_payroll
+    assert (client.get("/api/v1/payroll/runs/").status_code == 200) is read_payroll
     status = client.post(
         "/api/v1/leave/types/", {"code": f"T{role[:3]}", "name": "t"}, format="json"
     ).status_code

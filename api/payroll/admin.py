@@ -1,11 +1,17 @@
 from django.contrib import admin
 
-from payroll.models import PayrollPeriod, StatutoryRate
+from payroll.models import PayRun, Payslip, StatutoryRate
 
 
-@admin.register(PayrollPeriod)
-class PayrollPeriodAdmin(admin.ModelAdmin):
-    list_display = ("period", "state", "locked_at", "exported_at")
+@admin.register(PayRun)
+class PayRunAdmin(admin.ModelAdmin):
+    list_display = ("period", "state", "calculated_at", "approved_at", "disbursed_at", "total_net")
+
+
+@admin.register(Payslip)
+class PayslipAdmin(admin.ModelAdmin):
+    list_display = ("employee", "pay_run", "gross", "net")
+    autocomplete_fields = ("employee",)
 
 
 @admin.register(StatutoryRate)
