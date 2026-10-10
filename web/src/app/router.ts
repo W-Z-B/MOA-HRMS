@@ -54,7 +54,7 @@ export const PAGES: readonly Page[] = [
   { path: "/account", label: "My account", desc: "Password, sign-in email and devices", office: false },
   { path: "/attendance", label: "Attendance", desc: "Check in and out, and your attendance record", office: false },
   { path: "/appraisals", label: "Appraisals", desc: "Appraisal cycles and appraisals", office: true, later: true },
-  { path: "/payroll", label: "Payroll", desc: "Payroll periods and the payroll interface", office: true, later: true },
+  { path: "/payroll", label: "Payroll", desc: "Your payslips, pay runs and statutory rates", office: false },
 ];
 
 /** The pages this person may open. An employee with no other role has their own pages, and nothing they cannot open. */
