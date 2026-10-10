@@ -24,6 +24,7 @@ import { MyContractScreen } from "./features/me/MyContractScreen";
 import { MyOnboardingScreen } from "./features/onboarding/MyOnboardingScreen";
 import { OnboardingScreen } from "./features/onboarding/OnboardingScreen";
 import { OrganisationScreen } from "./features/organisation/OrganisationScreen";
+import { PerformanceScreen } from "./features/performance/PerformanceScreen";
 import { EmployeeFile } from "./features/people/EmployeeFile";
 import { EmployeeFormPage } from "./features/people/EmployeeFormPage";
 import { PeopleScreen } from "./features/people/PeopleScreen";
@@ -182,8 +183,7 @@ export default function App() {
   else if (path === "/my-record") screen = <MyRecordScreen />;
   else if (path === "/account") screen = <AccountScreen />;
   else if (path.startsWith("/attendance")) screen = <AttendanceScreen me={me} path={path} onNavigate={navigate} />;
-  else if (path.startsWith("/appraisals"))
-    screen = <ComingSoon title="Appraisals" sprint="Release 2" requirement="F08" />;
+  else if (path.startsWith("/appraisals")) screen = <PerformanceScreen me={me} path={path} onNavigate={navigate} />;
   else if (path.startsWith("/payroll")) screen = <PayrollScreen me={me} path={path} onNavigate={navigate} />;
   else if (path.startsWith("/recruitment"))
     screen = <RecruitmentScreen me={me} path={path} campusId={campus} onNavigate={navigate} />;

@@ -62,7 +62,7 @@ export const PAGES: readonly Page[] = [
   { path: "/my-record", label: "My record", desc: "What the School holds about you", office: false },
   { path: "/account", label: "My account", desc: "Password, sign-in email and devices", office: false },
   { path: "/attendance", label: "Attendance", desc: "Check in and out, and your attendance record", office: false },
-  { path: "/appraisals", label: "Appraisals", desc: "Appraisal cycles and appraisals", office: true, later: true },
+  { path: "/appraisals", label: "Appraisals", desc: "Your goals, self-assessment and appraisals", office: false },
   { path: "/payroll", label: "Payroll", desc: "Your payslips, pay runs and statutory rates", office: false },
   {
     path: "/recruitment",

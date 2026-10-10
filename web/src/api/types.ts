@@ -1571,3 +1571,66 @@ export interface Onboarding {
   allowed_actions: string[];
   created_at: string;
 }
+
+// -- Performance (item H-M03, Phase C) --
+
+/** Who opens cycles and appraisals (performance.api.HR_WRITE, reused). */
+export const PERFORMANCE_OPEN_ROLES = HR_ROLES;
+/** Who signs an appraisal off, reopens one, or opens and closes a cycle (performance.api.HR_SIGN): the
+ * HR Manager and administrators only, the same split the access review already uses. */
+export const PERFORMANCE_SIGN_ROLES = ["hr_manager", "administrator"];
+
+export interface AppraisalCycle {
+  id: number;
+  name: string;
+  year: number;
+  starts: string;
+  ends: string;
+  is_open: boolean;
+}
+
+export type GoalStatus = "not_started" | "in_progress" | "achieved" | "not_achieved";
+
+export interface Goal {
+  id: number;
+  employee: number;
+  cycle: number;
+  title: string;
+  description: string;
+  weight: number | null;
+  status: GoalStatus;
+  status_name: string;
+  position: number;
+}
+
+export type AppraisalKind = "probation" | "annual";
+export type AppraisalState = "draft" | "self_assessed" | "rated" | "signed";
+
+/** One employee's review within one cycle (item H-M03): self-assessment, then the manager's, then
+ * signed off, on the approvals engine. */
+export interface Appraisal {
+  id: number;
+  employee: number;
+  employee_name: string;
+  manager: number | null;
+  manager_name: string | null;
+  cycle: number;
+  cycle_name: string;
+  kind: AppraisalKind;
+  kind_name: string;
+  state: AppraisalState;
+  state_name: string;
+  decision_comment: string;
+  self_assessment: string;
+  self_assessed_at: string | null;
+  manager_assessment: string;
+  overall_rating: number | null;
+  rated_at: string | null;
+  signed_at: string | null;
+  outcome: string;
+  is_mine: boolean;
+  is_rated_by_me: boolean;
+  goals: Goal[];
+  allowed_actions: string[];
+  created_at: string;
+}

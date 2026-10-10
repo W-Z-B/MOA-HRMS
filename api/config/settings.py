@@ -161,6 +161,7 @@ SPECTACULAR_SETTINGS = {
         "OnboardingStepStateEnum": "people.models.OnboardingStep.State",
         "OnboardingDocTypeEnum": "people.onboarding_views.ONBOARDING_DOC_TYPES",
         "ScanDocTypeEnum": "people.scanning.DOC_TYPE_CHOICES",
+        "AppraisalKindEnum": "performance.models.Appraisal.Kind",
     },
 }
 
