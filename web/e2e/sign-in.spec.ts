@@ -34,6 +34,7 @@ test("an employee lands on their own Home, and search offers only their own page
     "My record",
     "My account",
     "Attendance",
+    "Payroll",
   ]);
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog", { name: "Search" })).toBeHidden();
