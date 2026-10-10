@@ -299,6 +299,55 @@ def _onboarding(user) -> list[dict]:
     return items
 
 
+def _performance(user) -> list[dict]:
+    """Appraisals waiting for a decision (H-M03): a manager (or HR, with none on record) to rate one
+    self-assessed, or HR to sign one off once rated."""
+    from performance.models import Appraisal
+    from performance.workflow import HR_SIGN
+
+    items = []
+    employee = getattr(user, "employee", None)
+    to_rate = Appraisal.objects.filter(state=Appraisal.State.SELF_ASSESSED).select_related(
+        "employee", "employee__campus", "manager"
+    )
+    if employee is not None:
+        for appraisal in to_rate.filter(manager=employee):
+            items.append(
+                _item(
+                    "appraisal_rate",
+                    "Appraisal to rate",
+                    f"{appraisal.employee.full_name}: {appraisal.cycle.name} {appraisal.cycle.year}",
+                    appraisal.waiting_since or appraisal.updated_at,
+                    "/appraisals?tab=team",
+                )
+            )
+    if has_role(user, *HR_SIGN):
+        for appraisal in scope_queryset(user, to_rate.filter(manager__isnull=True), "employee__campus"):
+            items.append(
+                _item(
+                    "appraisal_rate",
+                    "Appraisal to rate, with no manager on record",
+                    f"{appraisal.employee.full_name}: {appraisal.cycle.name} {appraisal.cycle.year}",
+                    appraisal.waiting_since or appraisal.updated_at,
+                    "/appraisals?tab=team",
+                )
+            )
+        waiting = scope_queryset(
+            user, Appraisal.objects.filter(state=Appraisal.State.RATED), "employee__campus"
+        ).select_related("employee", "cycle")
+        for appraisal in waiting:
+            items.append(
+                _item(
+                    "appraisal_sign",
+                    "Appraisal to sign off",
+                    f"{appraisal.employee.full_name}: {appraisal.cycle.name} {appraisal.cycle.year}",
+                    appraisal.waiting_since or appraisal.updated_at,
+                    "/appraisals?tab=team",
+                )
+            )
+    return items
+
+
 def waiting_for(user) -> list[dict]:
     employee = getattr(user, "employee", None)
     items = [
@@ -312,5 +361,6 @@ def waiting_for(user) -> list[dict]:
         *_attendance(user),
         *_payroll(user),
         *_onboarding(user),
+        *_performance(user),
     ]
     return sorted(items, key=lambda item: item["since"])

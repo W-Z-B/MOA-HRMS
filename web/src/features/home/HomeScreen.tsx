@@ -50,7 +50,18 @@ interface Item {
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 const first = (name: string) => name.split(" ")[0];
-const OWN = new Set(["/", "/to-do", "/me", "/my-record", "/account", "/leave", "/incidents", "/attendance", "/payroll"]);
+const OWN = new Set([
+  "/",
+  "/to-do",
+  "/me",
+  "/my-record",
+  "/account",
+  "/leave",
+  "/incidents",
+  "/attendance",
+  "/payroll",
+  "/appraisals",
+]);
 
 function Shortcuts({ items, onNavigate }: { items: Shortcut[]; onNavigate: (to: string) => void }) {
   return (

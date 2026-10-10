@@ -15,7 +15,7 @@ const person = (roles: string[]): Me => ({
 
 describe("pages by role", () => {
   it("gives an employee their Home, their own pages, and where to report an incident", () => {
-    const own = ["Home", "To do", "Leave", "Incidents", "My contract", "My record", "My account", "Attendance", "Payroll"];
+    const own = ["Home", "To do", "Leave", "Incidents", "My contract", "My record", "My account", "Attendance", "Appraisals", "Payroll"];
     expect(pagesFor(person(["employee"])).map((p) => p.label)).toEqual(own);
     expect(pagesFor(person([])).map((p) => p.label)).toEqual(own);
   });
@@ -31,7 +31,7 @@ describe("pages by role", () => {
   });
 
   it("keeps the Release 2 placeholders apart, and says what every page is for", () => {
-    expect(PAGES.filter((p) => p.later).map((p) => p.label)).toEqual(["Appraisals"]);
+    expect(PAGES.filter((p) => p.later).map((p) => p.label)).toEqual([]);
     expect(PAGES.every((p) => p.desc.length > 0)).toBe(true);
   });
 

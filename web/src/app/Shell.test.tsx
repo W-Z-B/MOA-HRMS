@@ -209,6 +209,7 @@ describe("search", () => {
       "My record",
       "My account",
       "Attendance",
+      "Appraisals",
       "Payroll",
     ]);
     const actions = within(dialog).getByRole("group", { name: "Actions" });
