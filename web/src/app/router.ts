@@ -1,7 +1,15 @@
 /** Hash-based routing with no dependency. A router library is approved in principle (ADR 0009) and is added when a feature needs it. */
 
 import { useEffect, useState } from "react";
-import { ADMIN_ROLES, CASE_ROLES, LETTER_ROLES, hasAnyRole, isOfficeUser, type Me } from "../api/types";
+import {
+  ADMIN_ROLES,
+  CASE_ROLES,
+  LETTER_ROLES,
+  RECRUITMENT_READ_ROLES,
+  hasAnyRole,
+  isOfficeUser,
+  type Me,
+} from "../api/types";
 
 const read = () => window.location.hash.replace(/^#/, "") || "/";
 
@@ -55,6 +63,13 @@ export const PAGES: readonly Page[] = [
   { path: "/attendance", label: "Attendance", desc: "Check in and out, and your attendance record", office: false },
   { path: "/appraisals", label: "Appraisals", desc: "Appraisal cycles and appraisals", office: true, later: true },
   { path: "/payroll", label: "Payroll", desc: "Your payslips, pay runs and statutory rates", office: false },
+  {
+    path: "/recruitment",
+    label: "Recruitment",
+    desc: "Vacancies, applications and interviews",
+    office: true,
+    roles: RECRUITMENT_READ_ROLES,
+  },
 ];
 
 /** The pages this person may open. An employee with no other role has their own pages, and nothing they cannot open. */

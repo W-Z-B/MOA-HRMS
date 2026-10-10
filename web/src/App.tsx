@@ -12,6 +12,8 @@ import { SetPasswordScreen } from "./features/auth/SetPasswordScreen";
 import { AttendanceScreen } from "./features/attendance/AttendanceScreen";
 import { HomeScreen } from "./features/home/HomeScreen";
 import { PayrollScreen } from "./features/payroll/PayrollScreen";
+import { ApplicationStatusScreen } from "./features/recruitment/ApplicationStatusScreen";
+import { RecruitmentScreen } from "./features/recruitment/RecruitmentScreen";
 import { LeaveScreen } from "./features/leave/LeaveScreen";
 import { LettersScreen } from "./features/letters/LettersScreen";
 import { ToDoScreen } from "./features/approvals/ToDoScreen";
@@ -105,6 +107,8 @@ export default function App() {
   if (confirmEmail) return <ConfirmEmailScreen token={confirmEmail[1]} onDone={() => navigate("/")} />;
   // Anyone shown a letter checks it here, signed in or not (item 1.47).
   if (path === "/check-letter") return <CheckLetterScreen onBack={() => navigate("/")} />;
+  // A candidate checks their application the same way, without an account (item H-W01).
+  if (path === "/apply-status") return <ApplicationStatusScreen onBack={() => navigate("/")} />;
   if (me === undefined) return <p className="loading">Loading GSA HRMS…</p>;
   if (me === null || (me.mfa_required && !me.mfa_verified)) {
     if (path === "/forgot-password") return <ForgotPasswordScreen onBack={() => navigate("/")} />;
@@ -116,6 +120,7 @@ export default function App() {
         username={knownUsername}
         onForgotPassword={() => navigate("/forgot-password")}
         onCheckLetter={() => navigate("/check-letter")}
+        onCheckApplication={() => navigate("/apply-status")}
       />
     );
   }
@@ -176,6 +181,8 @@ export default function App() {
   else if (path.startsWith("/appraisals"))
     screen = <ComingSoon title="Appraisals" sprint="Release 2" requirement="F08" />;
   else if (path.startsWith("/payroll")) screen = <PayrollScreen me={me} path={path} onNavigate={navigate} />;
+  else if (path.startsWith("/recruitment"))
+    screen = <RecruitmentScreen me={me} path={path} campusId={campus} onNavigate={navigate} />;
   else if (path.startsWith("/reports")) screen = <ReportsScreen me={me} campusId={campus} onNavigate={navigate} />;
   else if (path.startsWith("/admin"))
     screen = <AdminScreen me={me} campusId={campus} path={path} onNavigate={navigate} />;

@@ -12,10 +12,19 @@ interface Props {
   onForgotPassword?: () => void;
   /** For someone shown a letter from the School, who has no account. */
   onCheckLetter?: () => void;
+  /** For a candidate checking their application, who holds no account either (item H-W01). */
+  onCheckApplication?: () => void;
 }
 
 /** Password first, then the 6-digit code from an authenticator app for roles that need one (with first-time enrolment). */
-export function LoginScreen({ onSignedIn, notice, username: knownUsername = "", onForgotPassword, onCheckLetter }: Props) {
+export function LoginScreen({
+  onSignedIn,
+  notice,
+  username: knownUsername = "",
+  onForgotPassword,
+  onCheckLetter,
+  onCheckApplication,
+}: Props) {
   const [username, setUsername] = useState(knownUsername);
   const [password, setPassword] = useState("");
   const [shown, setShown] = useState(false);
@@ -179,6 +188,14 @@ export function LoginScreen({ onSignedIn, notice, username: knownUsername = "", 
             Shown a letter from the School?{" "}
             <button type="button" className="link accent" onClick={onCheckLetter}>
               Check that it is genuine
+            </button>
+          </p>
+        )}
+        {stage === "credentials" && onCheckApplication && (
+          <p className="card-foot">
+            Applied for a post here?{" "}
+            <button type="button" className="link accent" onClick={onCheckApplication}>
+              Check your application
             </button>
           </p>
         )}
