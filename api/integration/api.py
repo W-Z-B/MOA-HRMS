@@ -3,6 +3,7 @@
 No sensitive identifiers (NIS, TIN, national ID) are ever exposed here.
 """
 
+from django.db.models import Count
 from django.urls import path
 from django.utils.dateparse import parse_datetime
 from drf_spectacular.types import OpenApiTypes
@@ -17,7 +18,7 @@ from core.net import client_ip
 from core.serializers import ErrorSerializer
 from integration.auth import ServiceKeyAuthentication, scope
 from org.models import Campus, OrgUnit
-from people.models import Employee
+from people.models import Assignment, Employee
 from people.services import reporting_head
 from training.models import TrainingRecord, TrainingRequirement
 
@@ -303,9 +304,55 @@ def training_requirements(request):
     )
 
 
+class HeadcountRowSerializer(serializers.Serializer):
+    campus_code = serializers.CharField()
+    unit_code = serializers.CharField(help_text="Blank for the campus total row")
+    unit_name = serializers.CharField(allow_blank=True)
+    headcount = serializers.IntegerField()
+
+
+@extend_schema(
+    responses=HeadcountRowSerializer(many=True),
+    summary="Active headcount by campus, and by unit within it (scope headcount:read)",
+)
+@api_view(["GET"])
+@authentication_classes([ServiceKeyAuthentication])
+@permission_classes([scope("headcount:read")])
+def headcount(request):
+    """Aggregated counts only (item X-02 of the ecosystem gap analysis): no name, no employee number.
+    One row per campus (unit_code blank, every active employee on that campus) and one row per unit
+    within it (every active employee whose current, non-acting assignment sits in that unit). A person
+    with no current assignment is counted in their campus's total but not in any unit's."""
+    campus_rows = [
+        {"campus_code": row["campus__code"], "unit_code": "", "unit_name": "", "headcount": row["n"]}
+        for row in Employee.objects.filter(status=Employee.Status.ACTIVE)
+        .values("campus__code")
+        .annotate(n=Count("id"))
+        .order_by("campus__code")
+    ]
+    unit_rows = [
+        {
+            "campus_code": row["employee__campus__code"],
+            "unit_code": row["position__org_unit__code"],
+            "unit_name": row["position__org_unit__name"],
+            "headcount": row["n"],
+        }
+        for row in Assignment.objects.filter(
+            status=Assignment.Status.ACTIVE, is_acting=False, employee__status=Employee.Status.ACTIVE
+        )
+        .values("employee__campus__code", "position__org_unit__code", "position__org_unit__name")
+        .annotate(n=Count("employee", distinct=True))
+        .order_by("employee__campus__code", "position__org_unit__code")
+    ]
+    rows = campus_rows + unit_rows
+    _audit(request, "headcount.read", {"count": len(rows)})
+    return Response(HeadcountRowSerializer(rows, many=True).data)
+
+
 urlpatterns = [
     path("staff/", staff, name="integration-staff"),
     path("org/", org, name="integration-org"),
+    path("headcount/", headcount, name="integration-headcount"),
     path("training-completions/", training_completions, name="integration-training"),
     path("training-requirements/", training_requirements, name="integration-training-requirements"),
 ]
