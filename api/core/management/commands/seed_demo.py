@@ -136,8 +136,10 @@ NOTICE_DAYS = 30
 HOURLY_RATES = {"E0005": Decimal("750.00")}  # paid by the hour; the others by their grade
 ENTITLEMENTS = {"E0009": {"ANN": Decimal("14"), "SIC": Decimal("10")}}
 # A seven-day shift for the two staff the attendance browser journey checks in as (item H-M02), so that
-# journey passes whatever day of the week it runs on, rather than only Monday to Friday.
-SEVEN_DAY_SHIFT = {"E0004": True, "E0007": True}
+# journey passes whatever day of the week it runs on, rather than only Monday to Friday. Michael Thomas
+# (E0002) and Roxanne Williams (E0005): neither is a subject of the privacy, session or leaving journeys,
+# which each need their own first-sign-in, session count or active account undisturbed by another one.
+SEVEN_DAY_SHIFT = {"E0002": True, "E0005": True}
 
 # Things handed out to staff (item 1.17): employee, kind, description, tag, issued on.
 ISSUED = [

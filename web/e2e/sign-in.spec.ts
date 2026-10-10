@@ -26,7 +26,15 @@ test("an employee lands on their own Home, and search offers only their own page
 
   await openSearch(page);
   const pages = page.getByRole("dialog", { name: "Search" }).getByRole("group", { name: "Pages" });
-  await expect(pages.locator(".search-title")).toHaveText(["To do", "Leave", "Incidents", "My contract", "My record", "My account"]);
+  await expect(pages.locator(".search-title")).toHaveText([
+    "To do",
+    "Leave",
+    "Incidents",
+    "My contract",
+    "My record",
+    "My account",
+    "Attendance",
+  ]);
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog", { name: "Search" })).toBeHidden();
   await signOut(page);
